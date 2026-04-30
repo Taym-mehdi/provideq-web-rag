@@ -7,6 +7,7 @@ import textwrap
 import requests
 
 from web_rag.config import get_settings
+from web_rag.context_builder import build_evidence_pack
 from web_rag.query_builder import build_europe_pmc_query
 from web_rag.ranker import rank_snippets
 from web_rag.snippet_extractor import extract_snippets
@@ -60,6 +61,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--show-all-snippets",
         action="store_true",
         help="Print extracted snippets before ranking."
+    )
+
+    parser.add_argument(
+        "--show-context",
+        action="store_true",
+        help="Print the final evidence context block."
     )
 
     parser.add_argument(
@@ -155,28 +162,38 @@ def print_unranked_snippets(snippets: list, max_snippets: int) -> None:
         print(f"... {remaining} additional unranked snippets not shown.")
 
 
-def print_ranked_snippets(snippets: list) -> None:
-    print("\nTop ranked evidence snippets:\n")
+def print_evidence_pack(evidence_pack) -> None:
+    print("\nTop ranked evidence pack:\n")
 
-    if not snippets:
-        print("No ranked evidence snippets are available.")
+    if not evidence_pack.records:
+        print("No ranked evidence records are available.")
         return
 
-    for index, snippet in enumerate(snippets, start=1):
-        paper = snippet.paper
+    for record in evidence_pack.records:
+        print(f"[{record.citation_id}] {record.title}")
+        print(f"    Score: {record.score:.2f}")
 
-        print(f"[{index}] {paper.title}")
-        print(f"    Score: {snippet.score:.2f}")
+        metadata = []
 
-        metadata = format_paper_metadata(paper)
+        if record.journal:
+            metadata.append(record.journal)
+
+        if record.year:
+            metadata.append(record.year)
+
+        if record.doi:
+            metadata.append(f"DOI: {record.doi}")
+        elif record.source and record.ext_id:
+            metadata.append(f"{record.source}:{record.ext_id}")
+
         if metadata:
-            print(f"    {metadata}")
+            print(f"    {' | '.join(metadata)}")
 
-        if paper.url:
-            print(f"    URL: {paper.url}")
+        if record.url:
+            print(f"    URL: {record.url}")
 
         print(textwrap.fill(
-            f"    Evidence: {snippet.text}",
+            f"    Evidence: {record.evidence_text}",
             width=100,
             subsequent_indent="              "
         ))
@@ -209,7 +226,12 @@ def main() -> int:
             top_k=args.top_k or settings.default_top_k,
         )
 
-        print("\n=== ProvideQ Web RAG: Ranked Evidence Retrieval ===\n")
+        evidence_pack = build_evidence_pack(
+            question=query.original_question,
+            ranked_snippets=ranked_snippets,
+        )
+
+        print("\n=== ProvideQ Web RAG: Evidence Context ===\n")
         print(f"Question: {query.original_question}")
 
         if args.show_query:
@@ -217,7 +239,7 @@ def main() -> int:
 
         print(f"Retrieved papers: {len(papers)}")
         print(f"Extracted snippets: {len(snippets)}")
-        print(f"Ranked evidence shown: {len(ranked_snippets)}")
+        print(f"Evidence records: {len(evidence_pack.records)}")
 
         if args.show_papers:
             print_papers(papers)
@@ -228,7 +250,11 @@ def main() -> int:
                 max_snippets=args.max_unranked_snippets,
             )
 
-        print_ranked_snippets(ranked_snippets)
+        print_evidence_pack(evidence_pack)
+
+        if args.show_context:
+            print("\nFinal context block:\n")
+            print(evidence_pack.context_text)
 
         return 0
 

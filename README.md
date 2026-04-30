@@ -18,9 +18,9 @@ The module should eventually:
 - normalize metadata
 - extract evidence snippets
 - rank evidence snippets
+- build a citation-ready evidence context
 - generate grounded answers with citations
 - support reproducible experiments and evaluation
-
 
 ## Current pipeline
 
@@ -36,8 +36,11 @@ Europe PMC search
 paper metadata normalization
    ↓
 evidence snippet extraction
-
-``` 
+   ↓
+baseline evidence ranking
+   ↓
+citation-ready evidence context
+```
 ## Current project structure
 ```
 provideq-web-rag/
@@ -47,8 +50,10 @@ provideq-web-rag/
 │       ├── __init__.py
 │       ├── cli.py
 │       ├── config.py
+│       ├── context_builder.py
 │       ├── models.py
 │       ├── query_builder.py
+│       ├── ranker.py
 │       ├── snippet_extractor.py
 │       ├── source_client.py
 │       └── text_utils.py
