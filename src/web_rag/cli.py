@@ -8,6 +8,7 @@ import requests
 
 from web_rag.config import get_settings
 from web_rag.query_builder import build_europe_pmc_query
+from web_rag.snippet_extractor import extract_snippets
 from web_rag.source_client import search_europe_pmc
 
 
@@ -29,22 +30,56 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--window-size",
+        type=int,
+        default=None,
+        help="Number of sentences per evidence snippet."
+    )
+
+    parser.add_argument(
         "--show-query",
         action="store_true",
         help="Print the generated Europe PMC query."
     )
 
+    parser.add_argument(
+        "--show-papers",
+        action="store_true",
+        help="Print retrieved papers before showing snippets."
+    )
+
+    parser.add_argument(
+        "--max-snippets",
+        type=int,
+        default=10,
+        help="Maximum number of extracted snippets to print."
+    )
+
     return parser
 
 
-def print_papers(question: str, search_query: str, papers: list) -> None:
-    print("\n=== ProvideQ Web RAG: External Search ===\n")
-    print(f"Question: {question}")
+def format_paper_metadata(paper) -> str:
+    """
+    Build a compact metadata line for one paper.
+    """
+    metadata = []
 
-    if search_query:
-        print(f"Search query: {search_query}")
+    if paper.journal:
+        metadata.append(paper.journal)
 
-    print(f"\nRetrieved papers: {len(papers)}\n")
+    if paper.year:
+        metadata.append(paper.year)
+
+    if paper.doi:
+        metadata.append(f"DOI: {paper.doi}")
+    elif paper.ext_id:
+        metadata.append(f"{paper.source}:{paper.ext_id}")
+
+    return " | ".join(metadata)
+
+
+def print_papers(papers: list) -> None:
+    print("\nRetrieved papers:\n")
 
     if not papers:
         print("No papers were retrieved.")
@@ -53,21 +88,9 @@ def print_papers(question: str, search_query: str, papers: list) -> None:
     for index, paper in enumerate(papers, start=1):
         print(f"[{index}] {paper.title}")
 
-        metadata = []
-
-        if paper.journal:
-            metadata.append(paper.journal)
-
-        if paper.year:
-            metadata.append(paper.year)
-
-        if paper.doi:
-            metadata.append(f"DOI: {paper.doi}")
-        elif paper.ext_id:
-            metadata.append(f"{paper.source}:{paper.ext_id}")
-
+        metadata = format_paper_metadata(paper)
         if metadata:
-            print(f"    {' | '.join(metadata)}")
+            print(f"    {metadata}")
 
         if paper.url:
             print(f"    URL: {paper.url}")
@@ -75,7 +98,7 @@ def print_papers(question: str, search_query: str, papers: list) -> None:
         if paper.abstract:
             short_abstract = textwrap.shorten(
                 paper.abstract,
-                width=350,
+                width=300,
                 placeholder="..."
             )
             print(textwrap.fill(
@@ -87,6 +110,41 @@ def print_papers(question: str, search_query: str, papers: list) -> None:
             print("    Abstract: N/A")
 
         print()
+
+
+def print_snippets(snippets: list, max_snippets: int) -> None:
+    print("\nExtracted evidence snippets:\n")
+
+    if not snippets:
+        print("No snippets could be extracted from the retrieved papers.")
+        return
+
+    shown_snippets = snippets[:max_snippets]
+
+    for index, snippet in enumerate(shown_snippets, start=1):
+        paper = snippet.paper
+
+        print(f"[{index}] {paper.title}")
+
+        metadata = format_paper_metadata(paper)
+        if metadata:
+            print(f"    {metadata}")
+
+        if paper.url:
+            print(f"    URL: {paper.url}")
+
+        print(textwrap.fill(
+            f"    Evidence: {snippet.text}",
+            width=100,
+            subsequent_indent="              "
+        ))
+
+        print()
+
+    remaining = len(snippets) - len(shown_snippets)
+
+    if remaining > 0:
+        print(f"... {remaining} additional snippets not shown.")
 
 
 def main() -> int:
@@ -103,10 +161,26 @@ def main() -> int:
             page_size=args.page_size or settings.default_page_size,
         )
 
-        print_papers(
-            question=query.original_question,
-            search_query=query.search_query if args.show_query else "",
+        snippets = extract_snippets(
             papers=papers,
+            window_size=args.window_size or settings.snippet_window,
+        )
+
+        print("\n=== ProvideQ Web RAG: Evidence Extraction ===\n")
+        print(f"Question: {query.original_question}")
+
+        if args.show_query:
+            print(f"Search query: {query.search_query}")
+
+        print(f"Retrieved papers: {len(papers)}")
+        print(f"Extracted snippets: {len(snippets)}")
+
+        if args.show_papers:
+            print_papers(papers)
+
+        print_snippets(
+            snippets=snippets,
+            max_snippets=args.max_snippets,
         )
 
         return 0
