@@ -10,6 +10,12 @@ from web_rag.config import get_settings
 from web_rag.context_builder import build_evidence_pack
 from web_rag.query_builder import build_europe_pmc_query
 from web_rag.ranker import rank_snippets
+from web_rag.serializer import (
+    evidence_pack_to_dict,
+    save_context_text,
+    save_json_output,
+    to_pretty_json,
+)
 from web_rag.snippet_extractor import extract_snippets
 from web_rag.source_client import search_europe_pmc
 
@@ -67,6 +73,24 @@ def build_parser() -> argparse.ArgumentParser:
         "--show-context",
         action="store_true",
         help="Print the final evidence context block."
+    )
+
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the complete result as JSON."
+    )
+
+    parser.add_argument(
+        "--save-json",
+        default="",
+        help="Optional path to save the complete JSON result."
+    )
+
+    parser.add_argument(
+        "--save-context",
+        default="",
+        help="Optional path to save only the final evidence context text."
     )
 
     parser.add_argument(
@@ -231,7 +255,30 @@ def main() -> int:
             ranked_snippets=ranked_snippets,
         )
 
-        print("\n=== ProvideQ Web RAG: Evidence Context ===\n")
+        result_payload = evidence_pack_to_dict(
+            evidence_pack=evidence_pack,
+            query=query,
+            retrieved_papers_count=len(papers),
+            extracted_snippets_count=len(snippets),
+        )
+
+        if args.save_json:
+            save_json_output(
+                payload=result_payload,
+                output_path=args.save_json,
+            )
+
+        if args.save_context:
+            save_context_text(
+                evidence_pack=evidence_pack,
+                output_path=args.save_context,
+            )
+
+        if args.json:
+            print(to_pretty_json(result_payload))
+            return 0
+
+        print("\n=== ProvideQ Web RAG: Structured Evidence Baseline ===\n")
         print(f"Question: {query.original_question}")
 
         if args.show_query:
@@ -240,6 +287,12 @@ def main() -> int:
         print(f"Retrieved papers: {len(papers)}")
         print(f"Extracted snippets: {len(snippets)}")
         print(f"Evidence records: {len(evidence_pack.records)}")
+
+        if args.save_json:
+            print(f"Saved JSON output: {args.save_json}")
+
+        if args.save_context:
+            print(f"Saved context output: {args.save_context}")
 
         if args.show_papers:
             print_papers(papers)
