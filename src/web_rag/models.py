@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List
+from typing import Any, List
 
 
 @dataclass
@@ -30,6 +30,7 @@ class Snippet:
     paper: Paper
     text: str
     score: float = 0.0
+    score_components: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -58,11 +59,7 @@ class RetrievalResult:
 @dataclass
 class EvidenceRecord:
     """
-    Represents one ranked evidence item prepared for answer generation.
-
-    This is different from a raw Snippet because it already has a citation ID
-    and flattened metadata. That makes it easier to print, export, evaluate,
-    and pass to a grounded generator.
+    Represents one ranked evidence item prepared for downstream use.
     """
 
     citation_id: int
@@ -76,6 +73,7 @@ class EvidenceRecord:
     authors: str
     journal: str
     url: str
+    score_components: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass

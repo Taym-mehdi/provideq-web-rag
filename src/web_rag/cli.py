@@ -52,6 +52,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--ranker",
+        choices=["lexical", "medcpt-hybrid"],
+        default=None,
+        help="Ranking method to use."
+    )
+
+    parser.add_argument(
         "--show-query",
         action="store_true",
         help="Print the generated Europe PMC query."
@@ -73,6 +80,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--show-context",
         action="store_true",
         help="Print the final evidence context block."
+    )
+
+    parser.add_argument(
+        "--show-score-components",
+        action="store_true",
+        help="Print ranking score components for each evidence record."
     )
 
     parser.add_argument(
@@ -186,7 +199,31 @@ def print_unranked_snippets(snippets: list, max_snippets: int) -> None:
         print(f"... {remaining} additional unranked snippets not shown.")
 
 
-def print_evidence_pack(evidence_pack) -> None:
+def print_score_components(score_components: dict) -> None:
+    if not score_components:
+        return
+
+    compact_keys = [
+        "ranker",
+        "final_score",
+        "medcpt_raw",
+        "medcpt_norm",
+        "lexical_raw",
+        "lexical_norm",
+        "slot_score",
+    ]
+
+    visible_parts = []
+
+    for key in compact_keys:
+        if key in score_components:
+            visible_parts.append(f"{key}={score_components[key]}")
+
+    if visible_parts:
+        print(f"    Components: {', '.join(visible_parts)}")
+
+
+def print_evidence_pack(evidence_pack, show_score_components: bool = False) -> None:
     print("\nTop ranked evidence pack:\n")
 
     if not evidence_pack.records:
@@ -195,7 +232,10 @@ def print_evidence_pack(evidence_pack) -> None:
 
     for record in evidence_pack.records:
         print(f"[{record.citation_id}] {record.title}")
-        print(f"    Score: {record.score:.2f}")
+        print(f"    Score: {record.score:.4f}")
+
+        if show_score_components:
+            print_score_components(record.score_components)
 
         metadata = []
 
@@ -230,6 +270,7 @@ def main() -> int:
     args = parser.parse_args()
 
     settings = get_settings()
+    ranking_method = args.ranker or settings.default_ranker
 
     try:
         query = build_europe_pmc_query(args.question)
@@ -248,6 +289,7 @@ def main() -> int:
             question=query.original_question,
             snippets=snippets,
             top_k=args.top_k or settings.default_top_k,
+            method=ranking_method,
         )
 
         evidence_pack = build_evidence_pack(
@@ -260,6 +302,7 @@ def main() -> int:
             query=query,
             retrieved_papers_count=len(papers),
             extracted_snippets_count=len(snippets),
+            ranking_method=ranking_method,
         )
 
         if args.save_json:
@@ -278,8 +321,9 @@ def main() -> int:
             print(to_pretty_json(result_payload))
             return 0
 
-        print("\n=== ProvideQ Web RAG: Structured Evidence Baseline ===\n")
+        print("\n=== ProvideQ Web RAG: Improved Evidence Reranking ===\n")
         print(f"Question: {query.original_question}")
+        print(f"Ranking method: {ranking_method}")
 
         if args.show_query:
             print(f"Search query: {query.search_query}")
@@ -303,7 +347,10 @@ def main() -> int:
                 max_snippets=args.max_unranked_snippets,
             )
 
-        print_evidence_pack(evidence_pack)
+        print_evidence_pack(
+            evidence_pack=evidence_pack,
+            show_score_components=args.show_score_components,
+        )
 
         if args.show_context:
             print("\nFinal context block:\n")

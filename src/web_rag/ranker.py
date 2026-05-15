@@ -3,8 +3,10 @@ from __future__ import annotations
 import re
 from collections.abc import Iterable
 
+from web_rag.biomedical_slots import calculate_slot_score
 from web_rag.config import get_settings
 from web_rag.models import Snippet
+from web_rag.neural_reranker import MedCPTReranker
 from web_rag.text_utils import clean_text, extract_keywords
 
 
@@ -78,12 +80,6 @@ CONDITION_CUES = {
 
 
 def normalize_for_matching(text: str) -> str:
-    """
-    Normalize text for lightweight lexical matching.
-
-    This is not meant to be a perfect biomedical normalizer.
-    It is a transparent baseline that is easy to explain and improve later.
-    """
     text = text.lower()
     text = text.replace("°", " ")
     text = re.sub(r"[^a-z0-9\-\+]+", " ", text)
@@ -92,12 +88,6 @@ def normalize_for_matching(text: str) -> str:
 
 
 def contains_term(text: str, term: str) -> bool:
-    """
-    Check whether a term appears in a normalized text.
-
-    The check uses substring matching because biomedical expressions often
-    contain hyphens, numbers, and abbreviations.
-    """
     normalized_text = normalize_for_matching(text)
     normalized_term = normalize_for_matching(term)
 
@@ -108,20 +98,10 @@ def contains_term(text: str, term: str) -> bool:
 
 
 def count_cue_matches(text: str, cues: set[str]) -> int:
-    """
-    Count how many cue words or cue phrases occur in the text.
-    """
     return sum(1 for cue in cues if contains_term(text, cue))
 
 
 def snippet_length_penalty(snippet: Snippet) -> float:
-    """
-    Penalize snippets that are too short to provide useful evidence.
-
-    Very short snippets are often only titles or incomplete fragments.
-    We do not remove them completely because title-only records can still
-    contain weak signals, but they should not dominate the ranking.
-    """
     word_count = len(snippet.text.split())
 
     if word_count < 8:
@@ -134,11 +114,6 @@ def snippet_length_penalty(snippet: Snippet) -> float:
 
 
 def snippet_length_bonus(snippet: Snippet) -> float:
-    """
-    Add a small bonus for reasonably informative snippets.
-
-    We keep this bonus small because long text is not automatically better.
-    """
     word_count = len(snippet.text.split())
 
     if 20 <= word_count <= 90:
@@ -149,20 +124,12 @@ def snippet_length_bonus(snippet: Snippet) -> float:
 
 def score_snippet(question: str, snippet: Snippet) -> float:
     """
-    Score one evidence snippet for one biomedical question.
+    Lexical baseline score.
 
-    The score is intentionally simple and inspectable.
-
-    Main signals:
-    - question keyword overlap
-    - title matches
-    - evidence text matches
-    - biomedical result cues
-    - sample/material cues
-    - pre-analytical condition cues
-    - snippet length penalty/bonus
+    This function is kept as the original baseline so that later experiments
+    can compare simple lexical ranking against stronger reranking methods.
     """
-    keywords = extract_keywords(question)
+    q_terms = extract_keywords(question)
 
     title = snippet.paper.title
     evidence = snippet.text
@@ -170,11 +137,11 @@ def score_snippet(question: str, snippet: Snippet) -> float:
 
     score = 0.0
 
-    for keyword in keywords:
-        if contains_term(evidence, keyword):
+    for term in q_terms:
+        if contains_term(evidence, term):
             score += 2.0
 
-        if contains_term(title, keyword):
+        if contains_term(title, term):
             score += 1.5
 
     result_cue_count = count_cue_matches(combined, RESULT_CUES)
@@ -197,13 +164,29 @@ def score_snippet(question: str, snippet: Snippet) -> float:
     return round(score, 4)
 
 
-def deduplicate_ranked_snippets(snippets: Iterable[Snippet]) -> list[Snippet]:
+def min_max_normalize(values: list[float]) -> list[float]:
     """
-    Remove exact duplicate snippets after ranking.
+    Normalize scores to [0, 1].
 
-    We deduplicate by source paper and snippet text. This prevents repeated
-    windows from the same abstract from filling the top-k evidence pack.
+    If all scores are equal, return 0.5 for all items so the signal remains
+    neutral instead of disappearing.
     """
+    if not values:
+        return []
+
+    min_value = min(values)
+    max_value = max(values)
+
+    if max_value == min_value:
+        return [0.5 for _ in values]
+
+    return [
+        (value - min_value) / (max_value - min_value)
+        for value in values
+    ]
+
+
+def deduplicate_ranked_snippets(snippets: Iterable[Snippet]) -> list[Snippet]:
     seen: set[tuple[str, str]] = set()
     deduplicated: list[Snippet] = []
 
@@ -221,27 +204,143 @@ def deduplicate_ranked_snippets(snippets: Iterable[Snippet]) -> list[Snippet]:
     return deduplicated
 
 
+def rank_snippets_lexical(
+    question: str,
+    snippets: list[Snippet],
+    top_k: int,
+) -> list[Snippet]:
+    """
+    Original lexical baseline ranking.
+    """
+    for snippet in snippets:
+        lexical_score = score_snippet(question, snippet)
+        snippet.score = lexical_score
+        snippet.score_components = {
+            "ranker": "lexical",
+            "lexical_raw": lexical_score,
+            "final_score": lexical_score,
+        }
+
+    snippets.sort(key=lambda item: item.score, reverse=True)
+    deduplicated = deduplicate_ranked_snippets(snippets)
+
+    return deduplicated[:top_k]
+
+
+def rank_snippets_medcpt_hybrid(
+    question: str,
+    snippets: list[Snippet],
+    top_k: int,
+) -> list[Snippet]:
+    """
+    Hybrid biomedical reranking.
+
+    Signals:
+    - MedCPT semantic relevance score
+    - lexical baseline score
+    - biomedical slot-aware score
+
+    Final score:
+        0.65 * MedCPT_norm
+      + 0.20 * lexical_norm
+      + 0.15 * slot_score
+    """
+    if not snippets:
+        return []
+
+    settings = get_settings()
+
+    lexical_raw = [
+        score_snippet(question, snippet)
+        for snippet in snippets
+    ]
+
+    slot_results = [
+        calculate_slot_score(question, snippet)
+        for snippet in snippets
+    ]
+
+    slot_scores = [score for score, _details in slot_results]
+    slot_details = [details for _score, details in slot_results]
+
+    medcpt = MedCPTReranker(
+        model_name=settings.medcpt_model_name,
+        batch_size=settings.medcpt_batch_size,
+        max_length=settings.medcpt_max_length,
+    )
+
+    medcpt_raw = medcpt.score_snippets(
+        question=question,
+        snippets=snippets,
+    )
+
+    lexical_norm = min_max_normalize(lexical_raw)
+    medcpt_norm = min_max_normalize(medcpt_raw)
+
+    for index, snippet in enumerate(snippets):
+        final_score = (
+            settings.hybrid_weight_medcpt * medcpt_norm[index]
+            + settings.hybrid_weight_lexical * lexical_norm[index]
+            + settings.hybrid_weight_slots * slot_scores[index]
+        )
+
+        snippet.score = round(final_score, 4)
+        snippet.score_components = {
+            "ranker": "medcpt-hybrid",
+            "final_score": round(final_score, 4),
+            "medcpt_raw": round(medcpt_raw[index], 4),
+            "medcpt_norm": round(medcpt_norm[index], 4),
+            "lexical_raw": round(lexical_raw[index], 4),
+            "lexical_norm": round(lexical_norm[index], 4),
+            "slot_score": round(slot_scores[index], 4),
+            "slot_details": slot_details[index],
+            "weights": {
+                "medcpt": settings.hybrid_weight_medcpt,
+                "lexical": settings.hybrid_weight_lexical,
+                "slots": settings.hybrid_weight_slots,
+            },
+        }
+
+    snippets.sort(key=lambda item: item.score, reverse=True)
+    deduplicated = deduplicate_ranked_snippets(snippets)
+
+    return deduplicated[:top_k]
+
+
 def rank_snippets(
     question: str,
     snippets: Iterable[Snippet],
     top_k: int | None = None,
+    method: str | None = None,
 ) -> list[Snippet]:
     """
-    Score, sort, deduplicate, and return top-k snippets.
+    Rank evidence snippets using the selected ranking method.
 
-    The snippets keep their original Paper metadata, so the ranked output is
-    still citation-ready and traceable.
+    Available methods:
+    - lexical
+    - medcpt-hybrid
     """
     settings = get_settings()
     effective_top_k = top_k or settings.default_top_k
+    effective_method = method or settings.default_ranker
 
-    scored_snippets: list[Snippet] = []
+    snippet_list = list(snippets)
 
-    for snippet in snippets:
-        snippet.score = score_snippet(question, snippet)
-        scored_snippets.append(snippet)
+    if effective_method == "lexical":
+        return rank_snippets_lexical(
+            question=question,
+            snippets=snippet_list,
+            top_k=effective_top_k,
+        )
 
-    scored_snippets.sort(key=lambda item: item.score, reverse=True)
-    deduplicated = deduplicate_ranked_snippets(scored_snippets)
+    if effective_method == "medcpt-hybrid":
+        return rank_snippets_medcpt_hybrid(
+            question=question,
+            snippets=snippet_list,
+            top_k=effective_top_k,
+        )
 
-    return deduplicated[:effective_top_k]
+    raise ValueError(
+        f"Unknown ranking method: {effective_method}. "
+        "Use 'lexical' or 'medcpt-hybrid'."
+    )
