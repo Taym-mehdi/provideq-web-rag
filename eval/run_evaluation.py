@@ -4,6 +4,7 @@ import argparse
 from pathlib import Path
 
 from eval.benchmark_loader import load_benchmark, summarize_benchmark
+from eval.comparison import run_comparison_report
 from eval.metrics.semantic import DEFAULT_EMBEDDING_MODEL
 from eval.reports import run_lexical_report, run_semantic_report
 from eval.retrieval_runner import (
@@ -73,6 +74,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--run-semantic-metrics",
         action="store_true",
         help="Compute semantic metrics from a raw_results.jsonl file."
+    )
+
+    parser.add_argument(
+        "--compare-runs",
+        action="store_true",
+        help="Compare multiple evaluated run directories."
     )
 
     parser.add_argument(
@@ -153,6 +160,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional maximum number of benchmark questions to run."
     )
 
+    parser.add_argument(
+        "--run-dirs",
+        nargs="+",
+        default=[],
+        help="Run directories to compare."
+    )
+
+    parser.add_argument(
+        "--run-labels",
+        nargs="+",
+        default=None,
+        help="Optional labels for the run directories."
+    )
+
+    parser.add_argument(
+        "--baseline-label",
+        default=None,
+        help="Run label to use as baseline for delta computation."
+    )
+
     return parser
 
 
@@ -177,9 +204,9 @@ def run_metric_commands(args) -> bool:
     """
     Run metric-only commands.
 
-    Returns True if a metric command was executed.
+    Returns True if a metric or comparison command was executed.
     """
-    metric_command_executed = False
+    command_executed = False
 
     if args.run_lexical_metrics:
         if not args.raw_results:
@@ -206,7 +233,7 @@ def run_metric_commands(args) -> bool:
         print(f"Per-question metrics: {report_files['question']}")
         print(f"Per-nugget details: {report_files['nugget']}")
 
-        metric_command_executed = True
+        command_executed = True
 
     if args.run_semantic_metrics:
         if not args.raw_results:
@@ -239,18 +266,45 @@ def run_metric_commands(args) -> bool:
         print(f"Per-question metrics: {report_files['question']}")
         print(f"Per-nugget details: {report_files['nugget']}")
 
-        metric_command_executed = True
+        command_executed = True
 
-    return metric_command_executed
+    if args.compare_runs:
+        if not args.run_dirs:
+            raise ValueError("--run-dirs is required when using --compare-runs")
+
+        output_dir = Path(args.output_dir)
+
+        print("\n=== Web RAG Run Comparison ===\n")
+        print(f"Run directories: {args.run_dirs}")
+        print(f"Run labels: {args.run_labels}")
+        print(f"Baseline label: {args.baseline_label}")
+        print(f"Output directory: {output_dir}")
+
+        report_files = run_comparison_report(
+            run_dirs=args.run_dirs,
+            run_labels=args.run_labels,
+            baseline_label=args.baseline_label,
+            output_dir=output_dir,
+        )
+
+        print("\nComparison reports saved:")
+        print(f"Aggregate wide: {report_files['aggregate_wide']}")
+        print(f"Aggregate long: {report_files['aggregate_long']}")
+        print(f"Deltas: {report_files['deltas']}")
+        print(f"Question wide: {report_files['question_wide']}")
+
+        command_executed = True
+
+    return command_executed
 
 
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
 
-    metric_command_executed = run_metric_commands(args)
+    command_executed = run_metric_commands(args)
 
-    if metric_command_executed and not args.run_retrieval:
+    if command_executed and not args.run_retrieval:
         return 0
 
     examples = load_benchmark(args.benchmark)
