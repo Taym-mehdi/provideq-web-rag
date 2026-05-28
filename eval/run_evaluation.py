@@ -1,12 +1,42 @@
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 
 from eval.benchmark_loader import load_benchmark, summarize_benchmark
+from eval.reports import run_lexical_report
 from eval.retrieval_runner import (
     build_default_run_config,
     run_retrieval_for_benchmark,
 )
+
+
+def parse_k_values(raw_value: str) -> list[int]:
+    """
+    Parse comma-separated k values.
+
+    Example:
+        "1,3,5,10" -> [1, 3, 5, 10]
+    """
+    values: list[int] = []
+
+    for part in raw_value.split(","):
+        part = part.strip()
+
+        if not part:
+            continue
+
+        value = int(part)
+
+        if value <= 0:
+            raise ValueError("k values must be positive integers.")
+
+        values.append(value)
+
+    if not values:
+        raise ValueError("At least one k value is required.")
+
+    return sorted(set(values))
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -30,6 +60,24 @@ def build_parser() -> argparse.ArgumentParser:
         "--run-retrieval",
         action="store_true",
         help="Run Web RAG retrieval for all benchmark questions."
+    )
+
+    parser.add_argument(
+        "--run-lexical-metrics",
+        action="store_true",
+        help="Compute lexical metrics from a raw_results.jsonl file."
+    )
+
+    parser.add_argument(
+        "--raw-results",
+        default="",
+        help="Path to raw_results.jsonl for metric computation."
+    )
+
+    parser.add_argument(
+        "--k-values",
+        default="1,3,5,10",
+        help="Comma-separated k values, for example: 1,3,5,10."
     )
 
     parser.add_argument(
@@ -63,7 +111,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--output-dir",
         default="outputs/evaluation",
-        help="Directory where evaluation run outputs will be saved."
+        help="Directory where evaluation outputs will be saved."
     )
 
     parser.add_argument(
@@ -102,6 +150,34 @@ def print_preview(examples) -> None:
 def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
+
+    if args.run_lexical_metrics:
+        if not args.raw_results:
+            raise ValueError(
+                "--raw-results is required when using --run-lexical-metrics"
+            )
+
+        k_values = parse_k_values(args.k_values)
+
+        output_dir = Path(args.output_dir)
+
+        print("\n=== Web RAG Lexical Evaluation ===\n")
+        print(f"Raw results: {args.raw_results}")
+        print(f"k values: {k_values}")
+        print(f"Output directory: {output_dir}")
+
+        report_files = run_lexical_report(
+            raw_results_path=args.raw_results,
+            output_dir=output_dir,
+            k_values=k_values,
+        )
+
+        print("\nLexical metric reports saved:")
+        print(f"Aggregate metrics: {report_files['aggregate']}")
+        print(f"Per-question metrics: {report_files['question']}")
+        print(f"Per-nugget details: {report_files['nugget']}")
+
+        return 0
 
     examples = load_benchmark(args.benchmark)
     summary = summarize_benchmark(examples)
