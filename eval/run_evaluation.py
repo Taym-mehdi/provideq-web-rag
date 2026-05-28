@@ -4,7 +4,8 @@ import argparse
 from pathlib import Path
 
 from eval.benchmark_loader import load_benchmark, summarize_benchmark
-from eval.reports import run_lexical_report
+from eval.metrics.semantic import DEFAULT_EMBEDDING_MODEL
+from eval.reports import run_lexical_report, run_semantic_report
 from eval.retrieval_runner import (
     build_default_run_config,
     run_retrieval_for_benchmark,
@@ -69,6 +70,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     parser.add_argument(
+        "--run-semantic-metrics",
+        action="store_true",
+        help="Compute semantic metrics from a raw_results.jsonl file."
+    )
+
+    parser.add_argument(
         "--raw-results",
         default="",
         help="Path to raw_results.jsonl for metric computation."
@@ -78,6 +85,25 @@ def build_parser() -> argparse.ArgumentParser:
         "--k-values",
         default="1,3,5,10",
         help="Comma-separated k values, for example: 1,3,5,10."
+    )
+
+    parser.add_argument(
+        "--embedding-model",
+        default=DEFAULT_EMBEDDING_MODEL,
+        help="SentenceTransformers embedding model for semantic evaluation."
+    )
+
+    parser.add_argument(
+        "--embedding-batch-size",
+        type=int,
+        default=32,
+        help="Batch size for embedding computation."
+    )
+
+    parser.add_argument(
+        "--embedding-device",
+        default=None,
+        help="Optional embedding device, for example cpu or cuda."
     )
 
     parser.add_argument(
@@ -147,9 +173,13 @@ def print_preview(examples) -> None:
         print()
 
 
-def main() -> int:
-    parser = build_parser()
-    args = parser.parse_args()
+def run_metric_commands(args) -> bool:
+    """
+    Run metric-only commands.
+
+    Returns True if a metric command was executed.
+    """
+    metric_command_executed = False
 
     if args.run_lexical_metrics:
         if not args.raw_results:
@@ -158,7 +188,6 @@ def main() -> int:
             )
 
         k_values = parse_k_values(args.k_values)
-
         output_dir = Path(args.output_dir)
 
         print("\n=== Web RAG Lexical Evaluation ===\n")
@@ -177,6 +206,51 @@ def main() -> int:
         print(f"Per-question metrics: {report_files['question']}")
         print(f"Per-nugget details: {report_files['nugget']}")
 
+        metric_command_executed = True
+
+    if args.run_semantic_metrics:
+        if not args.raw_results:
+            raise ValueError(
+                "--raw-results is required when using --run-semantic-metrics"
+            )
+
+        k_values = parse_k_values(args.k_values)
+        output_dir = Path(args.output_dir)
+
+        print("\n=== Web RAG Semantic Evaluation ===\n")
+        print(f"Raw results: {args.raw_results}")
+        print(f"k values: {k_values}")
+        print(f"Embedding model: {args.embedding_model}")
+        print(f"Embedding batch size: {args.embedding_batch_size}")
+        print(f"Embedding device: {args.embedding_device}")
+        print(f"Output directory: {output_dir}")
+
+        report_files = run_semantic_report(
+            raw_results_path=args.raw_results,
+            output_dir=output_dir,
+            k_values=k_values,
+            embedding_model_name=args.embedding_model,
+            embedding_batch_size=args.embedding_batch_size,
+            embedding_device=args.embedding_device,
+        )
+
+        print("\nSemantic metric reports saved:")
+        print(f"Aggregate metrics: {report_files['aggregate']}")
+        print(f"Per-question metrics: {report_files['question']}")
+        print(f"Per-nugget details: {report_files['nugget']}")
+
+        metric_command_executed = True
+
+    return metric_command_executed
+
+
+def main() -> int:
+    parser = build_parser()
+    args = parser.parse_args()
+
+    metric_command_executed = run_metric_commands(args)
+
+    if metric_command_executed and not args.run_retrieval:
         return 0
 
     examples = load_benchmark(args.benchmark)

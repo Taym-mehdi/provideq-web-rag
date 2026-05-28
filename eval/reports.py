@@ -10,6 +10,13 @@ from eval.metrics.lexical import (
     evaluate_question_lexical,
     extract_retrieved_snippet_texts,
 )
+from eval.metrics.semantic import (
+    QuestionSemanticMetrics,
+    SentenceEmbeddingModel,
+    evaluate_question_semantic,
+    extract_gold_answer,
+    extract_gold_nuggets,
+)
 
 
 def load_raw_results_jsonl(path: str | Path) -> list[dict[str, Any]]:
@@ -79,7 +86,7 @@ def aggregate_lexical_metrics(
     question_metrics: list[QuestionLexicalMetrics],
 ) -> list[dict[str, Any]]:
     """
-    Aggregate per-question metrics into one row per k.
+    Aggregate per-question lexical metrics into one row per k.
     """
     grouped: dict[int, list[QuestionLexicalMetrics]] = {}
 
@@ -175,10 +182,7 @@ def save_lexical_nugget_details(
     output_path: str | Path,
 ) -> None:
     """
-    Save per-nugget detailed scores.
-
-    This is useful for error analysis because it shows which gold nuggets were
-    covered and which were missed.
+    Save per-nugget lexical details.
     """
     path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -282,6 +286,264 @@ def run_lexical_report(
     )
 
     save_lexical_nugget_details(
+        question_metrics=question_metrics,
+        output_path=nugget_path,
+    )
+
+    return {
+        "aggregate": aggregate_path,
+        "question": question_path,
+        "nugget": nugget_path,
+    }
+
+
+def compute_semantic_metrics_for_run(
+    raw_results_path: str | Path,
+    k_values: list[int],
+    embedding_model_name: str,
+    embedding_batch_size: int,
+    embedding_device: str | None,
+) -> list[QuestionSemanticMetrics]:
+    """
+    Compute semantic metrics for all questions and all k values.
+    """
+    raw_records = load_raw_results_jsonl(raw_results_path)
+
+    embedding_model = SentenceEmbeddingModel(
+        model_name=embedding_model_name,
+        batch_size=embedding_batch_size,
+        device=embedding_device,
+    )
+
+    all_metrics: list[QuestionSemanticMetrics] = []
+
+    for raw_record in raw_records:
+        result = raw_record.get("result", {})
+
+        if result.get("status") == "error":
+            continue
+
+        question_id = raw_record.get("question_id", "")
+        question = raw_record.get("question", "")
+        gold_answer = extract_gold_answer(raw_record)
+        gold_nuggets = extract_gold_nuggets(raw_record)
+        retrieved_snippets = extract_retrieved_snippet_texts(raw_record)
+
+        for k in k_values:
+            metrics = evaluate_question_semantic(
+                question_id=question_id,
+                question=question,
+                gold_answer=gold_answer,
+                gold_nuggets=gold_nuggets,
+                retrieved_snippets=retrieved_snippets,
+                k=k,
+                embedding_model=embedding_model,
+            )
+
+            all_metrics.append(metrics)
+
+    return all_metrics
+
+
+def aggregate_semantic_metrics(
+    question_metrics: list[QuestionSemanticMetrics],
+) -> list[dict[str, Any]]:
+    """
+    Aggregate per-question semantic metrics into one row per k.
+    """
+    grouped: dict[int, list[QuestionSemanticMetrics]] = {}
+
+    for metric in question_metrics:
+        grouped.setdefault(metric.k, []).append(metric)
+
+    aggregate_rows: list[dict[str, Any]] = []
+
+    for k, metrics_for_k in sorted(grouped.items()):
+        question_count = len(metrics_for_k)
+
+        if question_count == 0:
+            continue
+
+        embedding_model = metrics_for_k[0].embedding_model
+
+        aggregate_rows.append(
+            {
+                "k": k,
+                "question_count": question_count,
+                "embedding_model": embedding_model,
+                "SemanticNuggetMatch@k": round(
+                    sum(m.semantic_nugget_match_at_k for m in metrics_for_k)
+                    / question_count,
+                    4,
+                ),
+                "SemanticAnswerMatch@k": round(
+                    sum(m.semantic_answer_match_at_k for m in metrics_for_k)
+                    / question_count,
+                    4,
+                ),
+                "avg_nuggets_per_question": round(
+                    sum(m.nugget_count for m in metrics_for_k) / question_count,
+                    2,
+                ),
+                "avg_retrieved_snippets_used": round(
+                    sum(m.retrieved_snippet_count for m in metrics_for_k)
+                    / question_count,
+                    2,
+                ),
+            }
+        )
+
+    return aggregate_rows
+
+
+def save_semantic_question_metrics(
+    question_metrics: list[QuestionSemanticMetrics],
+    output_path: str | Path,
+) -> None:
+    """
+    Save per-question semantic metrics.
+    """
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    fieldnames = [
+        "question_id",
+        "question",
+        "k",
+        "embedding_model",
+        "SemanticNuggetMatch@k",
+        "SemanticAnswerMatch@k",
+        "answer_best_rank",
+        "nugget_count",
+        "retrieved_snippet_count",
+    ]
+
+    with path.open("w", encoding="utf-8", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for metric in question_metrics:
+            writer.writerow(
+                {
+                    "question_id": metric.question_id,
+                    "question": metric.question,
+                    "k": metric.k,
+                    "embedding_model": metric.embedding_model,
+                    "SemanticNuggetMatch@k": metric.semantic_nugget_match_at_k,
+                    "SemanticAnswerMatch@k": metric.semantic_answer_match_at_k,
+                    "answer_best_rank": metric.answer_best_rank,
+                    "nugget_count": metric.nugget_count,
+                    "retrieved_snippet_count": metric.retrieved_snippet_count,
+                }
+            )
+
+
+def save_semantic_nugget_details(
+    question_metrics: list[QuestionSemanticMetrics],
+    output_path: str | Path,
+) -> None:
+    """
+    Save per-nugget semantic details.
+    """
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    fieldnames = [
+        "question_id",
+        "question",
+        "k",
+        "embedding_model",
+        "nugget",
+        "best_similarity",
+        "best_rank",
+    ]
+
+    with path.open("w", encoding="utf-8", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for metric in question_metrics:
+            for nugget_result in metric.nugget_results:
+                writer.writerow(
+                    {
+                        "question_id": metric.question_id,
+                        "question": metric.question,
+                        "k": metric.k,
+                        "embedding_model": metric.embedding_model,
+                        "nugget": nugget_result.nugget,
+                        "best_similarity": nugget_result.best_similarity,
+                        "best_rank": nugget_result.best_rank,
+                    }
+                )
+
+
+def save_semantic_aggregate_metrics(
+    aggregate_rows: list[dict[str, Any]],
+    output_path: str | Path,
+) -> None:
+    """
+    Save aggregate semantic metrics.
+    """
+    path = Path(output_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    fieldnames = [
+        "k",
+        "question_count",
+        "embedding_model",
+        "SemanticNuggetMatch@k",
+        "SemanticAnswerMatch@k",
+        "avg_nuggets_per_question",
+        "avg_retrieved_snippets_used",
+    ]
+
+    with path.open("w", encoding="utf-8", newline="") as file:
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        writer.writeheader()
+
+        for row in aggregate_rows:
+            writer.writerow(row)
+
+
+def run_semantic_report(
+    raw_results_path: str | Path,
+    output_dir: str | Path,
+    k_values: list[int],
+    embedding_model_name: str,
+    embedding_batch_size: int,
+    embedding_device: str | None,
+) -> dict[str, Path]:
+    """
+    Compute semantic metrics and save report files.
+    """
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    question_metrics = compute_semantic_metrics_for_run(
+        raw_results_path=raw_results_path,
+        k_values=k_values,
+        embedding_model_name=embedding_model_name,
+        embedding_batch_size=embedding_batch_size,
+        embedding_device=embedding_device,
+    )
+
+    aggregate_rows = aggregate_semantic_metrics(question_metrics)
+
+    aggregate_path = output_path / "semantic_aggregate_metrics.csv"
+    question_path = output_path / "semantic_question_metrics.csv"
+    nugget_path = output_path / "semantic_nugget_details.csv"
+
+    save_semantic_aggregate_metrics(
+        aggregate_rows=aggregate_rows,
+        output_path=aggregate_path,
+    )
+
+    save_semantic_question_metrics(
+        question_metrics=question_metrics,
+        output_path=question_path,
+    )
+
+    save_semantic_nugget_details(
         question_metrics=question_metrics,
         output_path=nugget_path,
     )

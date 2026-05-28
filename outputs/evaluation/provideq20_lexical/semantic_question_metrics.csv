@@ -1,0 +1,81 @@
+question_id,question,k,embedding_model,SemanticNuggetMatch@k,SemanticAnswerMatch@k,answer_best_rank,nugget_count,retrieved_snippet_count
+BQ001,Is potassium stable in serum gel tubes if centrifugation is delayed for up to 24 hours at 15 to 35 degrees Celsius?,1,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ001,Is potassium stable in serum gel tubes if centrifugation is delayed for up to 24 hours at 15 to 35 degrees Celsius?,3,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ001,Is potassium stable in serum gel tubes if centrifugation is delayed for up to 24 hours at 15 to 35 degrees Celsius?,5,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ001,Is potassium stable in serum gel tubes if centrifugation is delayed for up to 24 hours at 15 to 35 degrees Celsius?,10,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ002,Is glucose stable in serum gel tubes when centrifugation is delayed under variable storage temperatures?,1,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ002,Is glucose stable in serum gel tubes when centrifugation is delayed under variable storage temperatures?,3,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ002,Is glucose stable in serum gel tubes when centrifugation is delayed under variable storage temperatures?,5,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ002,Is glucose stable in serum gel tubes when centrifugation is delayed under variable storage temperatures?,10,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ003,Is phosphate stable in serum gel tubes during delayed centrifugation at 15 to 35 degrees Celsius?,1,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ003,Is phosphate stable in serum gel tubes during delayed centrifugation at 15 to 35 degrees Celsius?,3,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ003,Is phosphate stable in serum gel tubes during delayed centrifugation at 15 to 35 degrees Celsius?,5,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ003,Is phosphate stable in serum gel tubes during delayed centrifugation at 15 to 35 degrees Celsius?,10,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ004,Is albumin stable in serum gel tubes stored before centrifugation for up to 24 hours?,1,sentence-transformers/all-MiniLM-L6-v2,0.3015,0.6752,1,4,1
+BQ004,Is albumin stable in serum gel tubes stored before centrifugation for up to 24 hours?,3,sentence-transformers/all-MiniLM-L6-v2,0.3164,0.6752,1,4,3
+BQ004,Is albumin stable in serum gel tubes stored before centrifugation for up to 24 hours?,5,sentence-transformers/all-MiniLM-L6-v2,0.3166,0.6752,1,4,5
+BQ004,Is albumin stable in serum gel tubes stored before centrifugation for up to 24 hours?,10,sentence-transformers/all-MiniLM-L6-v2,0.3904,0.6752,1,4,9
+BQ005,Is C-reactive protein stable in serum gel tubes exposed to delayed centrifugation and variable temperatures?,1,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ005,Is C-reactive protein stable in serum gel tubes exposed to delayed centrifugation and variable temperatures?,3,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ005,Is C-reactive protein stable in serum gel tubes exposed to delayed centrifugation and variable temperatures?,5,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ005,Is C-reactive protein stable in serum gel tubes exposed to delayed centrifugation and variable temperatures?,10,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ006,Is vitamin D stable in serum gel tubes before centrifugation under field-like temperature delays?,1,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ006,Is vitamin D stable in serum gel tubes before centrifugation under field-like temperature delays?,3,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ006,Is vitamin D stable in serum gel tubes before centrifugation under field-like temperature delays?,5,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ006,Is vitamin D stable in serum gel tubes before centrifugation under field-like temperature delays?,10,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ007,Can short-term processing delays up to 15 hours affect serum and plasma cytokine measurements?,1,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ007,Can short-term processing delays up to 15 hours affect serum and plasma cytokine measurements?,3,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ007,Can short-term processing delays up to 15 hours affect serum and plasma cytokine measurements?,5,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ007,Can short-term processing delays up to 15 hours affect serum and plasma cytokine measurements?,10,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ008,Can serum and plasma be used interchangeably for cytokine or proteomic analyses after processing delay?,1,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ008,Can serum and plasma be used interchangeably for cytokine or proteomic analyses after processing delay?,3,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ008,Can serum and plasma be used interchangeably for cytokine or proteomic analyses after processing delay?,5,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ008,Can serum and plasma be used interchangeably for cytokine or proteomic analyses after processing delay?,10,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ009,Is whole blood gene expression largely stable during short-term processing delays up to 15 hours?,1,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ009,Is whole blood gene expression largely stable during short-term processing delays up to 15 hours?,3,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ009,Is whole blood gene expression largely stable during short-term processing delays up to 15 hours?,5,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ009,Is whole blood gene expression largely stable during short-term processing delays up to 15 hours?,10,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ010,Should flow or mass cytometry studies avoid processing delays greater than 5 hours for susceptible PBMC populations?,1,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ010,Should flow or mass cytometry studies avoid processing delays greater than 5 hours for susceptible PBMC populations?,3,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ010,Should flow or mass cytometry studies avoid processing delays greater than 5 hours for susceptible PBMC populations?,5,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ010,Should flow or mass cytometry studies avoid processing delays greater than 5 hours for susceptible PBMC populations?,10,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ011,Do processing delays up to 72 hours at room temperature or 4 degrees Celsius significantly affect plasma cytokines?,1,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ011,Do processing delays up to 72 hours at room temperature or 4 degrees Celsius significantly affect plasma cytokines?,3,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ011,Do processing delays up to 72 hours at room temperature or 4 degrees Celsius significantly affect plasma cytokines?,5,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ011,Do processing delays up to 72 hours at room temperature or 4 degrees Celsius significantly affect plasma cytokines?,10,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ012,Are plasma chemokines stable after delayed processing up to 72 hours at room temperature or 4 degrees Celsius?,1,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ012,Are plasma chemokines stable after delayed processing up to 72 hours at room temperature or 4 degrees Celsius?,3,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ012,Are plasma chemokines stable after delayed processing up to 72 hours at room temperature or 4 degrees Celsius?,5,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ012,Are plasma chemokines stable after delayed processing up to 72 hours at room temperature or 4 degrees Celsius?,10,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ013,Is plasma cell-free DNA affected by sample processing delays up to 72 hours at room temperature or 4 degrees Celsius?,1,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ013,Is plasma cell-free DNA affected by sample processing delays up to 72 hours at room temperature or 4 degrees Celsius?,3,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ013,Is plasma cell-free DNA affected by sample processing delays up to 72 hours at room temperature or 4 degrees Celsius?,5,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ013,Is plasma cell-free DNA affected by sample processing delays up to 72 hours at room temperature or 4 degrees Celsius?,10,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ014,Does delayed processing up to 72 hours affect plasma blood clotting potential measured by thrombin generation?,1,sentence-transformers/all-MiniLM-L6-v2,0.3513,0.6176,1,4,1
+BQ014,Does delayed processing up to 72 hours affect plasma blood clotting potential measured by thrombin generation?,3,sentence-transformers/all-MiniLM-L6-v2,0.3953,0.6756,2,4,3
+BQ014,Does delayed processing up to 72 hours affect plasma blood clotting potential measured by thrombin generation?,5,sentence-transformers/all-MiniLM-L6-v2,0.4187,0.6756,2,4,5
+BQ014,Does delayed processing up to 72 hours affect plasma blood clotting potential measured by thrombin generation?,10,sentence-transformers/all-MiniLM-L6-v2,0.4846,0.6756,2,4,10
+BQ015,Does long-term storage at minus 20 degrees Celsius versus minus 80 degrees Celsius affect serum metabolomic and proteomic biomarkers?,1,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ015,Does long-term storage at minus 20 degrees Celsius versus minus 80 degrees Celsius affect serum metabolomic and proteomic biomarkers?,3,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ015,Does long-term storage at minus 20 degrees Celsius versus minus 80 degrees Celsius affect serum metabolomic and proteomic biomarkers?,5,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ015,Does long-term storage at minus 20 degrees Celsius versus minus 80 degrees Celsius affect serum metabolomic and proteomic biomarkers?,10,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ016,Can serum glutamate/glutamine ratio indicate sub-optimal long-term storage at minus 20 degrees Celsius?,1,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ016,Can serum glutamate/glutamine ratio indicate sub-optimal long-term storage at minus 20 degrees Celsius?,3,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ016,Can serum glutamate/glutamine ratio indicate sub-optimal long-term storage at minus 20 degrees Celsius?,5,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ016,Can serum glutamate/glutamine ratio indicate sub-optimal long-term storage at minus 20 degrees Celsius?,10,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ017,Is glutamine susceptible to long-term serum storage at minus 20 degrees Celsius compared with minus 80 degrees Celsius?,1,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ017,Is glutamine susceptible to long-term serum storage at minus 20 degrees Celsius compared with minus 80 degrees Celsius?,3,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ017,Is glutamine susceptible to long-term serum storage at minus 20 degrees Celsius compared with minus 80 degrees Celsius?,5,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ017,Is glutamine susceptible to long-term serum storage at minus 20 degrees Celsius compared with minus 80 degrees Celsius?,10,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ018,Do plasma and serum metabolomic profiles depend on pre-analytical factors such as processing delay and freeze-thaw cycles?,1,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ018,Do plasma and serum metabolomic profiles depend on pre-analytical factors such as processing delay and freeze-thaw cycles?,3,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ018,Do plasma and serum metabolomic profiles depend on pre-analytical factors such as processing delay and freeze-thaw cycles?,5,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ018,Do plasma and serum metabolomic profiles depend on pre-analytical factors such as processing delay and freeze-thaw cycles?,10,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,4,0
+BQ019,Can multiple freeze-thaw cycles alter urine metabolomic findings?,1,sentence-transformers/all-MiniLM-L6-v2,0.4592,0.8267,1,4,1
+BQ019,Can multiple freeze-thaw cycles alter urine metabolomic findings?,3,sentence-transformers/all-MiniLM-L6-v2,0.5002,0.8616,2,4,3
+BQ019,Can multiple freeze-thaw cycles alter urine metabolomic findings?,5,sentence-transformers/all-MiniLM-L6-v2,0.5002,0.8616,2,4,5
+BQ019,Can multiple freeze-thaw cycles alter urine metabolomic findings?,10,sentence-transformers/all-MiniLM-L6-v2,0.5061,0.8616,2,4,7
+BQ020,"Does one freeze-thaw cycle after storage at minus 70 degrees Celsius meaningfully affect common nutritional, NCD, and inflammatory biomarkers in serum?",1,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,5,0
+BQ020,"Does one freeze-thaw cycle after storage at minus 70 degrees Celsius meaningfully affect common nutritional, NCD, and inflammatory biomarkers in serum?",3,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,5,0
+BQ020,"Does one freeze-thaw cycle after storage at minus 70 degrees Celsius meaningfully affect common nutritional, NCD, and inflammatory biomarkers in serum?",5,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,5,0
+BQ020,"Does one freeze-thaw cycle after storage at minus 70 degrees Celsius meaningfully affect common nutritional, NCD, and inflammatory biomarkers in serum?",10,sentence-transformers/all-MiniLM-L6-v2,0.0,0.0,,5,0
