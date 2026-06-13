@@ -8,64 +8,310 @@ from typing import Any
 
 LEXICAL_AGGREGATE_FILE = "lexical_aggregate_metrics.csv"
 SEMANTIC_AGGREGATE_FILE = "semantic_aggregate_metrics.csv"
-LEXICAL_QUESTION_FILE = "lexical_question_metrics.csv"
-SEMANTIC_QUESTION_FILE = "semantic_question_metrics.csv"
 
-LEXICAL_METRIC_COLUMNS = [
+METRIC_COLUMNS = {
     "ROUGE1_Nugget@k",
     "ROUGEL_Nugget@k",
     "ROUGE_Nugget@k",
     "BM25_Nugget@k",
-]
-
-SEMANTIC_METRIC_COLUMNS = [
     "SemanticNuggetMatch@k",
     "SemanticAnswerMatch@k",
-]
-
-ALL_METRIC_COLUMNS = LEXICAL_METRIC_COLUMNS + SEMANTIC_METRIC_COLUMNS
+}
 
 
 @dataclass
-class RunComparisonInput:
+class RunSpec:
     """
-    One evaluation run to include in a comparison report.
+    One retrieval/evaluation run to compare.
+
+    Example:
+        label = "lexical"
+        run_dir = outputs/evaluation/provideq20_lexical
     """
 
     label: str
     run_dir: Path
 
 
+@dataclass
+class MetricValue:
+    """
+    One metric value for one run and one k.
+    """
+
+    run_label: str
+    metric_group: str
+    metric_name: str
+    k: int
+    value: float
+
+
+def parse_run_spec(raw_spec: str) -> RunSpec:
+    """
+    Parse run specification from CLI.
+
+    Expected format:
+        label=path
+
+    Example:
+        lexical=outputs/evaluation/provideq20_lexical
+    """
+    if "=" not in raw_spec:
+        raise ValueError(
+            "Run specifications must use the format label=path. "
+            f"Invalid value: {raw_spec}"
+        )
+
+    label, path = raw_spec.split("=", 1)
+
+    label = label.strip()
+    path = path.strip()
+
+    if not label:
+        raise ValueError(f"Run label is empty in: {raw_spec}")
+
+    if not path:
+        raise ValueError(f"Run path is empty in: {raw_spec}")
+
+    return RunSpec(
+        label=label,
+        run_dir=Path(path),
+    )
+
+
+def parse_run_specs(raw_specs: list[str]) -> list[RunSpec]:
+    """
+    Parse multiple run specifications.
+    """
+    if len(raw_specs) < 2:
+        raise ValueError("At least two runs are required for comparison.")
+
+    run_specs = [
+        parse_run_spec(raw_spec)
+        for raw_spec in raw_specs
+    ]
+
+    labels = [run.label for run in run_specs]
+
+    if len(labels) != len(set(labels)):
+        raise ValueError("Run labels must be unique.")
+
+    return run_specs
+
+
 def read_csv_rows(path: Path) -> list[dict[str, str]]:
     """
     Read CSV rows as dictionaries.
-
-    Missing files are allowed at a higher level, because a run may have lexical
-    metrics but not semantic metrics yet.
     """
     if not path.exists():
         return []
 
     with path.open("r", encoding="utf-8-sig", newline="") as file:
-        return list(csv.DictReader(file))
+        reader = csv.DictReader(file)
+        return list(reader)
 
 
-def write_csv_rows(path: Path, rows: list[dict[str, Any]]) -> None:
+def safe_float(value: Any) -> float | None:
     """
-    Write rows to CSV with automatically collected field names.
+    Convert a value to float if possible.
     """
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def safe_int(value: Any) -> int | None:
+    """
+    Convert a value to int if possible.
+    """
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def load_aggregate_metrics_for_run(run_spec: RunSpec) -> list[MetricValue]:
+    """
+    Load lexical and semantic aggregate metrics from one run directory.
+    """
+    metric_values: list[MetricValue] = []
+
+    aggregate_files = [
+        ("lexical", run_spec.run_dir / LEXICAL_AGGREGATE_FILE),
+        ("semantic", run_spec.run_dir / SEMANTIC_AGGREGATE_FILE),
+    ]
+
+    for metric_group, path in aggregate_files:
+        rows = read_csv_rows(path)
+
+        for row in rows:
+            k = safe_int(row.get("k"))
+
+            if k is None:
+                continue
+
+            for column_name, raw_value in row.items():
+                if column_name not in METRIC_COLUMNS:
+                    continue
+
+                value = safe_float(raw_value)
+
+                if value is None:
+                    continue
+
+                metric_values.append(
+                    MetricValue(
+                        run_label=run_spec.label,
+                        metric_group=metric_group,
+                        metric_name=column_name,
+                        k=k,
+                        value=value,
+                    )
+                )
+
+    return metric_values
+
+
+def load_all_metrics(run_specs: list[RunSpec]) -> list[MetricValue]:
+    """
+    Load aggregate metric values for all runs.
+    """
+    all_values: list[MetricValue] = []
+
+    for run_spec in run_specs:
+        run_values = load_aggregate_metrics_for_run(run_spec)
+        all_values.extend(run_values)
+
+    return all_values
+
+
+def build_metric_lookup(
+    metric_values: list[MetricValue],
+) -> dict[tuple[str, str, int], MetricValue]:
+    """
+    Build lookup by:
+        run_label, metric_name, k
+    """
+    lookup: dict[tuple[str, str, int], MetricValue] = {}
+
+    for metric_value in metric_values:
+        key = (
+            metric_value.run_label,
+            metric_value.metric_name,
+            metric_value.k,
+        )
+        lookup[key] = metric_value
+
+    return lookup
+
+
+def relative_delta_percent(
+    baseline_value: float,
+    compared_value: float,
+) -> float | str:
+    """
+    Compute relative improvement percentage.
+
+    If baseline is zero, return an empty string to avoid misleading division.
+    """
+    if baseline_value == 0:
+        return ""
+
+    return round(((compared_value - baseline_value) / baseline_value) * 100, 2)
+
+
+def compare_runs(
+    run_specs: list[RunSpec],
+    baseline_label: str,
+) -> list[dict[str, Any]]:
+    """
+    Compare all runs against one baseline.
+
+    Output format:
+    one row per compared run, metric, and k.
+    """
+    labels = {run_spec.label for run_spec in run_specs}
+
+    if baseline_label not in labels:
+        raise ValueError(
+            f"Baseline label '{baseline_label}' not found in runs: "
+            + ", ".join(sorted(labels))
+        )
+
+    metric_values = load_all_metrics(run_specs)
+    lookup = build_metric_lookup(metric_values)
+
+    available_metric_keys = sorted(
+        {
+            (metric_value.metric_group, metric_value.metric_name, metric_value.k)
+            for metric_value in metric_values
+        }
+    )
+
+    comparison_rows: list[dict[str, Any]] = []
+
+    compared_labels = [
+        run_spec.label
+        for run_spec in run_specs
+        if run_spec.label != baseline_label
+    ]
+
+    for metric_group, metric_name, k in available_metric_keys:
+        baseline_metric = lookup.get((baseline_label, metric_name, k))
+
+        if baseline_metric is None:
+            continue
+
+        for compared_label in compared_labels:
+            compared_metric = lookup.get((compared_label, metric_name, k))
+
+            if compared_metric is None:
+                continue
+
+            delta = round(compared_metric.value - baseline_metric.value, 4)
+
+            comparison_rows.append(
+                {
+                    "metric_group": metric_group,
+                    "metric_name": metric_name,
+                    "k": k,
+                    "baseline_run": baseline_label,
+                    "baseline_score": baseline_metric.value,
+                    "compared_run": compared_label,
+                    "compared_score": compared_metric.value,
+                    "delta": delta,
+                    "relative_delta_percent": relative_delta_percent(
+                        baseline_value=baseline_metric.value,
+                        compared_value=compared_metric.value,
+                    ),
+                }
+            )
+
+    return comparison_rows
+
+
+def save_comparison_rows(
+    rows: list[dict[str, Any]],
+    output_path: str | Path,
+) -> None:
+    """
+    Save comparison rows to one CSV file.
+    """
+    path = Path(output_path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    if not rows:
-        path.write_text("", encoding="utf-8")
-        return
-
-    fieldnames: list[str] = []
-
-    for row in rows:
-        for key in row.keys():
-            if key not in fieldnames:
-                fieldnames.append(key)
+    fieldnames = [
+        "metric_group",
+        "metric_name",
+        "k",
+        "baseline_run",
+        "baseline_score",
+        "compared_run",
+        "compared_score",
+        "delta",
+        "relative_delta_percent",
+    ]
 
     with path.open("w", encoding="utf-8", newline="") as file:
         writer = csv.DictWriter(file, fieldnames=fieldnames)
@@ -75,392 +321,24 @@ def write_csv_rows(path: Path, rows: list[dict[str, Any]]) -> None:
             writer.writerow(row)
 
 
-def parse_float(value: Any) -> float | None:
-    """
-    Convert metric values to floats when possible.
-    """
-    if value is None:
-        return None
-
-    text = str(value).strip()
-
-    if not text:
-        return None
-
-    try:
-        return float(text)
-    except ValueError:
-        return None
-
-
-def load_aggregate_metrics_for_run(
-    run_input: RunComparisonInput,
-) -> list[dict[str, Any]]:
-    """
-    Load aggregate lexical and semantic metric rows for one run.
-
-    Output:
-    - one row per k
-    - contains all available aggregate metric columns
-    """
-    run_dir = run_input.run_dir
-
-    lexical_rows = read_csv_rows(run_dir / LEXICAL_AGGREGATE_FILE)
-    semantic_rows = read_csv_rows(run_dir / SEMANTIC_AGGREGATE_FILE)
-
-    rows_by_k: dict[str, dict[str, Any]] = {}
-
-    for row in lexical_rows:
-        k = row.get("k", "")
-
-        if not k:
-            continue
-
-        rows_by_k.setdefault(
-            k,
-            {
-                "run_label": run_input.label,
-                "run_dir": str(run_dir),
-                "k": k,
-            },
-        )
-
-        rows_by_k[k]["question_count"] = row.get("question_count", "")
-
-        for metric in LEXICAL_METRIC_COLUMNS:
-            rows_by_k[k][metric] = row.get(metric, "")
-
-        rows_by_k[k]["avg_nuggets_per_question"] = row.get(
-            "avg_nuggets_per_question",
-            "",
-        )
-
-        rows_by_k[k]["avg_retrieved_snippets_used"] = row.get(
-            "avg_retrieved_snippets_used",
-            "",
-        )
-
-    for row in semantic_rows:
-        k = row.get("k", "")
-
-        if not k:
-            continue
-
-        rows_by_k.setdefault(
-            k,
-            {
-                "run_label": run_input.label,
-                "run_dir": str(run_dir),
-                "k": k,
-            },
-        )
-
-        rows_by_k[k]["question_count"] = row.get(
-            "question_count",
-            rows_by_k[k].get("question_count", ""),
-        )
-
-        rows_by_k[k]["embedding_model"] = row.get("embedding_model", "")
-
-        for metric in SEMANTIC_METRIC_COLUMNS:
-            rows_by_k[k][metric] = row.get(metric, "")
-
-        rows_by_k[k]["avg_nuggets_per_question"] = row.get(
-            "avg_nuggets_per_question",
-            rows_by_k[k].get("avg_nuggets_per_question", ""),
-        )
-
-        rows_by_k[k]["avg_retrieved_snippets_used"] = row.get(
-            "avg_retrieved_snippets_used",
-            rows_by_k[k].get("avg_retrieved_snippets_used", ""),
-        )
-
-    return [
-        rows_by_k[k]
-        for k in sorted(rows_by_k.keys(), key=lambda value: int(value))
-    ]
-
-
-def aggregate_wide_to_long(
-    wide_rows: list[dict[str, Any]],
-) -> list[dict[str, Any]]:
-    """
-    Convert wide aggregate rows into long format.
-
-    Long format is easier for plotting:
-
-        run_label, k, metric_name, metric_value
-    """
-    long_rows: list[dict[str, Any]] = []
-
-    for row in wide_rows:
-        for metric_name in ALL_METRIC_COLUMNS:
-            metric_value = row.get(metric_name, "")
-
-            if metric_value == "":
-                continue
-
-            long_rows.append(
-                {
-                    "run_label": row.get("run_label", ""),
-                    "run_dir": row.get("run_dir", ""),
-                    "k": row.get("k", ""),
-                    "metric_name": metric_name,
-                    "metric_value": metric_value,
-                    "question_count": row.get("question_count", ""),
-                    "embedding_model": row.get("embedding_model", ""),
-                }
-            )
-
-    return long_rows
-
-
-def compute_aggregate_deltas(
-    wide_rows: list[dict[str, Any]],
+def run_comparison(
+    raw_run_specs: list[str],
     baseline_label: str,
-) -> list[dict[str, Any]]:
+    output_path: str | Path,
+) -> Path:
     """
-    Compute metric deltas against a baseline run.
-
-    Delta = current run metric - baseline run metric
-
-    This helps quickly answer:
-    - Did the new ranker improve?
-    - On which metric?
-    - At which k?
+    Run comparison and save one CSV output.
     """
-    baseline_by_k: dict[str, dict[str, Any]] = {}
+    run_specs = parse_run_specs(raw_run_specs)
 
-    for row in wide_rows:
-        if row.get("run_label") == baseline_label:
-            baseline_by_k[str(row.get("k", ""))] = row
-
-    delta_rows: list[dict[str, Any]] = []
-
-    for row in wide_rows:
-        run_label = row.get("run_label", "")
-
-        if run_label == baseline_label:
-            continue
-
-        k = str(row.get("k", ""))
-        baseline_row = baseline_by_k.get(k)
-
-        if baseline_row is None:
-            continue
-
-        for metric_name in ALL_METRIC_COLUMNS:
-            current_value = parse_float(row.get(metric_name))
-            baseline_value = parse_float(baseline_row.get(metric_name))
-
-            if current_value is None or baseline_value is None:
-                continue
-
-            delta = current_value - baseline_value
-
-            delta_rows.append(
-                {
-                    "baseline_label": baseline_label,
-                    "run_label": run_label,
-                    "k": k,
-                    "metric_name": metric_name,
-                    "baseline_value": round(baseline_value, 4),
-                    "run_value": round(current_value, 4),
-                    "delta": round(delta, 4),
-                    "relative_change_percent": round(
-                        (delta / baseline_value) * 100,
-                        2,
-                    )
-                    if baseline_value != 0
-                    else "",
-                }
-            )
-
-    return delta_rows
-
-
-def load_question_metrics_for_run(
-    run_input: RunComparisonInput,
-) -> list[dict[str, Any]]:
-    """
-    Load per-question lexical and semantic metrics for one run.
-
-    Output:
-    - one row per question_id and k
-    - includes all available metrics
-    """
-    run_dir = run_input.run_dir
-
-    lexical_rows = read_csv_rows(run_dir / LEXICAL_QUESTION_FILE)
-    semantic_rows = read_csv_rows(run_dir / SEMANTIC_QUESTION_FILE)
-
-    rows_by_key: dict[tuple[str, str], dict[str, Any]] = {}
-
-    for row in lexical_rows:
-        question_id = row.get("question_id", "")
-        k = row.get("k", "")
-
-        if not question_id or not k:
-            continue
-
-        key = (question_id, k)
-
-        rows_by_key.setdefault(
-            key,
-            {
-                "run_label": run_input.label,
-                "run_dir": str(run_dir),
-                "question_id": question_id,
-                "question": row.get("question", ""),
-                "k": k,
-            },
-        )
-
-        for metric in LEXICAL_METRIC_COLUMNS:
-            rows_by_key[key][metric] = row.get(metric, "")
-
-        rows_by_key[key]["nugget_count"] = row.get("nugget_count", "")
-        rows_by_key[key]["retrieved_snippet_count"] = row.get(
-            "retrieved_snippet_count",
-            "",
-        )
-
-    for row in semantic_rows:
-        question_id = row.get("question_id", "")
-        k = row.get("k", "")
-
-        if not question_id or not k:
-            continue
-
-        key = (question_id, k)
-
-        rows_by_key.setdefault(
-            key,
-            {
-                "run_label": run_input.label,
-                "run_dir": str(run_dir),
-                "question_id": question_id,
-                "question": row.get("question", ""),
-                "k": k,
-            },
-        )
-
-        rows_by_key[key]["embedding_model"] = row.get("embedding_model", "")
-
-        for metric in SEMANTIC_METRIC_COLUMNS:
-            rows_by_key[key][metric] = row.get(metric, "")
-
-        rows_by_key[key]["answer_best_rank"] = row.get("answer_best_rank", "")
-
-        if not rows_by_key[key].get("nugget_count"):
-            rows_by_key[key]["nugget_count"] = row.get("nugget_count", "")
-
-        if not rows_by_key[key].get("retrieved_snippet_count"):
-            rows_by_key[key]["retrieved_snippet_count"] = row.get(
-                "retrieved_snippet_count",
-                "",
-            )
-
-    return sorted(
-        rows_by_key.values(),
-        key=lambda item: (item.get("question_id", ""), int(item.get("k", 0))),
+    rows = compare_runs(
+        run_specs=run_specs,
+        baseline_label=baseline_label,
     )
 
-
-def create_comparison_inputs(
-    run_dirs: list[str],
-    run_labels: list[str] | None = None,
-) -> list[RunComparisonInput]:
-    """
-    Build comparison inputs from CLI arguments.
-
-    If labels are not given, folder names are used.
-    """
-    if run_labels and len(run_labels) != len(run_dirs):
-        raise ValueError(
-            "Number of --run-labels must match number of --run-dirs."
-        )
-
-    inputs: list[RunComparisonInput] = []
-
-    for index, run_dir_value in enumerate(run_dirs):
-        run_dir = Path(run_dir_value)
-
-        if run_labels:
-            label = run_labels[index]
-        else:
-            label = run_dir.name
-
-        inputs.append(
-            RunComparisonInput(
-                label=label,
-                run_dir=run_dir,
-            )
-        )
-
-    return inputs
-
-
-def run_comparison_report(
-    run_dirs: list[str],
-    output_dir: str | Path,
-    run_labels: list[str] | None = None,
-    baseline_label: str | None = None,
-) -> dict[str, Path]:
-    """
-    Create comparison reports for multiple evaluation runs.
-
-    Created files:
-    - comparison_aggregate_wide.csv
-    - comparison_aggregate_long.csv
-    - comparison_aggregate_deltas.csv
-    - comparison_question_wide.csv
-    """
-    output_path = Path(output_dir)
-    output_path.mkdir(parents=True, exist_ok=True)
-
-    comparison_inputs = create_comparison_inputs(
-        run_dirs=run_dirs,
-        run_labels=run_labels,
+    save_comparison_rows(
+        rows=rows,
+        output_path=output_path,
     )
 
-    if not comparison_inputs:
-        raise ValueError("At least one run directory is required.")
-
-    effective_baseline_label = baseline_label or comparison_inputs[0].label
-
-    aggregate_wide_rows: list[dict[str, Any]] = []
-    question_wide_rows: list[dict[str, Any]] = []
-
-    for run_input in comparison_inputs:
-        aggregate_wide_rows.extend(
-            load_aggregate_metrics_for_run(run_input)
-        )
-
-        question_wide_rows.extend(
-            load_question_metrics_for_run(run_input)
-        )
-
-    aggregate_long_rows = aggregate_wide_to_long(aggregate_wide_rows)
-
-    delta_rows = compute_aggregate_deltas(
-        wide_rows=aggregate_wide_rows,
-        baseline_label=effective_baseline_label,
-    )
-
-    aggregate_wide_path = output_path / "comparison_aggregate_wide.csv"
-    aggregate_long_path = output_path / "comparison_aggregate_long.csv"
-    delta_path = output_path / "comparison_aggregate_deltas.csv"
-    question_wide_path = output_path / "comparison_question_wide.csv"
-
-    write_csv_rows(aggregate_wide_path, aggregate_wide_rows)
-    write_csv_rows(aggregate_long_path, aggregate_long_rows)
-    write_csv_rows(delta_path, delta_rows)
-    write_csv_rows(question_wide_path, question_wide_rows)
-
-    return {
-        "aggregate_wide": aggregate_wide_path,
-        "aggregate_long": aggregate_long_path,
-        "deltas": delta_path,
-        "question_wide": question_wide_path,
-    }
+    return Path(output_path)

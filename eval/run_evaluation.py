@@ -4,7 +4,7 @@ import argparse
 from pathlib import Path
 
 from eval.benchmark_loader import load_benchmark, summarize_benchmark
-from eval.comparison import run_comparison_report
+from eval.comparison import run_comparison
 from eval.metrics.semantic import DEFAULT_EMBEDDING_MODEL
 from eval.reports import run_lexical_report, run_semantic_report
 from eval.retrieval_runner import (
@@ -78,8 +78,25 @@ def build_parser() -> argparse.ArgumentParser:
 
     parser.add_argument(
         "--compare-runs",
-        action="store_true",
-        help="Compare multiple evaluated run directories."
+        nargs="+",
+        default=None,
+        help=(
+            "Compare evaluation run folders. Use format label=path, for example: "
+            "lexical=outputs/evaluation/provideq20_lexical "
+            "hybrid=outputs/evaluation/provideq20_medcpt_hybrid"
+        ),
+    )
+
+    parser.add_argument(
+        "--baseline-run",
+        default="lexical",
+        help="Baseline run label used for --compare-runs."
+    )
+
+    parser.add_argument(
+        "--comparison-output",
+        default="outputs/evaluation/method_comparison.csv",
+        help="Path for the comparison CSV output."
     )
 
     parser.add_argument(
@@ -160,26 +177,6 @@ def build_parser() -> argparse.ArgumentParser:
         help="Optional maximum number of benchmark questions to run."
     )
 
-    parser.add_argument(
-        "--run-dirs",
-        nargs="+",
-        default=[],
-        help="Run directories to compare."
-    )
-
-    parser.add_argument(
-        "--run-labels",
-        nargs="+",
-        default=None,
-        help="Optional labels for the run directories."
-    )
-
-    parser.add_argument(
-        "--baseline-label",
-        default=None,
-        help="Run label to use as baseline for delta computation."
-    )
-
     return parser
 
 
@@ -202,9 +199,9 @@ def print_preview(examples) -> None:
 
 def run_metric_commands(args) -> bool:
     """
-    Run metric-only commands.
+    Run metric-only and comparison commands.
 
-    Returns True if a metric or comparison command was executed.
+    Returns True if a command was executed.
     """
     command_executed = False
 
@@ -269,29 +266,20 @@ def run_metric_commands(args) -> bool:
         command_executed = True
 
     if args.compare_runs:
-        if not args.run_dirs:
-            raise ValueError("--run-dirs is required when using --compare-runs")
+        print("\n=== Web RAG Method Comparison ===\n")
+        print(f"Baseline run: {args.baseline_run}")
+        print("Compared runs:")
 
-        output_dir = Path(args.output_dir)
+        for run_spec in args.compare_runs:
+            print(f"  {run_spec}")
 
-        print("\n=== Web RAG Run Comparison ===\n")
-        print(f"Run directories: {args.run_dirs}")
-        print(f"Run labels: {args.run_labels}")
-        print(f"Baseline label: {args.baseline_label}")
-        print(f"Output directory: {output_dir}")
-
-        report_files = run_comparison_report(
-            run_dirs=args.run_dirs,
-            run_labels=args.run_labels,
-            baseline_label=args.baseline_label,
-            output_dir=output_dir,
+        output_path = run_comparison(
+            raw_run_specs=args.compare_runs,
+            baseline_label=args.baseline_run,
+            output_path=args.comparison_output,
         )
 
-        print("\nComparison reports saved:")
-        print(f"Aggregate wide: {report_files['aggregate_wide']}")
-        print(f"Aggregate long: {report_files['aggregate_long']}")
-        print(f"Deltas: {report_files['deltas']}")
-        print(f"Question wide: {report_files['question_wide']}")
+        print(f"\nComparison CSV saved: {output_path}")
 
         command_executed = True
 
