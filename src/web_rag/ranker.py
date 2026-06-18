@@ -1,346 +1,215 @@
+"""Global reranker dispatcher for the ProvideQ Web RAG module."""
+
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+from typing import Any, List, Sequence
 
-from web_rag.biomedical_slots import calculate_slot_score
-from web_rag.config import get_settings
-from web_rag.models import Snippet
-from web_rag.neural_reranker import MedCPTReranker
-from web_rag.text_utils import clean_text, extract_keywords
+from .config import (
+    BM25_B,
+    BM25_K1,
+    DEFAULT_MIN_SNIPPET_WORD_COUNT,
+    DEFAULT_RANKER,
+    HYBRID_LEXICAL_WEIGHT,
+    HYBRID_MEDCPT_WEIGHT,
+    MEDCPT_ARTICLE_ENCODER_MODEL,
+    MEDCPT_BATCH_SIZE,
+    MEDCPT_QUERY_ENCODER_MODEL,
+)
+from .hybrid_reranker import rank_hybrid_snippets
+from .lexical_reranker import rank_lexical_snippets
+from .medcpt_embedding_reranker import rank_medcpt_embedding_snippets
 
 
-RESULT_CUES = {
-    "stable",
-    "stability",
-    "unstable",
-    "instability",
-    "degradation",
-    "degrade",
-    "decreased",
-    "decrease",
-    "increased",
-    "increase",
-    "change",
-    "changed",
-    "variation",
-    "variability",
-    "concentration",
-    "level",
-    "levels",
-    "measured",
-    "measurement",
-    "recovery",
-    "loss",
-    "significant",
-    "not significant",
+RANKER_ALIASES = {
+    "lexical": "lexical",
+    "bm25": "lexical",
+    "medcpt": "medcpt",
+    "embedding": "medcpt",
+    "dense": "medcpt",
+    "medcpt_embedding": "medcpt",
+    "hybrid": "hybrid",
+    "medcpt_hybrid": "hybrid",
 }
 
-SAMPLE_CUES = {
-    "blood",
-    "plasma",
-    "serum",
-    "urine",
-    "whole blood",
-    "edta",
-    "heparin",
-    "citrate",
-    "sample",
-    "samples",
-    "specimen",
-    "specimens",
-}
-
-CONDITION_CUES = {
-    "room temperature",
-    "temperature",
-    "storage",
-    "stored",
-    "freeze",
-    "frozen",
-    "freezing",
-    "thaw",
-    "thawed",
-    "centrifugation",
-    "centrifuged",
-    "delay",
-    "delayed",
-    "hours",
-    "hour",
-    "minutes",
-    "minute",
-    "days",
-    "day",
-    "4 c",
-    "20 c",
-    "37 c",
-    "-20 c",
-    "-80 c",
-}
+RANKER_CHOICES = tuple(RANKER_ALIASES.keys())
+TEXT_KEYS = ("evidence_text", "text", "snippet", "snippet_text", "content", "passage", "abstract")
+PAPER_KEYS = ("paper", "source", "document")
 
 
-def normalize_for_matching(text: str) -> str:
-    text = text.lower()
-    text = text.replace("°", " ")
-    text = re.sub(r"[^a-z0-9\-\+]+", " ", text)
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
+def normalize_ranker_name(ranker: str | None) -> str:
+    name = (ranker or DEFAULT_RANKER).strip().lower().replace("-", "_")
+    if name not in RANKER_ALIASES:
+        valid = ", ".join(sorted(RANKER_ALIASES))
+        raise ValueError(f"Unknown ranker '{ranker}'. Valid rankers: {valid}")
+    return RANKER_ALIASES[name]
 
 
-def contains_term(text: str, term: str) -> bool:
-    normalized_text = normalize_for_matching(text)
-    normalized_term = normalize_for_matching(term)
-
-    if not normalized_term:
-        return False
-
-    return normalized_term in normalized_text
+def _question_from_query_info(query_info: Any) -> str:
+    if query_info is None:
+        return ""
+    if isinstance(query_info, dict):
+        return str(query_info.get("question") or query_info.get("query") or "")
+    return str(getattr(query_info, "question", None) or getattr(query_info, "query", None) or query_info)
 
 
-def count_cue_matches(text: str, cues: set[str]) -> int:
-    return sum(1 for cue in cues if contains_term(text, cue))
+def _get_value(obj: Any, names: Sequence[str], default: Any = "") -> Any:
+    if obj is None:
+        return default
+    if isinstance(obj, dict):
+        for name in names:
+            value = obj.get(name)
+            if value not in (None, ""):
+                return value
+        return default
+    for name in names:
+        value = getattr(obj, name, None)
+        if value not in (None, ""):
+            return value
+    return default
 
 
-def snippet_length_penalty(snippet: Snippet) -> float:
-    word_count = len(snippet.text.split())
-
-    if word_count < 8:
-        return -1.0
-
-    if word_count < 15:
-        return -0.4
-
-    return 0.0
+def _get_paper(snippet: Any) -> Any:
+    return _get_value(snippet, PAPER_KEYS, None)
 
 
-def snippet_length_bonus(snippet: Snippet) -> float:
-    word_count = len(snippet.text.split())
-
-    if 20 <= word_count <= 90:
-        return 0.5
-
-    return 0.0
+def _snippet_text(snippet: Any) -> str:
+    return str(_get_value(snippet, TEXT_KEYS, "") or "").strip()
 
 
-def score_snippet(question: str, snippet: Snippet) -> float:
-    """
-    Lexical baseline score.
-
-    This function is kept as the original baseline so that later experiments
-    can compare simple lexical ranking against stronger reranking methods.
-    """
-    q_terms = extract_keywords(question)
-
-    title = snippet.paper.title
-    evidence = snippet.text
-    combined = f"{title} {evidence}"
-
-    score = 0.0
-
-    for term in q_terms:
-        if contains_term(evidence, term):
-            score += 2.0
-
-        if contains_term(title, term):
-            score += 1.5
-
-    result_cue_count = count_cue_matches(combined, RESULT_CUES)
-    sample_cue_count = count_cue_matches(combined, SAMPLE_CUES)
-    condition_cue_count = count_cue_matches(combined, CONDITION_CUES)
-
-    score += min(result_cue_count, 4) * 0.35
-    score += min(sample_cue_count, 3) * 0.25
-    score += min(condition_cue_count, 4) * 0.25
-
-    if snippet.paper.doi:
-        score += 0.2
-
-    if snippet.paper.year:
-        score += 0.1
-
-    score += snippet_length_penalty(snippet)
-    score += snippet_length_bonus(snippet)
-
-    return round(score, 4)
+def _word_count(text: str) -> int:
+    return len(re.findall(r"\w+", text or ""))
 
 
-def min_max_normalize(values: list[float]) -> list[float]:
-    """
-    Normalize scores to [0, 1].
-
-    If all scores are equal, return 0.5 for all items so the signal remains
-    neutral instead of disappearing.
-    """
-    if not values:
-        return []
-
-    min_value = min(values)
-    max_value = max(values)
-
-    if max_value == min_value:
-        return [0.5 for _ in values]
-
-    return [
-        (value - min_value) / (max_value - min_value)
-        for value in values
-    ]
+def _normalize_text(text: str) -> str:
+    return re.sub(r"\s+", " ", (text or "").strip().lower())
 
 
-def deduplicate_ranked_snippets(snippets: Iterable[Snippet]) -> list[Snippet]:
-    seen: set[tuple[str, str]] = set()
-    deduplicated: list[Snippet] = []
+def _paper_key(snippet: Any) -> str:
+    paper = _get_paper(snippet)
+    doi = str(_get_value(paper, ("doi",), "") or "").strip().lower()
+    pmid = str(_get_value(paper, ("pmid", "pubmed_id", "ext_id", "id"), "") or "").strip().lower()
+    url = str(_get_value(paper, ("url", "full_text_url", "source_url"), "") or "").strip().lower()
+    title = str(_get_value(paper, ("title", "paper_title", "source_title"), "") or "").strip().lower()
 
-    for snippet in snippets:
-        paper_key = snippet.paper.doi or snippet.paper.ext_id or snippet.paper.title
-        text_key = clean_text(snippet.text).lower()
-        key = (paper_key, text_key)
+    for prefix, value in (("doi", doi), ("pmid", pmid), ("url", url), ("title", title)):
+        if value:
+            return f"{prefix}:{value}"
+    return ""
 
-        if key in seen:
+
+def _filter_usable_snippets(snippets: Sequence[Any], min_word_count: int) -> List[Any]:
+    output: List[Any] = []
+    for snippet in snippets or []:
+        text = _snippet_text(snippet)
+        if not text:
+            continue
+        if min_word_count > 0 and _word_count(text) < min_word_count:
+            continue
+        output.append(snippet)
+    return output
+
+
+def _deduplicate_and_limit(snippets: Sequence[Any], top_k: int | None) -> List[Any]:
+    seen_papers: set[str] = set()
+    seen_texts: set[str] = set()
+    output: List[Any] = []
+
+    for snippet in snippets or []:
+        text_key = _normalize_text(_snippet_text(snippet))
+        if not text_key:
             continue
 
-        seen.add(key)
-        deduplicated.append(snippet)
+        paper_key = _paper_key(snippet)
+        if paper_key and paper_key in seen_papers:
+            continue
+        if text_key in seen_texts:
+            continue
 
-    return deduplicated
+        if paper_key:
+            seen_papers.add(paper_key)
+        seen_texts.add(text_key)
+        output.append(snippet)
 
+        if top_k is not None and len(output) >= top_k:
+            break
 
-def rank_snippets_lexical(
-    question: str,
-    snippets: list[Snippet],
-    top_k: int,
-) -> list[Snippet]:
-    """
-    Original lexical baseline ranking.
-    """
-    for snippet in snippets:
-        lexical_score = score_snippet(question, snippet)
-        snippet.score = lexical_score
-        snippet.score_components = {
-            "ranker": "lexical",
-            "lexical_raw": lexical_score,
-            "final_score": lexical_score,
-        }
-
-    snippets.sort(key=lambda item: item.score, reverse=True)
-    deduplicated = deduplicate_ranked_snippets(snippets)
-
-    return deduplicated[:top_k]
-
-
-def rank_snippets_medcpt_hybrid(
-    question: str,
-    snippets: list[Snippet],
-    top_k: int,
-) -> list[Snippet]:
-    """
-    Hybrid biomedical reranking.
-
-    Signals:
-    - MedCPT semantic relevance score
-    - lexical baseline score
-    - biomedical slot-aware score
-
-    Final score:
-        0.65 * MedCPT_norm
-      + 0.20 * lexical_norm
-      + 0.15 * slot_score
-    """
-    if not snippets:
-        return []
-
-    settings = get_settings()
-
-    lexical_raw = [
-        score_snippet(question, snippet)
-        for snippet in snippets
-    ]
-
-    slot_results = [
-        calculate_slot_score(question, snippet)
-        for snippet in snippets
-    ]
-
-    slot_scores = [score for score, _details in slot_results]
-    slot_details = [details for _score, details in slot_results]
-
-    medcpt = MedCPTReranker(
-        model_name=settings.medcpt_model_name,
-        batch_size=settings.medcpt_batch_size,
-        max_length=settings.medcpt_max_length,
-    )
-
-    medcpt_raw = medcpt.score_snippets(
-        question=question,
-        snippets=snippets,
-    )
-
-    lexical_norm = min_max_normalize(lexical_raw)
-    medcpt_norm = min_max_normalize(medcpt_raw)
-
-    for index, snippet in enumerate(snippets):
-        final_score = (
-            settings.hybrid_weight_medcpt * medcpt_norm[index]
-            + settings.hybrid_weight_lexical * lexical_norm[index]
-            + settings.hybrid_weight_slots * slot_scores[index]
-        )
-
-        snippet.score = round(final_score, 4)
-        snippet.score_components = {
-            "ranker": "medcpt-hybrid",
-            "final_score": round(final_score, 4),
-            "medcpt_raw": round(medcpt_raw[index], 4),
-            "medcpt_norm": round(medcpt_norm[index], 4),
-            "lexical_raw": round(lexical_raw[index], 4),
-            "lexical_norm": round(lexical_norm[index], 4),
-            "slot_score": round(slot_scores[index], 4),
-            "slot_details": slot_details[index],
-            "weights": {
-                "medcpt": settings.hybrid_weight_medcpt,
-                "lexical": settings.hybrid_weight_lexical,
-                "slots": settings.hybrid_weight_slots,
-            },
-        }
-
-    snippets.sort(key=lambda item: item.score, reverse=True)
-    deduplicated = deduplicate_ranked_snippets(snippets)
-
-    return deduplicated[:top_k]
+    return output
 
 
 def rank_snippets(
-    question: str,
-    snippets: Iterable[Snippet],
-    top_k: int | None = None,
+    question: str | None = None,
+    snippets: Sequence[Any] | None = None,
+    *,
+    query_info: Any = None,
+    ranker: str = DEFAULT_RANKER,
     method: str | None = None,
-) -> list[Snippet]:
-    """
-    Rank evidence snippets using the selected ranking method.
+    ranker_type: str | None = None,
+    top_k: int | None = None,
+    min_snippet_word_count: int = DEFAULT_MIN_SNIPPET_WORD_COUNT,
+    bm25_k1: float = BM25_K1,
+    bm25_b: float = BM25_B,
+    lexical_weight: float = HYBRID_LEXICAL_WEIGHT,
+    medcpt_weight: float = HYBRID_MEDCPT_WEIGHT,
+    query_model_name: str = MEDCPT_QUERY_ENCODER_MODEL,
+    article_model_name: str = MEDCPT_ARTICLE_ENCODER_MODEL,
+    batch_size: int = MEDCPT_BATCH_SIZE,
+    device: str | None = None,
+    **_: Any,
+) -> List[Any]:
+    question_text = question or _question_from_query_info(query_info)
+    candidates = _filter_usable_snippets(snippets or [], min_snippet_word_count)
+    if not candidates:
+        return []
 
-    Available methods:
-    - lexical
-    - medcpt-hybrid
-    """
-    settings = get_settings()
-    effective_top_k = top_k or settings.default_top_k
-    effective_method = method or settings.default_ranker
+    selected_ranker = normalize_ranker_name(method or ranker_type or ranker)
 
-    snippet_list = list(snippets)
-
-    if effective_method == "lexical":
-        return rank_snippets_lexical(
-            question=question,
-            snippets=snippet_list,
-            top_k=effective_top_k,
+    if selected_ranker == "lexical":
+        ranked = rank_lexical_snippets(
+            question_text,
+            candidates,
+            top_k=None,
+            k1=bm25_k1,
+            b=bm25_b,
         )
-
-    if effective_method == "medcpt-hybrid":
-        return rank_snippets_medcpt_hybrid(
-            question=question,
-            snippets=snippet_list,
-            top_k=effective_top_k,
+    elif selected_ranker == "medcpt":
+        ranked = rank_medcpt_embedding_snippets(
+            question_text,
+            candidates,
+            top_k=None,
+            query_model_name=query_model_name,
+            article_model_name=article_model_name,
+            batch_size=batch_size,
+            device=device,
         )
+    elif selected_ranker == "hybrid":
+        ranked = rank_hybrid_snippets(
+            question_text,
+            candidates,
+            top_k=None,
+            lexical_weight=lexical_weight,
+            medcpt_weight=medcpt_weight,
+            bm25_k1=bm25_k1,
+            bm25_b=bm25_b,
+            query_model_name=query_model_name,
+            article_model_name=article_model_name,
+            batch_size=batch_size,
+            device=device,
+        )
+    else:
+        raise ValueError(f"Unsupported ranker: {selected_ranker}")
 
-    raise ValueError(
-        f"Unknown ranking method: {effective_method}. "
-        "Use 'lexical' or 'medcpt-hybrid'."
-    )
+    return _deduplicate_and_limit(ranked, top_k)
+
+
+def rerank_snippets(*args: Any, **kwargs: Any) -> List[Any]:
+    return rank_snippets(*args, **kwargs)
+
+
+__all__ = [
+    "RANKER_ALIASES",
+    "RANKER_CHOICES",
+    "normalize_ranker_name",
+    "rank_snippets",
+    "rerank_snippets",
+]

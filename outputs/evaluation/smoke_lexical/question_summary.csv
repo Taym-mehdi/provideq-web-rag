@@ -1,3 +1,0 @@
-question_id,question,status,ranking_method,retrieved_papers,extracted_snippets,ranked_evidence_records,top_score,top_title,error_type,error_message
-Q001,Is interleukin-6 stable in plasma at room temperature?,ok,lexical,5,43,10,11.2,Assessing the Preanalytical Variability of Plasma and Cerebrospinal Fluid Processing and Its Effects on Inflammation-Related Protein Biomarkers.,,
-Q002,Is glucose stable in serum at 20 degrees for 4 hours?,ok,lexical,5,69,10,12.6,Serum Intestinal Metabolites are Raised in Patients with Psoriasis and Metabolic Syndrome.,,

@@ -1,0 +1,72 @@
+{
+  "question": "How does delayed centrifugation affect potassium in serum samples?",
+  "records": [
+    {
+      "citation_id": 0,
+      "title": "Glucose is stable during prolonged storage in un-centrifuged Greiner tubes with liquid citrate buffer, but not in serum and NaF/KOx tubes.",
+      "evidence_text": "",
+      "score": 1.0,
+      "year": "2016",
+      "source": {
+        "title": "Glucose is stable during prolonged storage in un-centrifuged Greiner tubes with liquid citrate buffer, but not in serum and NaF/KOx tubes.",
+        "pmid": "",
+        "doi": "10.1515/cclm-2015-0746",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/26695197/",
+        "journal": "",
+        "year": "2016",
+        "authors": "Juricic G, Bakliza A, Saracevic A, Kopcinovic LM, Dobrijevic S, Drmic S, Simundic AM."
+      },
+      "ext_id": "",
+      "doi": "10.1515/cclm-2015-0746",
+      "authors": "Juricic G, Bakliza A, Saracevic A, Kopcinovic LM, Dobrijevic S, Drmic S, Simundic AM.",
+      "journal": "",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26695197/",
+      "score_components": {}
+    },
+    {
+      "citation_id": 0,
+      "title": "Glucose is stable during prolonged storage in un-centrifuged Greiner tubes with liquid citrate buffer, but not in serum and NaF/KOx tubes.",
+      "evidence_text": "",
+      "score": 0.8522401886998492,
+      "year": "2016",
+      "source": {
+        "title": "Glucose is stable during prolonged storage in un-centrifuged Greiner tubes with liquid citrate buffer, but not in serum and NaF/KOx tubes.",
+        "pmid": "",
+        "doi": "10.1515/cclm-2015-0746",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/26695197/",
+        "journal": "",
+        "year": "2016",
+        "authors": "Juricic G, Bakliza A, Saracevic A, Kopcinovic LM, Dobrijevic S, Drmic S, Simundic AM."
+      },
+      "ext_id": "",
+      "doi": "10.1515/cclm-2015-0746",
+      "authors": "Juricic G, Bakliza A, Saracevic A, Kopcinovic LM, Dobrijevic S, Drmic S, Simundic AM.",
+      "journal": "",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/26695197/",
+      "score_components": {}
+    },
+    {
+      "citation_id": 0,
+      "title": "The evaluation of postmortem ocular fluid analysis as a diagnostic aid in sows.",
+      "evidence_text": "",
+      "score": 0.8512403395965042,
+      "year": "1990",
+      "source": {
+        "title": "The evaluation of postmortem ocular fluid analysis as a diagnostic aid in sows.",
+        "pmid": "",
+        "doi": "10.1177/104063879000200103",
+        "url": "https://pubmed.ncbi.nlm.nih.gov/2090276/",
+        "journal": "",
+        "year": "1990",
+        "authors": "Drolet R, D'Allaire S, Chagnon M."
+      },
+      "ext_id": "",
+      "doi": "10.1177/104063879000200103",
+      "authors": "Drolet R, D'Allaire S, Chagnon M.",
+      "journal": "",
+      "url": "https://pubmed.ncbi.nlm.nih.gov/2090276/",
+      "score_components": {}
+    }
+  ],
+  "context_text": "[1] Glucose is stable during prolonged storage in un-centrifuged Greiner tubes with liquid citrate buffer, but not in serum and NaF/KOx tubes.\nSource: [1]. Glucose is stable during prolonged storage in un-centrifuged Greiner tubes with liquid citrate buffer, but not in serum and NaF/KOx tubes.. 2016. DOI: 10.1515/cclm-2015-0746\n\n[2] Glucose is stable during prolonged storage in un-centrifuged Greiner tubes with liquid citrate buffer, but not in serum and NaF/KOx tubes.\nSource: [2]. Glucose is stable during prolonged storage in un-centrifuged Greiner tubes with liquid citrate buffer, but not in serum and NaF/KOx tubes.. 2016. DOI: 10.1515/cclm-2015-0746\n\n[3] The evaluation of postmortem ocular fluid analysis as a diagnostic aid in sows.\nSource: [3]. The evaluation of postmortem ocular fluid analysis as a diagnostic aid in sows.. 1990. DOI: 10.1177/104063879000200103"
+}

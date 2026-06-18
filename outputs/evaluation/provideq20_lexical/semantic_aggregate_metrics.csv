@@ -1,5 +1,0 @@
-k,question_count,embedding_model,SemanticNuggetMatch@k,SemanticAnswerMatch@k,avg_nuggets_per_question,avg_retrieved_snippets_used
-1,20,sentence-transformers/all-MiniLM-L6-v2,0.0556,0.106,4.05,0.15
-3,20,sentence-transformers/all-MiniLM-L6-v2,0.0606,0.1106,4.05,0.45
-5,20,sentence-transformers/all-MiniLM-L6-v2,0.0618,0.1106,4.05,0.75
-10,20,sentence-transformers/all-MiniLM-L6-v2,0.0691,0.1106,4.05,1.3

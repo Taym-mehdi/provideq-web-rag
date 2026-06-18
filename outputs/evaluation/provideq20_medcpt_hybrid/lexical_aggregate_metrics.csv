@@ -1,5 +1,0 @@
-k,question_count,ROUGE1_Nugget@k,ROUGEL_Nugget@k,ROUGE_Nugget@k,BM25_Nugget@k,avg_nuggets_per_question,avg_retrieved_snippets_used
-1,20,0.0146,0.0125,0.0135,0.0246,4.05,0.15
-3,20,0.0206,0.0181,0.0193,0.0365,4.05,0.45
-5,20,0.0219,0.0191,0.0205,0.044,4.05,0.75
-10,20,0.0232,0.0205,0.0218,0.046,4.05,1.3

@@ -10,7 +10,7 @@ STOPWORDS = {
     "that", "this", "these", "those", "it", "its", "into", "about", "after", "before",
     "between", "during", "under", "over", "than", "can", "could", "should", "would", "do",
     "does", "did", "done", "i", "we", "you", "they", "he", "she", "them", "their", "our",
-    "question", "stable", "stability"
+    "question", "stable", "stability", "what", "which", "who", "whom", "whose", "why", "how" 
 }
 
 

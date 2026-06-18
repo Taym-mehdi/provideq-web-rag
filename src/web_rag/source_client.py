@@ -94,7 +94,11 @@ def search_europe_pmc(query: QueryBundle, page_size: int | None = None) -> list[
         headers=headers,
         timeout=30,
     )
-    response.raise_for_status()
+    try:
+        response.raise_for_status()
+    except requests.HTTPError as exc:
+        print(f"[Europe PMC] Request failed: {exc}")
+        return []
 
     data = response.json()
     raw_results = data.get("resultList", {}).get("result", [])

@@ -1,6 +1,0 @@
-question_id,question,status,ranking_method,retrieved_papers,extracted_snippets,ranked_evidence_records,top_score,top_title,error_type,error_message
-Q001,Is interleukin-6 stable in plasma at room temperature?,ok,lexical,8,74,10,12.1,"Plasma levels of corticosterone, tumor necrosis factor receptor 1 and interleukin 6 are influenced by age, sex and chronic inflammation in mice treated with acute temperature stress.",,
-Q002,Is glucose stable in serum at 20 degrees for 4 hours?,ok,lexical,8,88,10,12.6,Serum Intestinal Metabolites are Raised in Patients with Psoriasis and Metabolic Syndrome.,,
-Q003,Does delayed centrifugation affect potassium concentration in serum?,ok,lexical,2,16,10,15.1,"Glucose is stable during prolonged storage in un-centrifuged Greiner tubes with liquid citrate buffer, but not in serum and NaF/KOx tubes.",,
-Q004,Is RNA stable in blood at room temperature?,ok,lexical,8,85,10,14.35,Optimization and comparison of genomic DNA extraction from whole blood collected in PAXgene blood RNA tube using automated platforms.,,
-Q005,Does freeze-thaw affect albumin measurement in serum?,no_evidence_found,lexical,0,0,0,,,,
