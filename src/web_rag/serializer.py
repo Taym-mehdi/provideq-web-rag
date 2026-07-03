@@ -1,92 +1,94 @@
+"""Serialization helpers for Web RAG evidence outputs."""
+
 from __future__ import annotations
 
+from dataclasses import asdict, is_dataclass
 import json
-from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
-
-from web_rag.models import EvidencePack, EvidenceRecord, QueryBundle
+from typing import Any, Mapping
 
 
-def utc_now_iso() -> str:
-    return datetime.now(timezone.utc).isoformat()
+def to_serializable(value: Any) -> Any:
+    if is_dataclass(value):
+        return to_serializable(asdict(value))
+    if isinstance(value, Mapping):
+        return {str(key): to_serializable(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [to_serializable(item) for item in value]
+    if isinstance(value, Path):
+        return str(value)
+    return value
 
 
-def evidence_record_to_dict(record: EvidenceRecord) -> dict[str, Any]:
-    return {
-        "citation_id": record.citation_id,
-        "score": record.score,
-        "score_components": record.score_components,
-        "title": record.title,
-        "evidence_text": record.evidence_text,
-        "metadata": {
-            "year": record.year,
-            "source": record.source,
-            "ext_id": record.ext_id,
-            "doi": record.doi,
-            "authors": record.authors,
-            "journal": record.journal,
-            "url": record.url,
-        },
-    }
+def evidence_pack_to_dict(evidence_pack: Any) -> dict[str, Any]:
+    data = to_serializable(evidence_pack)
+    if isinstance(data, dict):
+        return data
+    return {"value": data}
 
 
-def evidence_pack_to_dict(
-    evidence_pack: EvidencePack,
-    query: QueryBundle,
-    retrieved_papers_count: int,
-    extracted_snippets_count: int,
-    ranking_method: str,
-) -> dict[str, Any]:
-    has_evidence = len(evidence_pack.records) > 0
-
-    return {
-        "status": "ok" if has_evidence else "no_evidence_found",
-        "created_at_utc": utc_now_iso(),
-        "question": evidence_pack.question,
-        "ranking_method": ranking_method,
-        "query": {
-            "original_question": query.original_question,
-            "normalized_question": query.normalized_question,
-            "keywords": query.keywords,
-            "search_query": query.search_query,
-        },
-        "counts": {
-            "retrieved_papers": retrieved_papers_count,
-            "extracted_snippets": extracted_snippets_count,
-            "ranked_evidence_records": len(evidence_pack.records),
-        },
-        "evidence": [
-            evidence_record_to_dict(record)
-            for record in evidence_pack.records
-        ],
-        "context_text": evidence_pack.context_text,
-    }
+def evidence_pack_to_json(evidence_pack: Any, *, indent: int = 2) -> str:
+    return json.dumps(evidence_pack_to_dict(evidence_pack), indent=indent, ensure_ascii=False)
 
 
-def to_pretty_json(payload: dict[str, Any]) -> str:
-    return json.dumps(
-        payload,
-        ensure_ascii=False,
-        indent=2,
-    )
+def get_context_text(evidence_pack: Any) -> str:
+    data = evidence_pack_to_dict(evidence_pack)
+    return str(data.get("context_text") or data.get("context") or "")
 
 
-def save_json_output(payload: dict[str, Any], output_path: str) -> None:
-    path = Path(output_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    path.write_text(
-        to_pretty_json(payload),
-        encoding="utf-8",
-    )
+def save_json(data: Any, path: str | Path, *, indent: int = 2) -> Path:
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(json.dumps(to_serializable(data), indent=indent, ensure_ascii=False), encoding="utf-8")
+    return output_path
 
 
-def save_context_text(evidence_pack: EvidencePack, output_path: str) -> None:
-    path = Path(output_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
+def save_text(text: str, path: str | Path) -> Path:
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_text(text, encoding="utf-8")
+    return output_path
 
-    path.write_text(
-        evidence_pack.context_text,
-        encoding="utf-8",
-    )
+
+def save_evidence_pack(evidence_pack: Any, path: str | Path, *, indent: int = 2) -> Path:
+    return save_json(evidence_pack_to_dict(evidence_pack), path, indent=indent)
+
+
+def save_context_text(evidence_pack: Any, path: str | Path) -> Path:
+    return save_text(get_context_text(evidence_pack), path)
+
+
+def save_evidence_outputs(
+    evidence_pack: Any,
+    output_dir: str | Path,
+    *,
+    json_filename: str = "evidence.json",
+    context_filename: str = "context.txt",
+) -> dict[str, Path]:
+    output_directory = Path(output_dir)
+    output_directory.mkdir(parents=True, exist_ok=True)
+    json_path = save_evidence_pack(evidence_pack, output_directory / json_filename)
+    context_path = save_context_text(evidence_pack, output_directory / context_filename)
+    return {"json": json_path, "context": context_path}
+
+
+# Compatibility aliases used by earlier experiments.
+to_dict = evidence_pack_to_dict
+save_evidence_json = save_evidence_pack
+write_json = save_json
+
+
+__all__ = [
+    "evidence_pack_to_dict",
+    "evidence_pack_to_json",
+    "get_context_text",
+    "save_context_text",
+    "save_evidence_json",
+    "save_evidence_outputs",
+    "save_evidence_pack",
+    "save_json",
+    "save_text",
+    "to_dict",
+    "to_serializable",
+    "write_json",
+]
