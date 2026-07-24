@@ -1,204 +1,151 @@
-"""Configuration for the ProvideQ Web RAG baseline."""
-
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 import os
-from typing import Tuple
 
 
-EUROPE_PMC_SEARCH_URL = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
-EUROPE_PMC_RESULT_TYPE = "core"
-EUROPE_PMC_FORMAT = "json"
-
-DEFAULT_PAGE_SIZE = 8
-DEFAULT_TOP_K = 10
-DEFAULT_REQUEST_TIMEOUT = 30
-DEFAULT_USER_AGENT = "ProvideQ-Web-RAG/0.1"
-
-DEFAULT_MAX_QUERY_TERMS = 12
-DEFAULT_MIN_KEYWORD_LENGTH = 3
-
-DEFAULT_SNIPPET_WINDOW_SIZE = 3
-DEFAULT_SNIPPET_STRIDE = 1
-DEFAULT_MIN_SNIPPET_CHARS = 40
-DEFAULT_MAX_SNIPPET_CHARS = 1200
-DEFAULT_MIN_SNIPPET_WORD_COUNT = 10
-
-DEFAULT_RANKER = "lexical"
-SUPPORTED_RANKERS: Tuple[str, ...] = (
-    "lexical",
-    "bm25",
-    "medcpt",
-    "embedding",
-    "dense",
-    "medcpt_embedding",
-    "hybrid",
-    "medcpt_hybrid",
-)
-
-BM25_K1 = 1.5
-BM25_B = 0.75
-
-MEDCPT_QUERY_ENCODER_MODEL = "ncbi/MedCPT-Query-Encoder"
-MEDCPT_ARTICLE_ENCODER_MODEL = "ncbi/MedCPT-Article-Encoder"
-MEDCPT_CROSS_ENCODER_MODEL = "ncbi/MedCPT-Cross-Encoder"
-MEDCPT_BATCH_SIZE = 8
-
-HYBRID_LEXICAL_WEIGHT = 0.45
-HYBRID_MEDCPT_WEIGHT = 0.55
+PAPERCLIP_RANKINGS = ("bm25", "vector", "hybrid")
+PAPERCLIP_ACADEMIC_SOURCES = ("pmc", "biorxiv", "medrxiv", "arxiv")
+PAPERCLIP_MODES = ("any", "all", "50%", "75%", "phrase")
+QUERY_STRATEGIES = ("raw", "synonym")
+CHUNKING_METHODS = ("sentence_window",)
+RERANKERS = ("lexical", "medcpt", "hybrid")
 
 
 @dataclass(frozen=True)
 class Settings:
-    europe_pmc_search_url: str = EUROPE_PMC_SEARCH_URL
-    europe_pmc_result_type: str = EUROPE_PMC_RESULT_TYPE
-    europe_pmc_format: str = EUROPE_PMC_FORMAT
-    page_size: int = DEFAULT_PAGE_SIZE
-    top_k: int = DEFAULT_TOP_K
-    request_timeout: int = DEFAULT_REQUEST_TIMEOUT
-    user_agent: str = DEFAULT_USER_AGENT
+    retrieval_limit: int = 10
+    query_strategy: str = "synonym"
 
-    max_query_terms: int = DEFAULT_MAX_QUERY_TERMS
-    min_keyword_length: int = DEFAULT_MIN_KEYWORD_LENGTH
+    paperclip_source: str = "pmc"
+    paperclip_ranking: str = "hybrid"
+    paperclip_max_full_text_lines: int = 5000
+    paperclip_timeout: float = 120.0
 
-    snippet_window_size: int = DEFAULT_SNIPPET_WINDOW_SIZE
-    snippet_stride: int = DEFAULT_SNIPPET_STRIDE
-    min_snippet_chars: int = DEFAULT_MIN_SNIPPET_CHARS
-    max_snippet_chars: int = DEFAULT_MAX_SNIPPET_CHARS
-    min_snippet_word_count: int = DEFAULT_MIN_SNIPPET_WORD_COUNT
+    chunking_method: str = "sentence_window"
+    chunk_window_size: int = 3
+    chunk_stride: int = 1
+    min_chunk_chars: int = 60
+    max_chunk_chars: int = 1200
+    min_chunk_words: int = 10
+    context_backoff: bool = True
 
-    default_ranker: str = DEFAULT_RANKER
-    supported_rankers: Tuple[str, ...] = SUPPORTED_RANKERS
-    bm25_k1: float = BM25_K1
-    bm25_b: float = BM25_B
+    reranker: str = "medcpt"
+    top_k: int = 5
+    max_chunks_per_paper: int = 2
+    near_duplicate_threshold: float = 0.80
 
-    medcpt_query_encoder_model: str = MEDCPT_QUERY_ENCODER_MODEL
-    medcpt_article_encoder_model: str = MEDCPT_ARTICLE_ENCODER_MODEL
-    medcpt_cross_encoder_model: str = MEDCPT_CROSS_ENCODER_MODEL
-    medcpt_batch_size: int = MEDCPT_BATCH_SIZE
-    hybrid_lexical_weight: float = HYBRID_LEXICAL_WEIGHT
-    hybrid_medcpt_weight: float = HYBRID_MEDCPT_WEIGHT
+    bm25_k1: float = 1.5
+    bm25_b: float = 0.75
 
-    @property
-    def europe_pmc_url(self) -> str:
-        return self.europe_pmc_search_url
+    medcpt_query_model: str = "ncbi/MedCPT-Query-Encoder"
+    medcpt_article_model: str = "ncbi/MedCPT-Article-Encoder"
+    medcpt_batch_size: int = 8
+    medcpt_device: str = "auto"
 
-    @property
-    def europe_pmc_endpoint(self) -> str:
-        return self.europe_pmc_search_url
-
-    @property
-    def timeout(self) -> int:
-        return self.request_timeout
-
-    @property
-    def default_page_size(self) -> int:
-        return self.page_size
-
-    @property
-    def default_top_k(self) -> int:
-        return self.top_k
-
-    @property
-    def snippet_window(self) -> int:
-        return self.snippet_window_size
-
-    @property
-    def window_size(self) -> int:
-        return self.snippet_window_size
-
-    @property
-    def window_stride(self) -> int:
-        return self.snippet_stride
-
-
-WebRAGConfig = Settings
-WebRAGSettings = Settings
-
-_SETTINGS: Settings | None = None
+    hybrid_lexical_weight: float = 0.30
+    hybrid_medcpt_weight: float = 0.70
 
 
 def _env_int(name: str, default: int) -> int:
-    value = os.getenv(name)
-    if value is None or value == "":
-        return default
     try:
-        return int(value)
+        return int(os.getenv(name, str(default)))
     except ValueError:
         return default
 
 
 def _env_float(name: str, default: float) -> float:
-    value = os.getenv(name)
-    if value is None or value == "":
-        return default
     try:
-        return float(value)
+        return float(os.getenv(name, str(default)))
     except ValueError:
         return default
 
 
-def get_settings(**overrides) -> Settings:
-    global _SETTINGS
+def _env_bool(name: str, default: bool) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().casefold() in {"1", "true", "yes", "on"}
 
-    if _SETTINGS is None:
-        _SETTINGS = Settings(
-            europe_pmc_search_url=os.getenv("EUROPE_PMC_SEARCH_URL", EUROPE_PMC_SEARCH_URL),
-            page_size=_env_int("WEB_RAG_PAGE_SIZE", DEFAULT_PAGE_SIZE),
-            top_k=_env_int("WEB_RAG_TOP_K", DEFAULT_TOP_K),
-            request_timeout=_env_int("WEB_RAG_REQUEST_TIMEOUT", DEFAULT_REQUEST_TIMEOUT),
-            user_agent=os.getenv("WEB_RAG_USER_AGENT", DEFAULT_USER_AGENT),
-            max_query_terms=_env_int("WEB_RAG_MAX_QUERY_TERMS", DEFAULT_MAX_QUERY_TERMS),
-            min_keyword_length=_env_int("WEB_RAG_MIN_KEYWORD_LENGTH", DEFAULT_MIN_KEYWORD_LENGTH),
-            snippet_window_size=_env_int("WEB_RAG_SNIPPET_WINDOW_SIZE", DEFAULT_SNIPPET_WINDOW_SIZE),
-            snippet_stride=_env_int("WEB_RAG_SNIPPET_STRIDE", DEFAULT_SNIPPET_STRIDE),
-            min_snippet_chars=_env_int("WEB_RAG_MIN_SNIPPET_CHARS", DEFAULT_MIN_SNIPPET_CHARS),
-            max_snippet_chars=_env_int("WEB_RAG_MAX_SNIPPET_CHARS", DEFAULT_MAX_SNIPPET_CHARS),
-            min_snippet_word_count=_env_int("WEB_RAG_MIN_SNIPPET_WORD_COUNT", DEFAULT_MIN_SNIPPET_WORD_COUNT),
-            bm25_k1=_env_float("WEB_RAG_BM25_K1", BM25_K1),
-            bm25_b=_env_float("WEB_RAG_BM25_B", BM25_B),
-            medcpt_batch_size=_env_int("WEB_RAG_MEDCPT_BATCH_SIZE", MEDCPT_BATCH_SIZE),
-            hybrid_lexical_weight=_env_float("WEB_RAG_HYBRID_LEXICAL_WEIGHT", HYBRID_LEXICAL_WEIGHT),
-            hybrid_medcpt_weight=_env_float("WEB_RAG_HYBRID_MEDCPT_WEIGHT", HYBRID_MEDCPT_WEIGHT),
+
+def get_settings() -> Settings:
+    return Settings(
+        retrieval_limit=_env_int("WEB_RAG_RETRIEVAL_LIMIT", 50),
+        query_strategy=os.getenv("WEB_RAG_QUERY_STRATEGY", "synonym"),
+        paperclip_source=os.getenv("WEB_RAG_PAPERCLIP_SOURCE", "pmc"),
+        paperclip_ranking=os.getenv("WEB_RAG_PAPERCLIP_RANKING", "hybrid"),
+        paperclip_max_full_text_lines=_env_int("WEB_RAG_PAPERCLIP_MAX_LINES", 5000),
+        paperclip_timeout=_env_float("WEB_RAG_PAPERCLIP_TIMEOUT", 120.0),
+        chunking_method=os.getenv("WEB_RAG_CHUNKING_METHOD", "sentence_window"),
+        chunk_window_size=_env_int("WEB_RAG_CHUNK_WINDOW_SIZE", 3),
+        chunk_stride=_env_int("WEB_RAG_CHUNK_STRIDE", 1),
+        min_chunk_chars=_env_int("WEB_RAG_MIN_CHUNK_CHARS", 60),
+        max_chunk_chars=_env_int("WEB_RAG_MAX_CHUNK_CHARS", 1200),
+        min_chunk_words=_env_int("WEB_RAG_MIN_CHUNK_WORDS", 10),
+        context_backoff=_env_bool("WEB_RAG_CONTEXT_BACKOFF", True),
+        reranker=os.getenv("WEB_RAG_RERANKER", "medcpt"),
+        top_k=_env_int("WEB_RAG_TOP_K", 5),
+        max_chunks_per_paper=_env_int("WEB_RAG_MAX_CHUNKS_PER_PAPER", 2),
+        near_duplicate_threshold=_env_float("WEB_RAG_NEAR_DUPLICATE_THRESHOLD", 0.80),
+        bm25_k1=_env_float("WEB_RAG_BM25_K1", 1.5),
+        bm25_b=_env_float("WEB_RAG_BM25_B", 0.75),
+        medcpt_query_model=os.getenv(
+            "WEB_RAG_MEDCPT_QUERY_MODEL", "ncbi/MedCPT-Query-Encoder"
+        ),
+        medcpt_article_model=os.getenv(
+            "WEB_RAG_MEDCPT_ARTICLE_MODEL", "ncbi/MedCPT-Article-Encoder"
+        ),
+        medcpt_batch_size=_env_int("WEB_RAG_MEDCPT_BATCH_SIZE", 8),
+        medcpt_device=os.getenv("WEB_RAG_MEDCPT_DEVICE", "auto"),
+        hybrid_lexical_weight=_env_float("WEB_RAG_HYBRID_LEXICAL_WEIGHT", 0.30),
+        hybrid_medcpt_weight=_env_float("WEB_RAG_HYBRID_MEDCPT_WEIGHT", 0.70),
+    )
+
+
+def validate_paperclip_source(value: str) -> None:
+    sources = [item.strip().casefold() for item in value.split(",") if item.strip()]
+    if not sources:
+        raise ValueError("paperclip_source must contain at least one source")
+    unsupported = [item for item in sources if item not in PAPERCLIP_ACADEMIC_SOURCES]
+    if unsupported:
+        choices = ", ".join(PAPERCLIP_ACADEMIC_SOURCES)
+        raise ValueError(
+            f"Only academic Paperclip sources are allowed. Unsupported: {', '.join(unsupported)}. "
+            f"Choose from: {choices}"
         )
 
-    if overrides:
-        return replace(_SETTINGS, **overrides)
-    return _SETTINGS
 
-
-DEFAULT_SETTINGS = get_settings()
-
-
-__all__ = [
-    "Settings",
-    "WebRAGConfig",
-    "WebRAGSettings",
-    "get_settings",
-    "DEFAULT_SETTINGS",
-    "EUROPE_PMC_SEARCH_URL",
-    "EUROPE_PMC_RESULT_TYPE",
-    "EUROPE_PMC_FORMAT",
-    "DEFAULT_PAGE_SIZE",
-    "DEFAULT_TOP_K",
-    "DEFAULT_REQUEST_TIMEOUT",
-    "DEFAULT_USER_AGENT",
-    "DEFAULT_MAX_QUERY_TERMS",
-    "DEFAULT_MIN_KEYWORD_LENGTH",
-    "DEFAULT_SNIPPET_WINDOW_SIZE",
-    "DEFAULT_SNIPPET_STRIDE",
-    "DEFAULT_MIN_SNIPPET_CHARS",
-    "DEFAULT_MAX_SNIPPET_CHARS",
-    "DEFAULT_MIN_SNIPPET_WORD_COUNT",
-    "DEFAULT_RANKER",
-    "SUPPORTED_RANKERS",
-    "BM25_K1",
-    "BM25_B",
-    "MEDCPT_QUERY_ENCODER_MODEL",
-    "MEDCPT_ARTICLE_ENCODER_MODEL",
-    "MEDCPT_CROSS_ENCODER_MODEL",
-    "MEDCPT_BATCH_SIZE",
-    "HYBRID_LEXICAL_WEIGHT",
-    "HYBRID_MEDCPT_WEIGHT",
-]
+def validate_settings(settings: Settings) -> None:
+    validate_paperclip_source(settings.paperclip_source)
+    if settings.paperclip_ranking not in PAPERCLIP_RANKINGS:
+        raise ValueError(f"paperclip_ranking must be one of: {', '.join(PAPERCLIP_RANKINGS)}")
+    if settings.query_strategy not in QUERY_STRATEGIES:
+        raise ValueError(f"query_strategy must be one of: {', '.join(QUERY_STRATEGIES)}")
+    if settings.chunking_method not in CHUNKING_METHODS:
+        raise ValueError(f"chunking_method must be one of: {', '.join(CHUNKING_METHODS)}")
+    if settings.reranker not in RERANKERS:
+        raise ValueError(f"reranker must be one of: {', '.join(RERANKERS)}")
+    if settings.retrieval_limit <= 0 or settings.retrieval_limit > 1000:
+        raise ValueError("retrieval_limit must be between 1 and 1000")
+    if settings.paperclip_max_full_text_lines <= 0:
+        raise ValueError("paperclip_max_full_text_lines must be greater than 0")
+    if settings.paperclip_timeout <= 0:
+        raise ValueError("paperclip_timeout must be greater than 0")
+    if settings.chunk_window_size <= 0 or settings.chunk_stride <= 0:
+        raise ValueError("chunk window and stride must be greater than 0")
+    if settings.min_chunk_chars < 0 or settings.min_chunk_words < 0:
+        raise ValueError("minimum chunk thresholds must be non-negative")
+    if settings.max_chunk_chars < settings.min_chunk_chars:
+        raise ValueError("max_chunk_chars must be greater than or equal to min_chunk_chars")
+    if settings.top_k <= 0 or settings.max_chunks_per_paper <= 0:
+        raise ValueError("top_k and max_chunks_per_paper must be greater than 0")
+    if not 0 <= settings.near_duplicate_threshold <= 1:
+        raise ValueError("near_duplicate_threshold must be between 0 and 1")
+    if settings.bm25_k1 <= 0 or not 0 <= settings.bm25_b <= 1:
+        raise ValueError("BM25 requires k1 > 0 and b between 0 and 1")
+    if settings.medcpt_batch_size <= 0:
+        raise ValueError("medcpt_batch_size must be greater than 0")
+    if settings.hybrid_lexical_weight < 0 or settings.hybrid_medcpt_weight < 0:
+        raise ValueError("hybrid weights must be non-negative")
+    if settings.hybrid_lexical_weight + settings.hybrid_medcpt_weight <= 0:
+        raise ValueError("at least one hybrid weight must be greater than 0")

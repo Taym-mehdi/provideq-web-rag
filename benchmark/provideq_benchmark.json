@@ -1,0 +1,1506 @@
+{
+  "schema_version": "1.0",
+  "name": "ProvideQ Web RAG Benchmark",
+  "source": "RAG_Prototype/TestDataset.json and provideq_web_rag_dataset_20.csv",
+  "description": "Merged evaluation benchmark for evidence retrieval. The original 77 Aryan examples are preserved and 20 additional examples are normalized to the same schema.",
+  "examples": [
+    {
+      "id": "Q001",
+      "question": "What was the median intraclass correlation coefficient (ICC) reported for metabolites measured in serum samples across repeated visits?",
+      "gold_answers": [
+        "In serum samples, the median ICC was 0.66."
+      ],
+      "gold_documents": [
+        {
+          "title": "Targeted Metabolomics Identifies Reliable and Stable Metabolites in Human Serum and Plasma Samples",
+          "author": "Breier M, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q002",
+      "question": "Which metabolite class remained stable on cool packs and at room temperature for at least 24 hours in both serum and plasma?",
+      "gold_answers": [
+        "The compound class of sphingolipids was the most stable one, as all analyzed sphingolipid concentrations were stable on CP and at RT for at least 24 h."
+      ],
+      "gold_documents": [
+        {
+          "title": "Targeted Metabolomics Identifies Reliable and Stable Metabolites in Human Serum and Plasma Samples",
+          "author": "Breier M, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q003",
+      "question": "Do independent investigations of serum and plasma lipid metabolites agree that repeated freeze-thaw cycles cause only minimal change in the majority of measured metabolites?",
+      "gold_answers": [
+        "Except methionine sulfoxide, all 159 investigated metabolites of this panel maintained stable concentrations after one freeze-thaw cycle.",
+        "There were surprisingly few changes in serum lipid composition that resulted from multiple freeze-thaw cycles in the present study."
+      ],
+      "gold_documents": [
+        {
+          "title": "Targeted Metabolomics Identifies Reliable and Stable Metabolites in Human Serum and Plasma Samples",
+          "author": "Breier M, et al."
+        },
+        {
+          "title": "Effects of sample handling and storage on quantitative lipid analysis in human serum",
+          "author": "Zivkovic AM, et al."
+        }
+      ],
+      "category": "Multi-document comparative/synthesis",
+      "answerable": true
+    },
+    {
+      "id": "Q004",
+      "question": "How many metabolites showed significantly decreased concentrations in serum after two freeze-thaw cycles?",
+      "gold_answers": [
+        "Only eleven out of 159 metabolites revealed significantly decreased concentrations after two freeze-thaw cycles, including C10:1, three amino acids (isoleucine, tryptophane and valine), five phosphatidylcholines (PC aa C32:2, PC ae C36:2, PC ae C36:5, PC ae C40:1 and PC ae C42:0), acetylornithine and SM C16:0 (table S7)."
+      ],
+      "gold_documents": [
+        {
+          "title": "Targeted Metabolomics Identifies Reliable and Stable Metabolites in Human Serum and Plasma Samples",
+          "author": "Breier M, et al."
+        }
+      ],
+      "category": "Numerical/quantitative reasoning",
+      "answerable": true
+    },
+    {
+      "id": "Q005",
+      "question": "Does the use of serum gel-barrier collection tubes significantly affect the concentration of metabolites compared with standard clot-activator tubes?",
+      "gold_answers": [
+        "For all other investigated metabolites, serum gel-barrier tubes had no significant effect on concentration, compared to serum W tubes."
+      ],
+      "gold_documents": [
+        {
+          "title": "Targeted Metabolomics Identifies Reliable and Stable Metabolites in Human Serum and Plasma Samples",
+          "author": "Breier M, et al."
+        }
+      ],
+      "category": "Negation/contrast",
+      "answerable": true
+    },
+    {
+      "id": "Q006",
+      "question": "After two freeze-thaw cycles, were most serum metabolite concentrations found to be unstable?",
+      "gold_answers": [
+        "When serum samples were subjected to two freeze-thaw cycles, most metabolite concentrations were stable."
+      ],
+      "gold_documents": [
+        {
+          "title": "Targeted Metabolomics Identifies Reliable and Stable Metabolites in Human Serum and Plasma Samples",
+          "author": "Breier M, et al."
+        }
+      ],
+      "category": "Negation/contrast",
+      "answerable": true
+    },
+    {
+      "id": "Q007",
+      "question": "What was the effect of pre-storage handling on metabolite stability in blood samples drawn from donors under the age of 18?",
+      "gold_answers": [],
+      "gold_documents": [
+        {
+          "title": "Targeted Metabolomics Identifies Reliable and Stable Metabolites in Human Serum and Plasma Samples",
+          "author": "Breier M, et al."
+        }
+      ],
+      "category": "Counterfactual/unanswerable",
+      "answerable": false
+    },
+    {
+      "id": "Q008",
+      "question": "What does the abbreviation WCV refer to in the context of metabolite variability analysis?",
+      "gold_answers": [
+        "Figure 2. Histogram of within-subject coefficient of variance (WCV) in serum with mark at CV = 0.25."
+      ],
+      "gold_documents": [
+        {
+          "title": "Targeted Metabolomics Identifies Reliable and Stable Metabolites in Human Serum and Plasma Samples",
+          "author": "Breier M, et al."
+        }
+      ],
+      "category": "Terminology/definition",
+      "answerable": true
+    },
+    {
+      "id": "Q009",
+      "question": "What substance was used to chemically stabilize vitamin C in plasma?",
+      "gold_answers": [
+        "For vitamin C, heparin plasma had to be precipitated after centrifugation with metaphosphoric acid and transported under cooled conditions."
+      ],
+      "gold_documents": [
+        {
+          "title": "Sampling and processing of fresh blood samples within a European multicenter nutritional study: evaluation of biomarker stability during transport and storage",
+          "author": "González-Gross M, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q010",
+      "question": "Do separate stability evaluations agree that most routine blood analytes remain usable within a 24-hour transport or storage window when temperature is appropriately controlled?",
+      "gold_answers": [
+        "Routine biochemistry and iron status parameters included in the HELENA Cross-Sectional Study (CSS) protocol could be analyzed within 24 h from fresh blood samples without any stability problems (coefficient of variation (CV)o5%, Po0.05).",
+        "145 plasma metabolite concentrations were stable for at least 24 h on CP and 115 of these were also stable for at least 24 h at RT."
+      ],
+      "gold_documents": [
+        {
+          "title": "Sampling and processing of fresh blood samples within a European multicenter nutritional study: evaluation of biomarker stability during transport and storage",
+          "author": "González-Gross M, et al."
+        },
+        {
+          "title": "Targeted Metabolomics Identifies Reliable and Stable Metabolites in Human Serum and Plasma Samples",
+          "author": "Breier M, et al."
+        }
+      ],
+      "category": "Multi-document comparative/synthesis",
+      "answerable": true
+    },
+    {
+      "id": "Q011",
+      "question": "What coefficient of variation and recovery rate were achieved for vitamin C after metaphosphoric acid stabilization and cooled transport over 24 hours?",
+      "gold_answers": [
+        "After this treatment, vitamin C was stable over 24 h (coefficient of variation (CV) 4.4%, recovery rate 493%, P40.05)."
+      ],
+      "gold_documents": [
+        {
+          "title": "Sampling and processing of fresh blood samples within a European multicenter nutritional study: evaluation of biomarker stability during transport and storage",
+          "author": "González-Gross M, et al."
+        }
+      ],
+      "category": "Numerical/quantitative reasoning",
+      "answerable": true
+    },
+    {
+      "id": "Q012",
+      "question": "Did transporting serum samples at room temperature for 24 hours significantly change measured iron-status biomarkers such as ferritin and soluble transferrin receptor?",
+      "gold_answers": [
+        "No differences were observed between samples (A) and (B)."
+      ],
+      "gold_documents": [
+        {
+          "title": "Sampling and processing of fresh blood samples within a European multicenter nutritional study: evaluation of biomarker stability during transport and storage",
+          "author": "González-Gross M, et al."
+        }
+      ],
+      "category": "Negation/contrast",
+      "answerable": true
+    },
+    {
+      "id": "Q013",
+      "question": "Were significant changes observed in folate and vitamin B12 concentrations after 24 hours of storage at room temperature?",
+      "gold_answers": [
+        "No significant differences were observed during the 24 h of storage at room temperature."
+      ],
+      "gold_documents": [
+        {
+          "title": "Sampling and processing of fresh blood samples within a European multicenter nutritional study: evaluation of biomarker stability during transport and storage",
+          "author": "González-Gross M, et al."
+        }
+      ],
+      "category": "Negation/contrast",
+      "answerable": true
+    },
+    {
+      "id": "Q014",
+      "question": "How was the stability of lymphocyte surface markers tested under different transport and storage conditions?",
+      "gold_answers": [
+        "To check the influence of transport and storage on the stability of cell surface markers, blood samples (EDTA-tubes) from 16 participants of the pilot study in Zaragoza (14–15 years old, seven females) were aliquoted in three eppendorf vials and treated differently."
+      ],
+      "gold_documents": [
+        {
+          "title": "Sampling and processing of fresh blood samples within a European multicenter nutritional study: evaluation of biomarker stability during transport and storage",
+          "author": "González-Gross M, et al."
+        }
+      ],
+      "category": "Methodological/procedural",
+      "answerable": true
+    },
+    {
+      "id": "Q015",
+      "question": "How many male volunteers were enrolled in the study examining freeze-thaw cycles and pre-storage handling conditions?",
+      "gold_answers": [
+        "19 healthy male volunteers were included in the study and written informed consent was obtained from all participants."
+      ],
+      "gold_documents": [
+        {
+          "title": "Pre-Analytical Sample Quality: Metabolite Ratios as an Intrinsic Marker for Prolonged Room Temperature Exposure of Serum Samples",
+          "author": "Anton G, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q016",
+      "question": "Is the simultaneous rise in lysophosphatidylcholine and fall in phosphatidylcholine concentrations during room-temperature exposure attributed to the same enzymatic mechanism across independent reports?",
+      "gold_answers": [
+        "Phosphatidylcholines can be hydrolyzed to free fatty acids and lysophosphatidylcholines by phospholipase A2.",
+        "The decreasing levels of four PC aa's and increasing levels of eight lysoPCs during storage at RT could be explained by the hydrolysis of phosphatidylcholine to yield a lysophospholipid and free fatty acid, catalyzed by a phospholipase."
+      ],
+      "gold_documents": [
+        {
+          "title": "Pre-Analytical Sample Quality: Metabolite Ratios as an Intrinsic Marker for Prolonged Room Temperature Exposure of Serum Samples",
+          "author": "Anton G, et al."
+        },
+        {
+          "title": "Targeted Metabolomics Identifies Reliable and Stable Metabolites in Human Serum and Plasma Samples",
+          "author": "Breier M, et al."
+        }
+      ],
+      "category": "Multi-document comparative/synthesis",
+      "answerable": true
+    },
+    {
+      "id": "Q017",
+      "question": "Did any metabolite concentration ratio meet the significance and p-gain thresholds required to demonstrate a meaningful effect of freeze-thaw cycling?",
+      "gold_answers": [
+        "No pair fulfilled these demands."
+      ],
+      "gold_documents": [
+        {
+          "title": "Pre-Analytical Sample Quality: Metabolite Ratios as an Intrinsic Marker for Prolonged Room Temperature Exposure of Serum Samples",
+          "author": "Anton G, et al."
+        }
+      ],
+      "category": "Negation/contrast",
+      "answerable": true
+    },
+    {
+      "id": "Q018",
+      "question": "What effect did ultraviolet light exposure during sample handling have on the metabolite ratios?",
+      "gold_answers": [],
+      "gold_documents": [
+        {
+          "title": "Pre-Analytical Sample Quality: Metabolite Ratios as an Intrinsic Marker for Prolonged Room Temperature Exposure of Serum Samples",
+          "author": "Anton G, et al."
+        }
+      ],
+      "category": "Counterfactual/unanswerable",
+      "answerable": false
+    },
+    {
+      "id": "Q019",
+      "question": "What is meant by the statistical term 'p-gain' when evaluating metabolite concentration ratios?",
+      "gold_answers": [
+        "The p-gain is defined as the increase in the strength of association, expressed as the change in p-value when using ratios compared to the smaller of the two p-values when using the two metabolite concentrations individually."
+      ],
+      "gold_documents": [
+        {
+          "title": "Pre-Analytical Sample Quality: Metabolite Ratios as an Intrinsic Marker for Prolonged Room Temperature Exposure of Serum Samples",
+          "author": "Anton G, et al."
+        }
+      ],
+      "category": "Terminology/definition",
+      "answerable": true
+    },
+    {
+      "id": "Q020",
+      "question": "What proportion of measured lipid metabolites had a coefficient of variation at or below 0.15 across replicate analyses of a fresh serum sample?",
+      "gold_answers": [
+        "Seventy percent of the metabolites measured had CVs <0.33, 50% of the metabolites had CVs <0.15, and CVs for the total lipid classes were 0.07, 0.29, 0.08, 0.03, 0.13, 0.06, and 0.02 for CE, DG, FFA, LY, PC, PE, and TG, respectively."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of sample handling and storage on quantitative lipid analysis in human serum",
+          "author": "Zivkovic AM, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q021",
+      "question": "What percentage decrease in HDL free cholesterol concentration was observed when lipoprotein fractionation was performed on previously frozen serum compared with fresh serum?",
+      "gold_answers": [
+        "There was a 37% decrease in HDL FC and a concomitant 36% decrease in VLDL FFA accompanied by a 35% increase in LDL CE in frozen compared with fresh serum."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of sample handling and storage on quantitative lipid analysis in human serum",
+          "author": "Zivkovic AM, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q022",
+      "question": "Across separate investigations of serum lipid and metabolite stability, is there agreement that a small number of freeze-thaw cycles causes only minor change in the majority of measured analytes?",
+      "gold_answers": [
+        "Less than 1% of metabolites across 8 classes of lipids were affected significantly by one, two, or three freeze-thaw cycles.",
+        "When serum samples were subjected to two freeze-thaw cycles, most metabolite concentrations were stable."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of sample handling and storage on quantitative lipid analysis in human serum",
+          "author": "Zivkovic AM, et al."
+        },
+        {
+          "title": "Targeted Metabolomics Identifies Reliable and Stable Metabolites in Human Serum and Plasma Samples",
+          "author": "Breier M, et al."
+        }
+      ],
+      "category": "Multi-document comparative/synthesis",
+      "answerable": true
+    },
+    {
+      "id": "Q023",
+      "question": "What CV values were reported for key high-abundance lipid metabolites such as the total triacylglyceride lipid class in repeated measurements of a fresh serum sample?",
+      "gold_answers": [
+        "The CVs were low for all of the high abundance metabolites, with values as low as 0.01 and 0.02 for many of the key metabolites of biological relevance in humans (e.g. TG18:1n9, TG total lipid class, CE16:0, TG16:0, FFA18:1n9, CE20:5n3, CE20:4n6)."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of sample handling and storage on quantitative lipid analysis in human serum",
+          "author": "Zivkovic AM, et al."
+        }
+      ],
+      "category": "Numerical/quantitative reasoning",
+      "answerable": true
+    },
+    {
+      "id": "Q024",
+      "question": "By what percentage did diacylglycerol concentration decrease when lipid extraction was performed on a thawed sample rather than directly on a frozen one?",
+      "gold_answers": [
+        "DG18:3n6, LY20:4n6, LY22:5n3, PE16:0, and LYPUFA decreased 10–50%, and DG decreased 26% when extracted thawed compared with frozen."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of sample handling and storage on quantitative lipid analysis in human serum",
+          "author": "Zivkovic AM, et al."
+        }
+      ],
+      "category": "Numerical/quantitative reasoning",
+      "answerable": true
+    },
+    {
+      "id": "Q025",
+      "question": "Can freeze-thaw cycles cause widespread, significant alteration of serum lipid composition? If so, how many cycles?",
+      "gold_answers": [
+        "There were surprisingly few changes in serum lipid composition that resulted from multiple freeze-thaw cycles in the present study."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of sample handling and storage on quantitative lipid analysis in human serum",
+          "author": "Zivkovic AM, et al."
+        }
+      ],
+      "category": "Negation/contrast",
+      "answerable": true
+    },
+    {
+      "id": "Q026",
+      "question": "Is density-based lipoprotein fractionation equally reliable whether performed on fresh serum or on serum that has been frozen and thawed once?",
+      "gold_answers": [
+        "These findings suggest that density-based fractionation should preferably be undertaken in fresh serum samples because up to 37% variability in HDL and LDL cholesterol could result from a single freeze-thaw cycle."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of sample handling and storage on quantitative lipid analysis in human serum",
+          "author": "Zivkovic AM, et al."
+        }
+      ],
+      "category": "Negation/contrast",
+      "answerable": true
+    },
+    {
+      "id": "Q027",
+      "question": "What lipid composition changes were observed in serum samples stored for longer than six months at -80°C?",
+      "gold_answers": [],
+      "gold_documents": [
+        {
+          "title": "Effects of sample handling and storage on quantitative lipid analysis in human serum",
+          "author": "Zivkovic AM, et al."
+        }
+      ],
+      "category": "Counterfactual/unanswerable",
+      "answerable": false
+    },
+    {
+      "id": "Q028",
+      "question": "How was the coefficient of variation (CV) calculated for each lipid metabolite in the reproducibility analysis of fresh serum samples?",
+      "gold_answers": [
+        "Coefficients of variation (CV)'s were calculated as the standard deviation divided by the mean for each lipid metabolite measured (e.g. all FA within each lipid class) for 5 sample replicates of a fresh serum sample from Experiment 1."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of sample handling and storage on quantitative lipid analysis in human serum",
+          "author": "Zivkovic AM, et al."
+        }
+      ],
+      "category": "Terminology/definition",
+      "answerable": true
+    },
+    {
+      "id": "Q029",
+      "question": "What proportion of the total protein content by weight of serum is made up of approximately 22 high-abundance proteins?",
+      "gold_answers": [
+        "Approximately 22 proteins comprise roughly 99% of the protein content by weight of serum."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of preanalytical variables on peptide and protein measurements in human serum and plasma: implications for clinical proteomics",
+          "author": "Rai AJ, Vitzthum F."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q030",
+      "question": "What concentration range of heparin salts per milliliter of blood is recommended for anticoagulation?",
+      "gold_answers": [
+        "It is recommended that 12–30 international units (IU)/ml blood of the sodium, lithium or ammonium salts of unfractionated heparin with a relative molecular mass between 3–30 kDa are used."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of preanalytical variables on peptide and protein measurements in human serum and plasma: implications for clinical proteomics",
+          "author": "Rai AJ, Vitzthum F."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q031",
+      "question": "Do separate analyses of serum versus plasma composition agree that the clotting process needed to generate serum measurably alters its biochemical profile relative to plasma?",
+      "gold_answers": [
+        "This may be one of the reasons why more peptides and less proteins are observed in serum when compared with plasma.",
+        "101 metabolite concentrations were significantly higher in serum compared to plasma, comparing the median values of the baseline samples that were collected on three different days."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of preanalytical variables on peptide and protein measurements in human serum and plasma: implications for clinical proteomics",
+          "author": "Rai AJ, Vitzthum F."
+        },
+        {
+          "title": "Targeted Metabolomics Identifies Reliable and Stable Metabolites in Human Serum and Plasma Samples",
+          "author": "Breier M, et al."
+        }
+      ],
+      "category": "Multi-document comparative/synthesis",
+      "answerable": true
+    },
+    {
+      "id": "Q032",
+      "question": "At what centrifugal force and within what time frame after collection should serum and plasma typically be centrifuged?",
+      "gold_answers": [
+        "Generally, it is recommended that serum and plasma are centrifuged at 1300–2000 × g for 15 min within 1 h after the collection of the sample."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of preanalytical variables on peptide and protein measurements in human serum and plasma: implications for clinical proteomics",
+          "author": "Rai AJ, Vitzthum F."
+        }
+      ],
+      "category": "Numerical/quantitative reasoning",
+      "answerable": true
+    },
+    {
+      "id": "Q033",
+      "question": "Is formal regulatory approval required for a biomarker to be considered scientifically valuable, in the same way it is required for an approved diagnostic test?",
+      "gold_answers": [
+        "In contrast, regulatory approval is not required for biomarkers to be of value."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of preanalytical variables on peptide and protein measurements in human serum and plasma: implications for clinical proteomics",
+          "author": "Rai AJ, Vitzthum F."
+        }
+      ],
+      "category": "Negation/contrast",
+      "answerable": true
+    },
+    {
+      "id": "Q034",
+      "question": "Does prolonged tourniquet application beyond the recommended duration during venipuncture leave blood chemistry analyte concentrations unaffected?",
+      "gold_answers": [
+        "Prolonged application of a tourniquet may result in venous occlusion, leading to hemoconcentration of blood at the puncture site. This can result in an increase in multiple chemistry analytes."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of preanalytical variables on peptide and protein measurements in human serum and plasma: implications for clinical proteomics",
+          "author": "Rai AJ, Vitzthum F."
+        }
+      ],
+      "category": "Negation/contrast",
+      "answerable": true
+    },
+    {
+      "id": "Q035",
+      "question": "Why is a specific sequence followed when filling multiple blood collection tubes during a single venipuncture?",
+      "gold_answers": [
+        "The sequence is given in TABLE 2, and is recommended to avoid carryover of additives/preservatives and other contaminants into tubes so as to minimize their interference on measurement of specific analytes."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of preanalytical variables on peptide and protein measurements in human serum and plasma: implications for clinical proteomics",
+          "author": "Rai AJ, Vitzthum F."
+        }
+      ],
+      "category": "Methodological/procedural",
+      "answerable": true
+    },
+    {
+      "id": "Q036",
+      "question": "What effect does collecting blood by capillary finger-prick have on proteomic mass spectrometry profiles compared with venipuncture?",
+      "gold_answers": [],
+      "gold_documents": [
+        {
+          "title": "Effects of preanalytical variables on peptide and protein measurements in human serum and plasma: implications for clinical proteomics",
+          "author": "Rai AJ, Vitzthum F."
+        }
+      ],
+      "category": "Counterfactual/unanswerable",
+      "answerable": false
+    },
+    {
+      "id": "Q037",
+      "question": "How is a biomarker formally defined in the context of clinical proteomics and diagnostic research?",
+      "gold_answers": [
+        "A biomarker can be defined as any parameter, such as a biological substance, a laboratory measurement, or even more general, a characteristic that changes in response to alterations in a biological system."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of preanalytical variables on peptide and protein measurements in human serum and plasma: implications for clinical proteomics",
+          "author": "Rai AJ, Vitzthum F."
+        }
+      ],
+      "category": "Terminology/definition",
+      "answerable": true
+    },
+    {
+      "id": "Q038",
+      "question": "By what fold-factor did free hemoglobin concentration increase following the more severe (27-gauge needle) hemolysis treatment?",
+      "gold_answers": [
+        "Hemoglobin was increased 14-fold in the hemolysis grade 1 group and 36-fold in the hemolysis grade 2 group, indicating efficacy of shear-force–induced hemolysis."
+      ],
+      "gold_documents": [
+        {
+          "title": "Quality Markers Addressing Preanalytical Variations of Blood and Plasma Processing Identified by Broad and Targeted Metabolite Profiling",
+          "author": "Kamlage B, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q039",
+      "question": "Do separate analyses of preanalytical blood handling agree that anticoagulant choice can materially influence which biochemical analytes remain suitable for downstream molecular profiling?",
+      "gold_answers": [
+        "Given this background on blood enzymes, EDTA plasma should be the preferred metabolomics matrix over heparin plasma or serum, because EDTA not only inhibits coagulation but also inhibits Mg2-dependent enzymes such as the first glycolytic enzyme hexokinase in erythrocytes.",
+        "Therefore, it is important to carefully select the application and choice of these compounds in blood collection tubes, or their addition at a later point in time after the collection process."
+      ],
+      "gold_documents": [
+        {
+          "title": "Quality Markers Addressing Preanalytical Variations of Blood and Plasma Processing Identified by Broad and Targeted Metabolite Profiling",
+          "author": "Kamlage B, et al."
+        },
+        {
+          "title": "Effects of preanalytical variables on peptide and protein measurements in human serum and plasma: implications for clinical proteomics",
+          "author": "Rai AJ, Vitzthum F."
+        }
+      ],
+      "category": "Multi-document comparative/synthesis",
+      "answerable": true
+    },
+    {
+      "id": "Q040",
+      "question": "What percentage of diagnostic misinterpretations in routine clinical chemistry have been attributed to preanalytical factors?",
+      "gold_answers": [
+        "It is well known in the field of routine clinical chemistry that preanalytics are considered to account for approximately 68% of diagnostic misinterpretations."
+      ],
+      "gold_documents": [
+        {
+          "title": "Quality Markers Addressing Preanalytical Variations of Blood and Plasma Processing Identified by Broad and Targeted Metabolite Profiling",
+          "author": "Kamlage B, et al."
+        }
+      ],
+      "category": "Numerical/quantitative reasoning",
+      "answerable": true
+    },
+    {
+      "id": "Q041",
+      "question": "What range of percentage increases and decreases in metabolite levels was associated with microclotting, buffy-layer contamination, and short-term cooled plasma storage?",
+      "gold_answers": [
+        "Microclotting, contamination of plasma with buffy layer, and short-term storage of cooled plasma were of less impact on the metabolome (0% to 11% of metabolites increased, 0% to 8% decreased)."
+      ],
+      "gold_documents": [
+        {
+          "title": "Quality Markers Addressing Preanalytical Variations of Blood and Plasma Processing Identified by Broad and Targeted Metabolite Profiling",
+          "author": "Kamlage B, et al."
+        }
+      ],
+      "category": "Numerical/quantitative reasoning",
+      "answerable": true
+    },
+    {
+      "id": "Q042",
+      "question": "Was serotonin concentration significantly affected by extended incubation of separated plasma, independent of blood-stage processing conditions?",
+      "gold_answers": [
+        "Serotonin was affected only by blood processing variables (Fig. 3A) and was stable in plasma in this experimental setting."
+      ],
+      "gold_documents": [
+        {
+          "title": "Quality Markers Addressing Preanalytical Variations of Blood and Plasma Processing Identified by Broad and Targeted Metabolite Profiling",
+          "author": "Kamlage B, et al."
+        }
+      ],
+      "category": "Negation/contrast",
+      "answerable": true
+    },
+    {
+      "id": "Q043",
+      "question": "Did the lowest grade of buffy-layer contamination of plasma produce any statistically significant metabolite changes?",
+      "gold_answers": [
+        "Contamination with buffy layer, grade 1 0 (0/0) 0 (0/0)"
+      ],
+      "gold_documents": [
+        {
+          "title": "Quality Markers Addressing Preanalytical Variations of Blood and Plasma Processing Identified by Broad and Targeted Metabolite Profiling",
+          "author": "Kamlage B, et al."
+        }
+      ],
+      "category": "Negation/contrast",
+      "answerable": true
+    },
+    {
+      "id": "Q044",
+      "question": "What impact did exposure to ultraviolet sterilization light during plasma aliquoting have on catecholamine concentrations in this experiment?",
+      "gold_answers": [],
+      "gold_documents": [
+        {
+          "title": "Quality Markers Addressing Preanalytical Variations of Blood and Plasma Processing Identified by Broad and Targeted Metabolite Profiling",
+          "author": "Kamlage B, et al."
+        }
+      ],
+      "category": "Counterfactual/unanswerable",
+      "answerable": false
+    },
+    {
+      "id": "Q045",
+      "question": "What does the abbreviation FDR refer to in the statistical analysis described in metabolomics study?",
+      "gold_answers": [
+        "The multiple test problem was addressed by calculating the false discovery rate (FDR) using the Benjamini and Hochberg method."
+      ],
+      "gold_documents": [
+        {
+          "title": "Quality Markers Addressing Preanalytical Variations of Blood and Plasma Processing Identified by Broad and Targeted Metabolite Profiling",
+          "author": "Kamlage B, et al."
+        }
+      ],
+      "category": "Terminology/definition",
+      "answerable": true
+    },
+    {
+      "id": "Q046",
+      "question": "Do metabolites and proteins respond similarly to low-temperature storage, or do they show opposing stability patterns that complicate the design of a single combined handling protocol?",
+      "gold_answers": [
+        "Although the increased stability of the metabolome at 4°C was expected, we observed a contrary effect for proteins, showing higher variance at low temperature (Figures 2, 3A), suggesting that proteomics and metabolomics require different pre-analytical conditions to obtain optimal results."
+      ],
+      "gold_documents": [
+        {
+          "title": "Pre-analytical processing of plasma and serum samples for combined proteome and metabolome analysis",
+          "author": "Gegner HM, et al."
+        }
+      ],
+      "category": "Multi-document comparative/synthesis",
+      "answerable": true
+    },
+    {
+      "id": "Q047",
+      "question": "What percentage of measured metabolites and proteins showed only minor changes across the tested sitting time and temperature conditions?",
+      "gold_answers": [
+        "Then, 90% of metabolites and 97% of proteins only varied slightly over time."
+      ],
+      "gold_documents": [
+        {
+          "title": "Pre-analytical processing of plasma and serum samples for combined proteome and metabolome analysis",
+          "author": "Gegner HM, et al."
+        }
+      ],
+      "category": "Numerical/quantitative reasoning",
+      "answerable": true
+    },
+    {
+      "id": "Q048",
+      "question": "What normalized enrichment score (NES) values were obtained when the plasma/RT/8h, plasma/4°C/8h, and serum/RT/8h metabolic signatures were applied to an external validation data set?",
+      "gold_answers": [
+        "The plasma/RT/8 h metabolic signatures got a higher score (NES = 5.1) than plasma/4°C/8 h (NES = 2.6) and serum/RT/8 h (NES = 2.9) signatures."
+      ],
+      "gold_documents": [
+        {
+          "title": "Pre-analytical processing of plasma and serum samples for combined proteome and metabolome analysis",
+          "author": "Gegner HM, et al."
+        }
+      ],
+      "category": "Numerical/quantitative reasoning",
+      "answerable": true
+    },
+    {
+      "id": "Q049",
+      "question": "Did using a higher centrifugation speed (4,000 × g) instead of the standard speed produce significant differences in the plasma metabolome or proteome?",
+      "gold_answers": [
+        "However, we could not attribute any significant changes in the plasma metabolome and proteome between different centrifugation conditions and therefore only applied 2,000 × g in the following sections."
+      ],
+      "gold_documents": [
+        {
+          "title": "Pre-analytical processing of plasma and serum samples for combined proteome and metabolome analysis",
+          "author": "Gegner HM, et al."
+        }
+      ],
+      "category": "Negation/contrast",
+      "answerable": true
+    },
+    {
+      "id": "Q050",
+      "question": "Were any serum proteins found to be significantly affected by sitting time after correction for multiple testing?",
+      "gold_answers": [
+        "For the proteomics data set and serum, no features were significant to the pre-analytical factor time, and the panel is omitted."
+      ],
+      "gold_documents": [
+        {
+          "title": "Pre-analytical processing of plasma and serum samples for combined proteome and metabolome analysis",
+          "author": "Gegner HM, et al."
+        }
+      ],
+      "category": "Negation/contrast",
+      "answerable": true
+    },
+    {
+      "id": "Q051",
+      "question": "What effect did exposing blood samples to direct sunlight during transport have on metabolite stability?",
+      "gold_answers": [],
+      "gold_documents": [
+        {
+          "title": "Pre-analytical processing of plasma and serum samples for combined proteome and metabolome analysis",
+          "author": "Gegner HM, et al."
+        }
+      ],
+      "category": "Counterfactual/unanswerable",
+      "answerable": false
+    },
+    {
+      "id": "Q052",
+      "question": "What does the abbreviation NES represent in the context of the sample quality scoring system developed for plasma and serum samples?",
+      "gold_answers": [
+        "If the signatures are indeed informative, we should expect to observe a steady increase in the enrichment of the respective signature for each condition... we computed an average normalized enrichment score (NES; see Methods) for each signature under the respective sample pre-analytical conditions."
+      ],
+      "gold_documents": [
+        {
+          "title": "Pre-analytical processing of plasma and serum samples for combined proteome and metabolome analysis",
+          "author": "Gegner HM, et al."
+        }
+      ],
+      "category": "Terminology/definition",
+      "answerable": true
+    },
+    {
+      "id": "Q053",
+      "question": "Is serum or EDTA plasma the more appropriate specimen type for reliable targeted metabolomics measurements?",
+      "gold_answers": [
+        "Reliability of metabolite measurements was higher in serum compared to plasma samples and was good in most saturated short-and medium-chain acylcarnitines, amino acids, biogenic amines, glycerophospholipids, sphingolipids and hexose.",
+        "EDTA plasma should be the preferred metabolomics matrix over heparin plasma or serum, because EDTA not only inhibits coagulation but also inhibits Mg2+-dependent enzymes such as the first glycolytic enzyme hexokinase in erythrocytes."
+      ],
+      "gold_documents": [
+        {
+          "title": "Targeted Metabolomics Identifies Reliable and Stable Metabolites in Human Serum and Plasma Samples",
+          "author": "Breier M, et al."
+        },
+        {
+          "title": "Quality Markers Addressing Preanalytical Variations of Blood and Plasma Processing Identified by Broad and Targeted Metabolite Profiling",
+          "author": "Kamlage B, et al."
+        }
+      ],
+      "category": "Contradiction",
+      "answerable": true
+    },
+    {
+      "id": "Q054",
+      "question": "Does lysophosphatidylcholine 16:0 remain stable in human serum after two freeze-thaw cycles?",
+      "gold_answers": [
+        "Concentrations of lysoPC a C16:0 were significantly altered after two freeze-thaw cycles (p = 0.048), which is not in line with our results, as we used a significance level of p = 0.01.",
+        "LY16:0 mean concentration in fresh serum was 39.41 (SE 1.46) and in twice-frozen serum was 42.81 (SE 1.27), with a significant difference at P = 0.048, indicating a significant increase after two freeze-thaw cycles."
+      ],
+      "gold_documents": [
+        {
+          "title": "Targeted Metabolomics Identifies Reliable and Stable Metabolites in Human Serum and Plasma Samples",
+          "author": "Breier M, et al."
+        },
+        {
+          "title": "Effects of sample handling and storage on quantitative lipid analysis in human serum",
+          "author": "Zivkovic AM, et al."
+        }
+      ],
+      "category": "Contradiction",
+      "answerable": true
+    },
+    {
+      "id": "Q055",
+      "question": "Do repeated freeze-thaw cycles cause significant alterations in serum metabolite concentrations?",
+      "gold_answers": [
+        "Only eleven out of 159 metabolites revealed significantly decreased concentrations after two freeze-thaw cycles, including C10:1, three amino acids (isoleucine, tryptophane and valine), five phosphatidylcholines (PC aa C32:2, PC ae C36:2, PC ae C36:5, PC ae C40:1 and PC ae C42:0), acetylornithine and SM C16:0 (table S7).",
+        "No significant single metabolite concentration changes were seen in up to four freeze-thaw cycles (S1 Table). Additionally, no metabolite ratio fulfilled the demand of having a significant p-value < 6.3*10−6 of the linear regression model and a p-gain > 80010."
+      ],
+      "gold_documents": [
+        {
+          "title": "Targeted Metabolomics Identifies Reliable and Stable Metabolites in Human Serum and Plasma Samples",
+          "author": "Breier M, et al."
+        },
+        {
+          "title": "Pre-Analytical Sample Quality: Metabolite Ratios as an Intrinsic Marker for Prolonged Room Temperature Exposure of Serum Samples",
+          "author": "Anton G, et al."
+        }
+      ],
+      "category": "Contradiction",
+      "answerable": true
+    },
+    {
+      "id": "Q056",
+      "question": "In what direction does arginine concentration change when blood-derived samples are left at room temperature before centrifugation and analysis?",
+      "gold_answers": [
+        "9 showed decreasing concentrations, including C4:1 (figure S4), arginine (figure 3), methionine (figure S6), serotonin* (figure S9), four PC aa's (PC aa C30:0, PC aa C32:1, PC aa C32:2 and PC aa C34:3) and hexose (figure 3).",
+        "Out of 14 amino acids, concentrations of arginine, glycine, ornithine, phenylalanine, serine and isoleucine increased significantly during pre-storage handling at RT."
+      ],
+      "gold_documents": [
+        {
+          "title": "Targeted Metabolomics Identifies Reliable and Stable Metabolites in Human Serum and Plasma Samples",
+          "author": "Breier M, et al."
+        },
+        {
+          "title": "Pre-Analytical Sample Quality: Metabolite Ratios as an Intrinsic Marker for Prolonged Room Temperature Exposure of Serum Samples",
+          "author": "Anton G, et al."
+        }
+      ],
+      "category": "Contradiction",
+      "answerable": true
+    },
+    {
+      "id": "Q057",
+      "question": "Does storing separated plasma or serum samples at 4°C after centrifugation better preserve protein integrity compared with storage at room temperature?",
+      "gold_answers": [
+        "metabolite concentrations were less stable at RT, while protein abundances were less stable at 4°C.",
+        "Processing at 4°C may appear to be attractive, as degradation processes, in particular enzymatic degradation processes, are reduced at low temperatures. However, platelets become activated at low temperatures."
+      ],
+      "gold_documents": [
+        {
+          "title": "Pre-analytical processing of plasma and serum samples for combined proteome and metabolome analysis",
+          "author": "Gegner HM, et al."
+        },
+        {
+          "title": "Effects of preanalytical variables on peptide and protein measurements in human serum and plasma: implications for clinical proteomics",
+          "author": "Rai AJ, Vitzthum F."
+        }
+      ],
+      "category": "Contradiction",
+      "answerable": true
+    },
+    {
+      "id": "Q058",
+      "question": "Is potassium stable in serum gel tubes if centrifugation is delayed for up to 24 hours at 15 to 35 degrees Celsius?",
+      "gold_answers": [
+        "Potassium should be treated as potentially unstable under delayed pre-centrifugation storage in serum gel tubes. Tanner et al. reported that potassium was not stable in at least one tested storage condition when serum gel tubes were kept at 15, 25, or 35 °C for 4, 8, or 24 hours before centrifugation."
+      ],
+      "gold_documents": [
+        {
+          "title": "Stability of common biochemical analytes in serum gel tubes subjected to various storage temperatures and times pre-centrifugation",
+          "author": "Tanner M, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q059",
+      "question": "Is phosphate stable in serum gel tubes during delayed centrifugation at 15 to 35 degrees Celsius?",
+      "gold_answers": [
+        "Phosphate should be considered potentially unstable during delayed centrifugation in serum gel tubes. Tanner et al. reported phosphate was not stable in at least one condition among samples stored before centrifugation at 15, 25, or 35 °C for 4, 8, or 24 hours."
+      ],
+      "gold_documents": [
+        {
+          "title": "Stability of common biochemical analytes in serum gel tubes subjected to various storage temperatures and times pre-centrifugation",
+          "author": "Tanner M, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q060",
+      "question": "Is glucose stable in serum gel tubes when centrifugation is delayed under variable storage temperatures?",
+      "gold_answers": [
+        "Glucose should be treated as potentially unstable when serum gel tubes experience delayed centrifugation at variable temperatures. Tanner et al. found glucose was not stable in at least one tested condition after pre-centrifugation storage at 15, 25, or 35 °C for 4, 8, or 24 hours."
+      ],
+      "gold_documents": [
+        {
+          "title": "Stability of common biochemical analytes in serum gel tubes subjected to various storage temperatures and times pre-centrifugation",
+          "author": "Tanner M, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q061",
+      "question": "Is albumin stable in serum gel tubes stored before centrifugation for up to 24 hours?",
+      "gold_answers": [
+        "Albumin appears stable under the tested delayed pre-centrifugation storage conditions in serum gel tubes. Tanner et al. reported albumin among the analytes that remained stable across storage at 15, 25, or 35 °C for 4, 8, or 24 hours before centrifugation."
+      ],
+      "gold_documents": [
+        {
+          "title": "Stability of common biochemical analytes in serum gel tubes subjected to various storage temperatures and times pre-centrifugation",
+          "author": "Tanner M, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q062",
+      "question": "Is C-reactive protein stable in serum gel tubes exposed to delayed centrifugation and variable temperatures?",
+      "gold_answers": [
+        "C-reactive protein appears stable under the serum gel tube conditions tested by Tanner et al. The study listed CRP among analytes remaining stable when samples were stored at 15, 25, or 35 °C for 4, 8, or 24 hours before centrifugation."
+      ],
+      "gold_documents": [
+        {
+          "title": "Stability of common biochemical analytes in serum gel tubes subjected to various storage temperatures and times pre-centrifugation",
+          "author": "Tanner M, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q063",
+      "question": "Is vitamin D stable in serum gel tubes before centrifugation under field-like temperature delays?",
+      "gold_answers": [
+        "Vitamin D appears stable under the delayed pre-centrifugation serum gel tube conditions tested by Tanner et al. Vitamin D was included among analytes reported stable at 15, 25, or 35 °C for 4, 8, or 24 hours before centrifugation."
+      ],
+      "gold_documents": [
+        {
+          "title": "Stability of common biochemical analytes in serum gel tubes subjected to various storage temperatures and times pre-centrifugation",
+          "author": "Tanner M, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q064",
+      "question": "Can short-term processing delays up to 15 hours affect serum and plasma cytokine measurements?",
+      "gold_answers": [
+        "Short-term processing delays can affect cytokine measurements, but the overall changes were generally small in the Gottfried-Blackmore et al. study. They observed short-term delays produced changes in serum and plasma cytokines within roughly −10.8% to 43.5%, with some analyte-specific exceptions."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of processing conditions on stability of immune analytes in human blood",
+          "author": "Gottfried-Blackmore A, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q065",
+      "question": "Can serum and plasma be used interchangeably for cytokine or proteomic analyses after processing delay?",
+      "gold_answers": [
+        "Serum and plasma should not be used interchangeably for cytokine or proteomic analyses. Gottfried-Blackmore et al. reported poor correlation between serum and plasma cytokines and concluded that cytokine studies should consider the non-equivalence between serum and plasma."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of processing conditions on stability of immune analytes in human blood",
+          "author": "Gottfried-Blackmore A, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q066",
+      "question": "Is whole blood gene expression largely stable during short-term processing delays up to 15 hours?",
+      "gold_answers": [
+        "Whole blood gene expression was largely stable under the short-term processing delay conditions tested by Gottfried-Blackmore et al. They reported that pooled gene expression levels did not show significant effects across their short-term room temperature and 4 °C delay conditions."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of processing conditions on stability of immune analytes in human blood",
+          "author": "Gottfried-Blackmore A, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q067",
+      "question": "Should flow or mass cytometry studies avoid processing delays greater than 5 hours for susceptible PBMC populations?",
+      "gold_answers": [
+        "Yes. Gottfried-Blackmore et al. concluded that flow and mass cytometry studies should avoid delays greater than 5 hours when studying susceptible cell populations. They observed significant cellular changes especially at 15 hours at 4 °C, including effects on live singlets, monocytes, Treg, and CD8+ T cells."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of processing conditions on stability of immune analytes in human blood",
+          "author": "Gottfried-Blackmore A, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q068",
+      "question": "Do processing delays up to 72 hours at room temperature or 4 degrees Celsius significantly affect plasma cytokines?",
+      "gold_answers": [
+        "In the Gyorffy et al. study, delayed processing up to 72 hours at room temperature or 4 °C did not significantly affect plasma cytokines in samples from healthy volunteers and ICU patients. This supports a simplified biosampling protocol for the measured plasma markers, although the conclusion is source- and assay-specific."
+      ],
+      "gold_documents": [
+        {
+          "title": "Impact of sample processing delays on plasma markers of inflammation, chemotaxis, cell death, and blood coagulation",
+          "author": "Gyorffy VJ, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q069",
+      "question": "Are plasma chemokines stable after delayed processing up to 72 hours at room temperature or 4 degrees Celsius?",
+      "gold_answers": [
+        "In the Gyorffy et al. study, plasma chemokines were not significantly affected by delayed processing up to 72 hours at either room temperature or 4 °C. This applies to their measured chemokines and study design."
+      ],
+      "gold_documents": [
+        {
+          "title": "Impact of sample processing delays on plasma markers of inflammation, chemotaxis, cell death, and blood coagulation",
+          "author": "Gyorffy VJ, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q070",
+      "question": "Is plasma cell-free DNA affected by sample processing delays up to 72 hours at room temperature or 4 degrees Celsius?",
+      "gold_answers": [
+        "In the Gyorffy et al. study, plasma cfDNA was not significantly affected by delayed processing up to 72 hours at room temperature or 4 °C. The study measured cfDNA using Picogreen DNA quantification."
+      ],
+      "gold_documents": [
+        {
+          "title": "Impact of sample processing delays on plasma markers of inflammation, chemotaxis, cell death, and blood coagulation",
+          "author": "Gyorffy VJ, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q071",
+      "question": "Does delayed processing up to 72 hours affect plasma blood clotting potential measured by thrombin generation?",
+      "gold_answers": [
+        "In the Gyorffy et al. study, delayed processing up to 72 hours at room temperature or 4 °C did not significantly affect thrombin formation or blood clotting potential in plasma samples."
+      ],
+      "gold_documents": [
+        {
+          "title": "Impact of sample processing delays on plasma markers of inflammation, chemotaxis, cell death, and blood coagulation",
+          "author": "Gyorffy VJ, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q072",
+      "question": "Does long-term storage at minus 20 degrees Celsius versus minus 80 degrees Celsius affect serum metabolomic and proteomic biomarkers?",
+      "gold_answers": [
+        "Yes. Valo et al. found that storage at −20 °C versus −80 °C can affect serum metabolomic and proteomic biomarkers. After quality control, 193 analytes were evaluated; 120 were apparently unaffected, but 15 were clearly susceptible to −20 °C versus −80 °C storage."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effect of serum sample storage temperature on metabolomic and proteomic biomarkers",
+          "author": "Valo E, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q073",
+      "question": "Is glutamine susceptible to long-term serum storage at minus 20 degrees Celsius compared with minus 80 degrees Celsius?",
+      "gold_answers": [
+        "Yes. Valo et al. identified glutamine among analytes affected by −20 °C versus −80 °C storage and also reported that storage time was associated with changes involving glutamine and the glutamate/glutamine ratio."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effect of serum sample storage temperature on metabolomic and proteomic biomarkers",
+          "author": "Valo E, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q074",
+      "question": "Can serum glutamate/glutamine ratio indicate sub-optimal long-term storage at minus 20 degrees Celsius?",
+      "gold_answers": [
+        "Yes. Valo et al. identified serum glutamate/glutamine ratio greater than 0.20 as a sensitive and specific indicator of storage at −20 °C compared with −80 °C in their type 1 diabetes serum sample datasets."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effect of serum sample storage temperature on metabolomic and proteomic biomarkers",
+          "author": "Valo E, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q075",
+      "question": "Do plasma and serum metabolomic profiles depend on pre-analytical factors such as processing delay and freeze-thaw cycles?",
+      "gold_answers": [
+        "Yes. Stevens et al. reviewed pre-analytical factors in metabolomic studies and concluded that plasma and serum metabolomic profiles are affected by factors including fasting status, hemolysis, collection time, processing delays, especially at room temperature, and repeated freeze-thaw cycles."
+      ],
+      "gold_documents": [
+        {
+          "title": "Pre-Analytical Factors that Affect Metabolite Stability in Human Urine, Plasma, and Serum: A Review",
+          "author": "Stevens VL, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q076",
+      "question": "Can multiple freeze-thaw cycles alter urine metabolomic findings?",
+      "gold_answers": [
+        "Yes. Stevens et al. reported that urine metabolomic findings can be altered by several pre-analytical factors, including collection time, fasting, centrifugation conditions, filtration/additives, normalization procedures, and multiple freeze-thaw cycles."
+      ],
+      "gold_documents": [
+        {
+          "title": "Pre-Analytical Factors that Affect Metabolite Stability in Human Urine, Plasma, and Serum: A Review",
+          "author": "Stevens VL, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q077",
+      "question": "Does one freeze-thaw cycle after storage at minus 70 degrees Celsius meaningfully affect common nutritional, NCD, and inflammatory biomarkers in serum?",
+      "gold_answers": [
+        "In the Abraham et al. study, a single freeze-thaw cycle after one month of storage at −70 °C had minimal effect on the studied nutritional, noncommunicable disease, and inflammatory biomarkers. Some analytes differed statistically from baseline, but all changes were within acceptable total allowable error limits."
+      ],
+      "gold_documents": [
+        {
+          "title": "The Effects of a Single Freeze-Thaw Cycle on Concentrations of Nutritional, Noncommunicable Disease, and Inflammatory Biomarkers in Serum Samples",
+          "author": "Abraham RA, et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q078",
+      "question": "Which biochemical analytes were not stable in serum gel tubes after delayed pre-centrifugation storage?",
+      "gold_answers": [
+        "Potassium, glucose, phosphate, creatinine, urea, ferritin, iron, lactate dehydrogenase, magnesium and calcium were not stable in at least one of the storage conditions."
+      ],
+      "gold_documents": [
+        {
+          "title": "Stability of common biochemical analytes in serum gel tubes subjected to various storage temperatures and times pre-centrifugation",
+          "author": "Tanner et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q079",
+      "question": "Which analytes became unstable after 4 hours of delayed centrifugation in serum gel tube samples stored at room temperature?",
+      "gold_answers": [
+        "Calcium, gamma-glutamyl transferase, glucose, inorganic phosphate and potassium were found to be unstable in serum after 4 h of delayed centrifugation."
+      ],
+      "gold_documents": [
+        {
+          "title": "Impact of delayed centrifugation on the stability of 32 biochemical analytes in blood samples collected in serum gel tubes and stored at room temperature",
+          "author": "Sanz-Felisi et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q080",
+      "question": "Which routine biochemical analytes were exceptions to stability after delayed blood separation up to 12 hours?",
+      "gold_answers": [
+        "The majority of analytes were stable with delayed separation up to 12 h, except for potassium, C-peptide, osteocalcin, parathyroid hormone (PTH), bicarbonate and LDH."
+      ],
+      "gold_documents": [
+        {
+          "title": "Stability of routine biochemical analytes in whole blood and plasma/serum: focus on potassium stability from lithium heparin",
+          "author": "Dupuy et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q081",
+      "question": "How stable were most of the 81 analytes before centrifugation under the tested storage conditions?",
+      "gold_answers": [
+        "Most of the analytes investigated remained stable up to 24 h under all storage conditions prior to centrifugation."
+      ],
+      "gold_documents": [
+        {
+          "title": "Stability study of 81 analytes in human whole blood, in serum and in plasma",
+          "author": "Oddoze et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q082",
+      "question": "Which biochemistry analytes were significantly impacted by delayed centrifugation across plasma, serum and whole blood?",
+      "gold_answers": [
+        "Glucose, potassium, and aspartate aminotransferase, among others, were significantly impacted by delayed centrifugation, having been found to be unstable in whole blood specimens."
+      ],
+      "gold_documents": [
+        {
+          "title": "The stability of 65 biochemistry analytes in plasma, serum, and whole blood",
+          "author": "Zhou et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q083",
+      "question": "Did different pre-analytical handling procedures change blood and urine metabolomic profiles?",
+      "gold_answers": [
+        "Appropriate procedures for blood derivatives collection and urine preservation/storage that allow maintaining as much as possible the original metabolic profile of the fresh samples emerge."
+      ],
+      "gold_documents": [
+        {
+          "title": "Standard operating procedures for pre-analytical handling of blood and urine for metabolomic studies and biobanks",
+          "author": "Bernini et al."
+        }
+      ],
+      "category": "Methodological/procedural",
+      "answerable": true
+    },
+    {
+      "id": "Q084",
+      "question": "What proportion of quantified urine metabolites remained stable across the tested storage conditions?",
+      "gold_answers": [
+        "Our findings indicate that 78% of quantified metabolites were stable for all examined storage conditions."
+      ],
+      "gold_documents": [
+        {
+          "title": "Stability of targeted metabolite profiles of urine samples under different storage conditions",
+          "author": "Rotter et al."
+        }
+      ],
+      "category": "Numerical/quantitative reasoning",
+      "answerable": true
+    },
+    {
+      "id": "Q085",
+      "question": "Which pre-analytical factors affected metabolomic profiles in plasma and serum samples?",
+      "gold_answers": [
+        "For plasma and serum samples, metabolomic profiles were affected by fasting status, hemolysis, collection time, processing delays, particularly at room temperature, and repeated freeze/thaw cycles."
+      ],
+      "gold_documents": [
+        {
+          "title": "Pre-Analytical Factors that Affect Metabolite Stability in Human Urine, Plasma, and Serum: A Review",
+          "author": "Stevens et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q086",
+      "question": "What happened to the EDTA-plasma metabolome when blood was exposed to room temperature before processing?",
+      "gold_answers": [
+        "significant changes of 64 features in the EDTA-plasma metabolome were detected when blood was exposed to room temperature for 2, 4, 8, and 24 h."
+      ],
+      "gold_documents": [
+        {
+          "title": "Preanalytical aspects and sample quality assessment in metabolomics studies of human blood",
+          "author": "Yin et al."
+        }
+      ],
+      "category": "Numerical/quantitative reasoning",
+      "answerable": true
+    },
+    {
+      "id": "Q087",
+      "question": "Which pre-analytical variations produced significant metabolite changes in human plasma profiling?",
+      "gold_answers": [
+        "Short-term storage of blood, hemolysis, and short-term storage of noncooled plasma resulted in statistically significant increases of 4% to 19%"
+      ],
+      "gold_documents": [
+        {
+          "title": "Quality markers addressing preanalytical variations of blood and plasma processing identified by broad and targeted metabolite profiling",
+          "author": "Kamlage et al."
+        }
+      ],
+      "category": "Numerical/quantitative reasoning",
+      "answerable": true
+    },
+    {
+      "id": "Q088",
+      "question": "Which pre-analytical steps may affect metabolic profiles of blood samples in metabolomics studies?",
+      "gold_answers": [
+        "Collection tubes, hemolysis, delay at room temperature, and freeze-thaw cycles may affect metabolic profiles of blood samples."
+      ],
+      "gold_documents": [
+        {
+          "title": "The key points in the pre-analytical procedures of blood and urine samples in metabolomics studies",
+          "author": "Bi et al."
+        }
+      ],
+      "category": "Methodological/procedural",
+      "answerable": true
+    },
+    {
+      "id": "Q089",
+      "question": "How did four freeze-thaw cycles affect circulating miRNA concentrations in plasma and serum?",
+      "gold_answers": [
+        "Repetitive (n = 4) freeze-thaw cycles resulted in a significant reduction of miRNA concentration both in plasma and serum samples."
+      ],
+      "gold_documents": [
+        {
+          "title": "Stability of Circulating Blood-Based MicroRNAs – Pre-Analytic Methodological Considerations",
+          "author": "Glinge et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q090",
+      "question": "How did five freeze-thaw cycles affect MMP-7 and VEGF biomarker levels?",
+      "gold_answers": [
+        "MMP-7 and VEGF levels increased up to >15% after five freeze–thaw cycles and showed a tendency to increase with the number of freeze–thaw cycles."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effect of Repeated Freezing and Thawing on Biomarker Stability in Plasma and Serum Samples",
+          "author": "Lee et al."
+        }
+      ],
+      "category": "Numerical/quantitative reasoning",
+      "answerable": true
+    },
+    {
+      "id": "Q091",
+      "question": "How stable were cytokines, chemokines and soluble activation markers in unprocessed EDTA blood stored refrigerated for 24 hours?",
+      "gold_answers": [
+        "All the biomarkers studied, with the exception of IL-1ra, were stable in unprocessed EDTA blood stored at refrigerator temperature for 24h."
+      ],
+      "gold_documents": [
+        {
+          "title": "Stability of cytokines, chemokines and soluble activation markers in unprocessed blood stored under different conditions",
+          "author": "Aziz et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q092",
+      "question": "Were inflammatory marker concentrations affected more in serum or plasma after delayed whole-blood storage?",
+      "gold_answers": [
+        "The concentrations in serum generally increased more than in plasma. The measurable concentrations of inflammatory markers also changed in DBSS stored under various conditions."
+      ],
+      "gold_documents": [
+        {
+          "title": "Effects of blood sample handling procedures on measurable inflammatory markers in plasma, serum and dried blood spot samples",
+          "author": "Skogstrand et al."
+        }
+      ],
+      "category": "Negation/contrast",
+      "answerable": true
+    },
+    {
+      "id": "Q093",
+      "question": "Do storage conditions affect the stability of small-molecule metabolites in cerebrospinal fluid?",
+      "gold_answers": [
+        "small-molecule metabolites in the cerebrospinal fluid (CSF) are relatively unaffected by 1–3 freeze/thaw cycles, by storage at −20 °C up to two months."
+      ],
+      "gold_documents": [
+        {
+          "title": "Assessing the Pre-Analytical Stability of Small-Molecule Metabolites in Cerebrospinal Fluid Using Direct-Infusion Metabolomics",
+          "author": "Haijes et al."
+        }
+      ],
+      "category": "Negation/contrast",
+      "answerable": true
+    },
+    {
+      "id": "Q094",
+      "question": "Why is stabilization important for fluid biospecimens kept at room temperature?",
+      "gold_answers": [
+        "Specimen stabilization is imperative, because fluid biospecimens degrade quickly when kept untreated at room temperature."
+      ],
+      "gold_documents": [
+        {
+          "title": "State of the art in preservation of fluid biospecimens",
+          "author": "Hubel et al."
+        }
+      ],
+      "category": "Methodological/procedural",
+      "answerable": true
+    },
+    {
+      "id": "Q095",
+      "question": "Which cytokine remained stable when whole-blood centrifugation was delayed at room temperature for 48 hours?",
+      "gold_answers": [
+        "IL-17A was stable in both plasma and serum samples, even when whole-blood centrifugation was delayed at room temperature for 48 h."
+      ],
+      "gold_documents": [
+        {
+          "title": "Impact of Whole-Blood Processing Conditions on Plasma and Serum Concentrations of Cytokines",
+          "author": "Lee et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q096",
+      "question": "What happens to serum potassium when serum is refrigerated in collection tubes containing separating gel?",
+      "gold_answers": [
+        "Potassium levels increase when serum is refrigerated in collection tubes containing separating gel. This can be attributed to contamination of the serum layer."
+      ],
+      "gold_documents": [
+        {
+          "title": "Increase in Serum Potassium Levels After Refrigerated Storage: A Component of Blood Clot Contaminates the Serum Layer Over the Separator Gel",
+          "author": "Yoshida et al."
+        }
+      ],
+      "category": "Single-document factoid",
+      "answerable": true
+    },
+    {
+      "id": "Q097",
+      "question": "Which specimen type preserved potassium and creatinine better than serum or plasma tubes?",
+      "gold_answers": [
+        "Potassium and creatinine were more stable in gel tubes than in serum/plasma tubes. In contrast, phentytoin was stable in plain serum and plasma."
+      ],
+      "gold_documents": [
+        {
+          "title": "Evaluation of three different specimen types (serum, plasma lithium heparin and serum gel separator) for analysis of certain analytes: clinical significance of differences in results and efficiency in use",
+          "author": "O'Keane and Cunningham"
+        }
+      ],
+      "category": "Negation/contrast",
+      "answerable": true
+    }
+  ]
+}

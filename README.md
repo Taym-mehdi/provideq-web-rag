@@ -1,195 +1,163 @@
-# Web RAG for ProvideQ
+# ProvideQ Web RAG
 
-This project contains the Web Retrieval-Augmented Generation module developed for ProvideQ.
+This repository contains the Web Retrieval-Augmented Generation component developed for ProvideQ.
 
-The module retrieves scientific evidence from biomedical literature and prepares citation-ready evidence that can later be used by the ProvideQ agent or LLM.
-
-The Web RAG module does not generate the final answer.
+The system retrieves full-text scientific evidence from Paperclip, reranks the extracted evidence chunks, and returns citation-ready snippets for the downstream ProvideQ agent. It does not generate the final answer.
 
 ## Pipeline
 
 ```text
 Question
 → Query reformulation
-→ Europe PMC retrieval
-→ Paper normalization
-→ Snippet extraction
-→ Reranking
-→ Evidence context
+→ Paperclip full-text retrieval
+→ Sentence-window chunking
+→ Lexical, MedCPT, or hybrid reranking
+→ Evidence selection
+→ Citation-ready context
 ```
 
-## Features
-
-* Biomedical query reformulation for Europe PMC
-* Scientific paper and abstract retrieval
-* Paper metadata normalization
-* Overlapping sentence-window snippet extraction
-* Multiple reranking methods
-* Evidence deduplication and filtering
-* Citation-ready evidence context
-* JSON and text serialization
-* Retrieval evaluation on a benchmark dataset
-
-## Reranking Methods
-
-The following reranking methods are available:
-
-* `lexical` — BM25-based lexical relevance scoring
-* `medcpt` — biomedical semantic ranking using MedCPT embeddings
-* `hybrid` — weighted combination of lexical and MedCPT scores
-
-## Project Structure
+## Project structure
 
 ```text
-Web_Rag/
-├── benchmarks/
-├── eval/
-├── notebooks/
+provideq-web-rag/
+├── benchmark/
+│   └── provideq_benchmark.json
+├── evaluation/
+│   ├── lexical_evaluation.py
+│   ├── semantic_evaluation.py
+│   ├── llm_judge_evaluation.py
+│   ├── run_evaluation.py
+│   └── evaluation_notebook.ipynb
 ├── outputs/
 ├── src/
 │   └── web_rag/
-├── requirements.txt
-└── README.md
+├── .gitignore
+├── README.md
+└── requirements.txt
 ```
 
-The main retrieval implementation is located in:
-
-```text
-src/web_rag/
-```
-
-The evaluation implementation is located in:
-
-```text
-eval/
-```
+The benchmark contains 97 questions with gold answers and source documents.
 
 ## Installation
 
-Create and activate a virtual environment, then install the dependencies:
+### Windows
 
 ```bat
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
-```
-
-Set the Python path before running the module:
-
-```bat
 set PYTHONPATH=src;.
 ```
 
-## Run the Web RAG Pipeline
+### Linux or macOS
 
-### Lexical reranker
-
-```bat
-python -m web_rag.cli --question "How does delayed centrifugation affect potassium in serum samples?" --ranker lexical --page-size 8 --top-k 5 --show-query
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+export PYTHONPATH=src:.
 ```
 
-### MedCPT reranker
+Paperclip must be installed and authenticated separately. The code loads the client from the Python environment or from:
 
-```bat
-python -m web_rag.cli --question "How does delayed centrifugation affect potassium in serum samples?" --ranker medcpt --page-size 8 --top-k 5 --medcpt-device cpu --show-query
+```text
+~/.paperclip/lib
 ```
 
-### Hybrid reranker
+Authentication can use `PAPERCLIP_API_KEY` or a stored Paperclip login.
+
+## Run one query
 
 ```bat
-python -m web_rag.cli --question "How does delayed centrifugation affect potassium in serum samples?" --ranker hybrid --page-size 8 --top-k 5 --medcpt-device cpu --hybrid-lexical-weight 0.45 --hybrid-medcpt-weight 0.55 --show-query
+python -m web_rag.cli --question "Is potassium stable in serum gel tubes if centrifugation is delayed for up to 24 hours?" --paperclip-source pmc --paperclip-ranking hybrid --limit 50 --reranker medcpt --top-k 5 --medcpt-device auto --show-query --print-context
 ```
 
-## Retrieval Output
+Available Paperclip ranking methods:
 
-The retrieval output contains:
+```text
+bm25
+vector
+hybrid
+```
 
-* Original question
-* Reformulated Europe PMC query
-* Ranked evidence snippets
-* Ranking scores
-* Paper title
-* PMID
-* DOI
-* Publication year
-* Authors
-* Source URL
-* Citation-ready context text
+Available local rerankers:
+
+```text
+lexical
+medcpt
+hybrid
+```
+
+## Integration
+
+The Web RAG can be called directly from another Python component:
+
+```python
+from web_rag import run_pipeline
+
+result = run_pipeline(
+    "Is potassium stable in serum gel tubes after delayed centrifugation?"
+)
+
+context_text = result.context_text
+evidence_records = result.records
+```
+
+`run_pipeline()` returns the evidence and does not print it. The CLI is only a testing interface.
 
 ## Evaluation
 
-The benchmark contains:
+The evaluation runner uses 20 benchmark questions by default. A value from 1 to 97 can be selected with `--num-questions`.
 
-* `question_id`
-* `question`
-* `gold_answer`
-* `gold_nuggets`
-
-The current evaluation framework supports two layers.
-
-### Lexical Evaluation
-
-* `ROUGE1_Nugget@k`
-* `ROUGEL_Nugget@k`
-* `ROUGE_Nugget@k`
-* `BM25_Nugget@k`
-
-### Semantic Evaluation
-
-* `SemanticNuggetMatch@k`
-* `SemanticAnswerMatch@k`
-
-## Run Retrieval on the Benchmark
-
-Example using the lexical reranker:
+### Lexical evaluation
 
 ```bat
-python -m eval.run_evaluation --run-retrieval --benchmark benchmarks\provideq_web_rag_evidence_benchmark_20.csv --ranker lexical --page-size 8 --top-k 5
+python -m evaluation.run_evaluation --evaluation lexical --num-questions 20 --paperclip-ranking hybrid --reranker lexical
 ```
 
-The retrieval results are saved to:
-
-```text
-outputs/ranker_lexical/retrieval_results.csv
-```
-
-The same command can be run with:
-
-```text
---ranker medcpt
---ranker hybrid
-```
-
-## Run Lexical Evaluation
+### Semantic evaluation
 
 ```bat
-python -m eval.run_evaluation --run-lexical --benchmark benchmarks\provideq_web_rag_evidence_benchmark_20.csv --ranker lexical --k 5 --lexical-metrics all
+python -m evaluation.run_evaluation --evaluation semantic --num-questions 20 --paperclip-ranking hybrid --reranker medcpt --semantic-device auto
 ```
 
-Results are saved to:
+### LLM-as-a-Judge
 
-```text
-outputs/evaluation/lexical/evaluation_results.csv
-```
-
-## Run Semantic Evaluation
+The default judge uses Ollama with `qwen2.5:7b-instruct`.
 
 ```bat
-python -m eval.run_evaluation --run-semantic --benchmark benchmarks\provideq_web_rag_evidence_benchmark_20.csv --ranker lexical --k 5 --semantic-metrics all --semantic-device cpu
+ollama pull qwen2.5:7b-instruct
+python -m evaluation.run_evaluation --evaluation judge --num-questions 20 --paperclip-ranking hybrid --reranker hybrid
 ```
 
-Results are saved to:
+To run all three layers:
+
+```bat
+python -m evaluation.run_evaluation --evaluation all --num-questions 20 --paperclip-ranking hybrid --reranker hybrid
+```
+
+The same random seed selects the same benchmark questions across experiments. The default seed is `42`.
+
+## Evaluation outputs
+
+Results are saved under:
 
 ```text
-outputs/evaluation/semantic/evaluation_results.csv
+outputs/<paperclip-ranking>_<reranker>_<evaluation>/results.csv
 ```
 
-## Evaluation Notebook
-
-The comparison notebook is located at:
+Each CSV contains:
 
 ```text
-notebooks/evaluation_comparison_notebook.ipynb
+question_id, question, answers, gold_answer, score
 ```
 
-It compares the lexical, MedCPT, and hybrid rerankers across the implemented lexical and semantic evaluation metrics.
+## Notebook
+
+Open:
+
+```text
+evaluation/evaluation_notebook.ipynb
+```
+
+The notebook reads evaluation CSV files from `outputs/` and compares retrieval and reranking configurations for the three evaluation layers.

@@ -1,87 +1,99 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, List
+from typing import Any
+
+
+@dataclass(frozen=True)
+class QueryBundle:
+    original_question: str
+    normalized_question: str
+    strategy: str
+    search_query: str
+    keywords: list[str] = field(default_factory=list)
+    expanded_terms: list[str] = field(default_factory=list)
 
 
 @dataclass
 class Paper:
-    """
-    Represents one retrieved scientific paper after normalization.
-    """
-
+    paper_id: str
     title: str
-    abstract: str
-    year: str
+    text: str
     source: str
-    ext_id: str
-    doi: str
-    authors: str
-    journal: str
-    url: str
+    year: str = ""
+    doi: str = ""
+    authors: str = ""
+    journal: str = ""
+    url: str = ""
+    abstract: str = ""
+    retrieval_rank: int | None = None
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
-class Snippet:
-    """
-    Represents one evidence snippet extracted from a paper.
-    """
+class PaperclipRetrieval:
+    papers: list[Paper]
+    result_id: str = ""
 
+
+@dataclass
+class TextChunk:
     paper: Paper
     text: str
+    method: str
+    chunk_index: int
+    section: str = ""
+    start_sentence: int | None = None
+    end_sentence: int | None = None
     score: float = 0.0
-    score_components: dict[str, Any] = field(default_factory=dict)
+    score_components: dict[str, float] = field(default_factory=dict)
 
 
-@dataclass
-class QueryBundle:
-    """
-    Represents the different forms of a question used for retrieval.
-    """
-
-    original_question: str
-    normalized_question: str
-    keywords: List[str] = field(default_factory=list)
-    search_query: str = ""
-
-
-@dataclass
-class RetrievalResult:
-    """
-    Container for the output of the retrieval stage.
-    """
-
-    query: QueryBundle
-    papers: List[Paper] = field(default_factory=list)
-    snippets: List[Snippet] = field(default_factory=list)
+@dataclass(frozen=True)
+class CitationSource:
+    paper_id: str
+    title: str
+    source: str
+    year: str = ""
+    doi: str = ""
+    authors: str = ""
+    journal: str = ""
+    url: str = ""
 
 
 @dataclass
 class EvidenceRecord:
-    """
-    Represents one ranked evidence item prepared for downstream use.
-    """
-
     citation_id: int
-    title: str
     evidence_text: str
     score: float
-    year: str
-    source: str
-    ext_id: str
-    doi: str
-    authors: str
-    journal: str
-    url: str
-    score_components: dict[str, Any] = field(default_factory=dict)
+    chunking_method: str
+    chunk_index: int
+    section: str
+    source: CitationSource
+    score_components: dict[str, float] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class PipelineInfo:
+    retrieval_system: str
+    paperclip_source: str
+    paperclip_ranking: str
+    paperclip_result_id: str
+    retrieval_limit: int
+    retrieved_papers_count: int
+    full_text_papers_count: int
+    chunking_method: str
+    extracted_chunks_count: int
+    reranker: str
+    top_k: int
+    returned_evidence_count: int
+    parameters: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
 class EvidencePack:
-    """
-    Represents the complete evidence context for one user question.
-    """
-
     question: str
-    records: List[EvidenceRecord]
+    query: QueryBundle
+    pipeline: PipelineInfo
+    records: list[EvidenceRecord]
     context_text: str
