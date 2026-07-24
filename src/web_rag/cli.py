@@ -1,127 +1,145 @@
-"""Command-line interface for the ProvideQ Web RAG retrieval baseline."""
-
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
-from typing import Any
 
-from .config import get_settings
-from .context_builder import build_evidence_pack
-from .query_builder import build_europe_pmc_query
-from .ranker import RANKER_CHOICES, rank_snippets
-from .serializer import evidence_pack_to_json, get_context_text, save_context_text, save_evidence_outputs, save_evidence_pack
-from .snippet_extractor import extract_snippets
-from .source_client import search_europe_pmc
-
-
-def _search_papers(query: str, page_size: int) -> list[Any]:
-    try:
-        return list(search_europe_pmc(query, page_size=page_size))
-    except TypeError:
-        try:
-            return list(search_europe_pmc(query, pageSize=page_size))
-        except TypeError:
-            return list(search_europe_pmc(query))
+from .config import (
+    CHUNKING_METHODS,
+    PAPERCLIP_MODES,
+    PAPERCLIP_RANKINGS,
+    QUERY_STRATEGIES,
+    RERANKERS,
+    get_settings,
+)
+from .paperclip_retriever import PaperclipError
+from .pipeline import run_pipeline
+from .serializer import save_evidence_outputs, save_json, save_text, to_json
 
 
-def _extract_snippets(papers: list[Any], window_size: int, stride: int) -> list[Any]:
-    try:
-        return list(extract_snippets(papers, window_size=window_size, stride=stride))
-    except TypeError:
-        try:
-            return list(extract_snippets(papers, window=window_size, stride=stride))
-        except TypeError:
-            return list(extract_snippets(papers))
-
-
-def parse_args() -> argparse.Namespace:
+def build_parser() -> argparse.ArgumentParser:
     settings = get_settings()
-    parser = argparse.ArgumentParser(description="Run the ProvideQ Web RAG evidence retrieval pipeline.")
+    parser = argparse.ArgumentParser(description="Run the ProvideQ Paperclip Web RAG pipeline.")
 
-    parser.add_argument("question", nargs="?", help="Biomedical/pre-analytical question.")
-    parser.add_argument("--question", dest="question_flag", help="Biomedical/pre-analytical question.")
-    parser.add_argument("--ranker", default=settings.default_ranker, choices=RANKER_CHOICES)
+    parser.add_argument("question", nargs="?", help="Biomedical or pre-analytical question.")
+    parser.add_argument("--question", dest="question_option")
+    parser.add_argument("--limit", "--retrieval-limit", dest="retrieval_limit", type=int, default=settings.retrieval_limit)
+    parser.add_argument("--query-strategy", choices=QUERY_STRATEGIES, default=settings.query_strategy)
 
-    parser.add_argument("--page-size", type=int, default=settings.page_size)
+    parser.add_argument(
+        "--paperclip-source",
+        "--paperclip-corpus",
+        dest="paperclip_source",
+        default=settings.paperclip_source,
+        help="Academic Paperclip source or comma-separated sources: pmc,biorxiv,medrxiv,arxiv.",
+    )
+    parser.add_argument("--paperclip-ranking", choices=PAPERCLIP_RANKINGS, default=settings.paperclip_ranking)
+    parser.add_argument("--paperclip-max-lines", type=int, default=settings.paperclip_max_full_text_lines)
+    parser.add_argument("--paperclip-mode", choices=PAPERCLIP_MODES)
+    parser.add_argument("--paperclip-since")
+    parser.add_argument("--paperclip-sort", choices=("relevance", "date"))
+    parser.add_argument("--paperclip-year")
+    parser.add_argument("--paperclip-journal")
+    parser.add_argument("--paperclip-article-type")
+    parser.add_argument("--paperclip-author")
+    parser.add_argument("--paperclip-full-corpus", action="store_true")
+
+    parser.add_argument("--chunking-method", choices=CHUNKING_METHODS, default=settings.chunking_method)
+    parser.add_argument("--chunk-window-size", type=int, default=settings.chunk_window_size)
+    parser.add_argument("--chunk-stride", type=int, default=settings.chunk_stride)
+    parser.add_argument("--min-chunk-chars", type=int, default=settings.min_chunk_chars)
+    parser.add_argument("--max-chunk-chars", type=int, default=settings.max_chunk_chars)
+    parser.add_argument("--min-chunk-words", type=int, default=settings.min_chunk_words)
+    parser.add_argument("--disable-context-backoff", action="store_true")
+
+    parser.add_argument("--reranker", "--ranker", dest="reranker", choices=RERANKERS, default=settings.reranker)
     parser.add_argument("--top-k", type=int, default=settings.top_k)
-    parser.add_argument("--snippet-window-size", type=int, default=settings.snippet_window_size)
-    parser.add_argument("--snippet-stride", type=int, default=settings.snippet_stride)
-    parser.add_argument("--min-snippet-word-count", type=int, default=settings.min_snippet_word_count)
-    parser.add_argument("--max-context-chars", type=int, default=None)
-
+    parser.add_argument("--max-chunks-per-paper", type=int, default=settings.max_chunks_per_paper)
+    parser.add_argument("--near-duplicate-threshold", type=float, default=settings.near_duplicate_threshold)
     parser.add_argument("--bm25-k1", type=float, default=settings.bm25_k1)
     parser.add_argument("--bm25-b", type=float, default=settings.bm25_b)
-
+    parser.add_argument("--medcpt-query-model", default=settings.medcpt_query_model)
+    parser.add_argument("--medcpt-article-model", default=settings.medcpt_article_model)
     parser.add_argument("--medcpt-batch-size", type=int, default=settings.medcpt_batch_size)
-    parser.add_argument("--medcpt-device", default=None, help="Optional torch device, e.g. cpu or cuda.")
-    parser.add_argument("--medcpt-query-model", default=settings.medcpt_query_encoder_model)
-    parser.add_argument("--medcpt-article-model", default=settings.medcpt_article_encoder_model)
-
+    parser.add_argument("--medcpt-device", default=settings.medcpt_device)
     parser.add_argument("--hybrid-lexical-weight", type=float, default=settings.hybrid_lexical_weight)
     parser.add_argument("--hybrid-medcpt-weight", type=float, default=settings.hybrid_medcpt_weight)
 
-    parser.add_argument("--output-json", type=Path, default=None)
-    parser.add_argument("--output-context", type=Path, default=None)
-    parser.add_argument("--output-dir", type=Path, default=None)
+    parser.add_argument("--output-dir", type=Path)
+    parser.add_argument("--output-json", type=Path)
+    parser.add_argument("--output-context", type=Path)
     parser.add_argument("--show-query", action="store_true")
+    parser.add_argument("--show-info", action="store_true")
     parser.add_argument("--print-context", action="store_true")
-
-    return parser.parse_args()
+    return parser
 
 
 def main() -> None:
-    args = parse_args()
-    question = args.question_flag or args.question
+    args = build_parser().parse_args()
+    question = args.question_option or args.question
     if not question:
-        raise SystemExit("Please provide a question as a positional argument or with --question.")
+        raise SystemExit("Provide a question as a positional argument or with --question.")
 
-    query = build_europe_pmc_query(question)
+    try:
+        evidence = run_pipeline(
+            question,
+            retrieval_limit=args.retrieval_limit,
+            query_strategy=args.query_strategy,
+            paperclip_source=args.paperclip_source,
+            paperclip_ranking=args.paperclip_ranking,
+            paperclip_max_full_text_lines=args.paperclip_max_lines,
+            paperclip_mode=args.paperclip_mode,
+            paperclip_since=args.paperclip_since,
+            paperclip_sort=args.paperclip_sort,
+            paperclip_year=args.paperclip_year,
+            paperclip_journal=args.paperclip_journal,
+            paperclip_article_type=args.paperclip_article_type,
+            paperclip_author=args.paperclip_author,
+            paperclip_full_corpus=args.paperclip_full_corpus,
+            chunking_method=args.chunking_method,
+            chunk_window_size=args.chunk_window_size,
+            chunk_stride=args.chunk_stride,
+            min_chunk_chars=args.min_chunk_chars,
+            max_chunk_chars=args.max_chunk_chars,
+            min_chunk_words=args.min_chunk_words,
+            context_backoff=not args.disable_context_backoff,
+            reranker=args.reranker,
+            top_k=args.top_k,
+            max_chunks_per_paper=args.max_chunks_per_paper,
+            near_duplicate_threshold=args.near_duplicate_threshold,
+            bm25_k1=args.bm25_k1,
+            bm25_b=args.bm25_b,
+            medcpt_query_model=args.medcpt_query_model,
+            medcpt_article_model=args.medcpt_article_model,
+            medcpt_batch_size=args.medcpt_batch_size,
+            medcpt_device=args.medcpt_device,
+            hybrid_lexical_weight=args.hybrid_lexical_weight,
+            hybrid_medcpt_weight=args.hybrid_medcpt_weight,
+        )
+    except (PaperclipError, ValueError, RuntimeError) as exc:
+        raise SystemExit(str(exc)) from exc
+
     if args.show_query:
-        print(f"Europe PMC query:\n{query}\n")
-
-    papers = _search_papers(query, args.page_size)
-    snippets = _extract_snippets(papers, args.snippet_window_size, args.snippet_stride)
-
-    ranked_snippets = rank_snippets(
-        question=question,
-        snippets=snippets,
-        ranker=args.ranker,
-        top_k=args.top_k,
-        min_snippet_word_count=args.min_snippet_word_count,
-        bm25_k1=args.bm25_k1,
-        bm25_b=args.bm25_b,
-        lexical_weight=args.hybrid_lexical_weight,
-        medcpt_weight=args.hybrid_medcpt_weight,
-        query_model_name=args.medcpt_query_model,
-        article_model_name=args.medcpt_article_model,
-        batch_size=args.medcpt_batch_size,
-        device=args.medcpt_device,
-    )
-
-    evidence_pack = build_evidence_pack(
-        question=question,
-        query=query,
-        ranked_snippets=ranked_snippets,
-        max_context_chars=args.max_context_chars,
-    )
+        print(f"Query strategy: {evidence.query.strategy}")
+        print(f"Search query: {evidence.query.search_query}\n")
+    if args.show_info:
+        print(to_json(evidence.pipeline))
+        print()
 
     saved_paths: list[Path] = []
     if args.output_dir:
-        outputs = save_evidence_outputs(evidence_pack, args.output_dir)
-        saved_paths.extend(outputs.values())
+        saved_paths.extend(save_evidence_outputs(evidence, args.output_dir).values())
     if args.output_json:
-        saved_paths.append(save_evidence_pack(evidence_pack, args.output_json))
+        saved_paths.append(save_json(evidence, args.output_json))
     if args.output_context:
-        saved_paths.append(save_context_text(evidence_pack, args.output_context))
+        saved_paths.append(save_text(evidence.context_text, args.output_context))
 
     if saved_paths:
         for path in saved_paths:
             print(f"Saved: {path}")
     elif args.print_context:
-        print(get_context_text(evidence_pack))
+        print(evidence.context_text)
     else:
-        print(evidence_pack_to_json(evidence_pack))
+        print(to_json(evidence))
 
 
 if __name__ == "__main__":

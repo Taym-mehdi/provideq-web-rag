@@ -1,8 +1,17 @@
-requests>=2.32.0
-torch>=2.2.0
-transformers>=4.41.0
-sentence-transformers>=3.0.0
-numpy>=1.26.0
-pandas>=2.2.0
-matplotlib>=3.8.0
-jupyter>=1.0.0
+# Core numerical and model dependencies
+numpy>=1.26
+torch>=2.2
+transformers>=4.40
+sentence-transformers>=3.0
+
+# Optional OpenAI judge provider
+openai>=1.40
+
+# Evaluation notebook
+pandas>=2.2
+matplotlib>=3.8
+notebook>=7.0
+ipykernel>=6.29
+
+# Paperclip is installed and authenticated separately.
+# The project loads gxl_paperclip from the environment or ~/.paperclip/lib.
