@@ -12,6 +12,7 @@ class QueryBundle:
     search_query: str
     keywords: list[str] = field(default_factory=list)
     expanded_terms: list[str] = field(default_factory=list)
+    hypothetical_document: str = ""
 
 
 @dataclass

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from collections.abc import Callable
 from typing import Any
 
 from .chunking import chunk_papers
@@ -18,6 +19,13 @@ def run_pipeline(
     *,
     retrieval_limit: int | None = None,
     query_strategy: str | None = None,
+    hyde_model: str | None = None,
+    hyde_base_url: str | None = None,
+    hyde_temperature: float | None = None,
+    hyde_max_tokens: int | None = None,
+    hyde_seed: int | None = None,
+    hyde_timeout: float | None = None,
+    hyde_generator: Callable[[str], str] | None = None,
     paperclip_source: str | None = None,
     paperclip_ranking: str | None = None,
     paperclip_max_full_text_lines: int | None = None,
@@ -56,6 +64,14 @@ def run_pipeline(
         base,
         retrieval_limit=retrieval_limit if retrieval_limit is not None else base.retrieval_limit,
         query_strategy=query_strategy or base.query_strategy,
+        hyde_model=hyde_model or base.hyde_model,
+        hyde_base_url=hyde_base_url or base.hyde_base_url,
+        hyde_temperature=(
+            hyde_temperature if hyde_temperature is not None else base.hyde_temperature
+        ),
+        hyde_max_tokens=hyde_max_tokens if hyde_max_tokens is not None else base.hyde_max_tokens,
+        hyde_seed=hyde_seed if hyde_seed is not None else base.hyde_seed,
+        hyde_timeout=hyde_timeout if hyde_timeout is not None else base.hyde_timeout,
         paperclip_source=paperclip_source or base.paperclip_source,
         paperclip_ranking=paperclip_ranking or base.paperclip_ranking,
         paperclip_max_full_text_lines=(
@@ -101,7 +117,17 @@ def run_pipeline(
     )
     validate_settings(effective)
 
-    query = reformulate_query(question, effective.query_strategy)
+    query = reformulate_query(
+        question,
+        effective.query_strategy,
+        hyde_model=effective.hyde_model,
+        hyde_base_url=effective.hyde_base_url,
+        hyde_temperature=effective.hyde_temperature,
+        hyde_max_tokens=effective.hyde_max_tokens,
+        hyde_seed=effective.hyde_seed,
+        hyde_timeout=effective.hyde_timeout,
+        hyde_generator=hyde_generator,
+    )
     retrieval = retrieve_papers(
         query.search_query,
         limit=effective.retrieval_limit,
@@ -153,6 +179,15 @@ def run_pipeline(
         top_k=effective.top_k,
         returned_evidence_count=len(selected),
         parameters={
+            "query_strategy": effective.query_strategy,
+            "hyde_model": effective.hyde_model if effective.query_strategy == "hyde" else None,
+            "hyde_temperature": (
+                effective.hyde_temperature if effective.query_strategy == "hyde" else None
+            ),
+            "hyde_max_tokens": (
+                effective.hyde_max_tokens if effective.query_strategy == "hyde" else None
+            ),
+            "hyde_seed": effective.hyde_seed if effective.query_strategy == "hyde" else None,
             "paperclip_mode": paperclip_mode,
             "paperclip_since": paperclip_since,
             "paperclip_sort": paperclip_sort,

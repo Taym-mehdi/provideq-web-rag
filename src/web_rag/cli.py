@@ -24,6 +24,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--question", dest="question_option")
     parser.add_argument("--limit", "--retrieval-limit", dest="retrieval_limit", type=int, default=settings.retrieval_limit)
     parser.add_argument("--query-strategy", choices=QUERY_STRATEGIES, default=settings.query_strategy)
+    parser.add_argument("--hyde-model", default=settings.hyde_model)
+    parser.add_argument("--hyde-base-url", default=settings.hyde_base_url)
+    parser.add_argument("--hyde-temperature", type=float, default=settings.hyde_temperature)
+    parser.add_argument("--hyde-max-tokens", type=int, default=settings.hyde_max_tokens)
+    parser.add_argument("--hyde-seed", type=int, default=settings.hyde_seed)
+    parser.add_argument("--hyde-timeout", type=float, default=settings.hyde_timeout)
 
     parser.add_argument(
         "--paperclip-source",
@@ -84,6 +90,12 @@ def main() -> None:
             question,
             retrieval_limit=args.retrieval_limit,
             query_strategy=args.query_strategy,
+            hyde_model=args.hyde_model,
+            hyde_base_url=args.hyde_base_url,
+            hyde_temperature=args.hyde_temperature,
+            hyde_max_tokens=args.hyde_max_tokens,
+            hyde_seed=args.hyde_seed,
+            hyde_timeout=args.hyde_timeout,
             paperclip_source=args.paperclip_source,
             paperclip_ranking=args.paperclip_ranking,
             paperclip_max_full_text_lines=args.paperclip_max_lines,
@@ -120,7 +132,10 @@ def main() -> None:
 
     if args.show_query:
         print(f"Query strategy: {evidence.query.strategy}")
-        print(f"Search query: {evidence.query.search_query}\n")
+        if evidence.query.strategy == "hyde":
+            print(f"Hypothetical document: {evidence.query.hypothetical_document}\n")
+        else:
+            print(f"Search query: {evidence.query.search_query}\n")
     if args.show_info:
         print(to_json(evidence.pipeline))
         print()

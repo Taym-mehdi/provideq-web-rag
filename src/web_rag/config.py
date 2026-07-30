@@ -7,7 +7,7 @@ import os
 PAPERCLIP_RANKINGS = ("bm25", "vector", "hybrid")
 PAPERCLIP_ACADEMIC_SOURCES = ("pmc", "biorxiv", "medrxiv", "arxiv")
 PAPERCLIP_MODES = ("any", "all", "50%", "75%", "phrase")
-QUERY_STRATEGIES = ("raw", "synonym")
+QUERY_STRATEGIES = ("raw", "synonym", "hyde")
 CHUNKING_METHODS = ("sentence_window",)
 RERANKERS = ("lexical", "medcpt", "hybrid")
 
@@ -15,7 +15,14 @@ RERANKERS = ("lexical", "medcpt", "hybrid")
 @dataclass(frozen=True)
 class Settings:
     retrieval_limit: int = 10
-    query_strategy: str = "synonym"
+    query_strategy: str = "hyde"
+
+    hyde_model: str = "qwen2.5:7b-instruct"
+    hyde_base_url: str = "http://localhost:11434"
+    hyde_temperature: float = 0.0
+    hyde_max_tokens: int = 256
+    hyde_seed: int = 42
+    hyde_timeout: float = 180.0
 
     paperclip_source: str = "pmc"
     paperclip_ranking: str = "hybrid"
@@ -30,7 +37,7 @@ class Settings:
     min_chunk_words: int = 10
     context_backoff: bool = True
 
-    reranker: str = "medcpt"
+    reranker: str = "hybrid"
     top_k: int = 5
     max_chunks_per_paper: int = 2
     near_duplicate_threshold: float = 0.80
@@ -70,8 +77,14 @@ def _env_bool(name: str, default: bool) -> bool:
 
 def get_settings() -> Settings:
     return Settings(
-        retrieval_limit=_env_int("WEB_RAG_RETRIEVAL_LIMIT", 50),
-        query_strategy=os.getenv("WEB_RAG_QUERY_STRATEGY", "synonym"),
+        retrieval_limit=_env_int("WEB_RAG_RETRIEVAL_LIMIT", 10),
+        query_strategy=os.getenv("WEB_RAG_QUERY_STRATEGY", "hyde"),
+        hyde_model=os.getenv("WEB_RAG_HYDE_MODEL", "qwen2.5:7b-instruct"),
+        hyde_base_url=os.getenv("WEB_RAG_HYDE_BASE_URL", "http://localhost:11434"),
+        hyde_temperature=_env_float("WEB_RAG_HYDE_TEMPERATURE", 0.0),
+        hyde_max_tokens=_env_int("WEB_RAG_HYDE_MAX_TOKENS", 256),
+        hyde_seed=_env_int("WEB_RAG_HYDE_SEED", 42),
+        hyde_timeout=_env_float("WEB_RAG_HYDE_TIMEOUT", 180.0),
         paperclip_source=os.getenv("WEB_RAG_PAPERCLIP_SOURCE", "pmc"),
         paperclip_ranking=os.getenv("WEB_RAG_PAPERCLIP_RANKING", "hybrid"),
         paperclip_max_full_text_lines=_env_int("WEB_RAG_PAPERCLIP_MAX_LINES", 5000),
@@ -83,7 +96,7 @@ def get_settings() -> Settings:
         max_chunk_chars=_env_int("WEB_RAG_MAX_CHUNK_CHARS", 1200),
         min_chunk_words=_env_int("WEB_RAG_MIN_CHUNK_WORDS", 10),
         context_backoff=_env_bool("WEB_RAG_CONTEXT_BACKOFF", True),
-        reranker=os.getenv("WEB_RAG_RERANKER", "medcpt"),
+        reranker=os.getenv("WEB_RAG_RERANKER", "hybrid"),
         top_k=_env_int("WEB_RAG_TOP_K", 5),
         max_chunks_per_paper=_env_int("WEB_RAG_MAX_CHUNKS_PER_PAPER", 2),
         near_duplicate_threshold=_env_float("WEB_RAG_NEAR_DUPLICATE_THRESHOLD", 0.80),
@@ -121,6 +134,16 @@ def validate_settings(settings: Settings) -> None:
         raise ValueError(f"paperclip_ranking must be one of: {', '.join(PAPERCLIP_RANKINGS)}")
     if settings.query_strategy not in QUERY_STRATEGIES:
         raise ValueError(f"query_strategy must be one of: {', '.join(QUERY_STRATEGIES)}")
+    if not settings.hyde_model.strip():
+        raise ValueError("hyde_model must not be empty")
+    if not settings.hyde_base_url.strip():
+        raise ValueError("hyde_base_url must not be empty")
+    if not 0 <= settings.hyde_temperature <= 2:
+        raise ValueError("hyde_temperature must be between 0 and 2")
+    if settings.hyde_max_tokens <= 0:
+        raise ValueError("hyde_max_tokens must be greater than 0")
+    if settings.hyde_timeout <= 0:
+        raise ValueError("hyde_timeout must be greater than 0")
     if settings.chunking_method not in CHUNKING_METHODS:
         raise ValueError(f"chunking_method must be one of: {', '.join(CHUNKING_METHODS)}")
     if settings.reranker not in RERANKERS:

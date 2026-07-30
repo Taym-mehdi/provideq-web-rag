@@ -122,15 +122,23 @@ def run_evaluation(
         )
 
     scores: dict[str, list[dict[str, Any]]] = {layer: [] for layer in layers}
+    no_save = bool(getattr(args, "no_save", False))
 
     for index, example in enumerate(selected, start=1):
         question = str(example["question"])
-        print(f"[{index}/{len(selected)}] {example['id']}")
+        if not no_save:
+            print(f"[{index}/{len(selected)}] {example['id']}")
 
         result = pipeline_fn(
             question,
             retrieval_limit=args.retrieval_limit,
             query_strategy=args.query_strategy,
+            hyde_model=args.hyde_model,
+            hyde_base_url=args.hyde_base_url,
+            hyde_temperature=args.hyde_temperature,
+            hyde_max_tokens=args.hyde_max_tokens,
+            hyde_seed=args.hyde_seed,
+            hyde_timeout=args.hyde_timeout,
             paperclip_source=args.paperclip_source,
             paperclip_ranking=args.paperclip_ranking,
             chunk_window_size=args.chunk_window_size,
@@ -170,9 +178,18 @@ def run_evaluation(
             )
             scores["judge"].append(_result_row(example, best_evidence, score))
 
+        if no_save:
+            _print_question_scores(str(example["id"]), layers, scores)
+
+    if no_save:
+        _print_average_scores(layers, scores)
+        return []
+
     saved: list[Path] = []
     for layer in layers:
-        folder_name = f"{args.paperclip_ranking}_{args.reranker}_{layer}"
+        folder_name = (
+            f"{args.query_strategy}_{args.paperclip_ranking}_{args.reranker}_{layer}"
+        )
         saved.append(_write_results(Path(args.output_dir), folder_name, scores[layer]))
 
     return saved
@@ -180,6 +197,44 @@ def run_evaluation(
 
 def _clean_csv_text(value: str) -> str:
     return " ".join(value.split())
+
+
+def _display_score(value: Any) -> str:
+    if value in (None, ""):
+        return "N/A"
+    return f"{float(value):.2f}"
+
+
+def _print_question_scores(
+    question_id: str,
+    layers: list[str],
+    scores: dict[str, list[dict[str, Any]]],
+) -> None:
+    if len(layers) == 1:
+        score = scores[layers[0]][-1]["score"]
+        print(f"{question_id} | score: {_display_score(score)}")
+        return
+
+    layer_scores = " | ".join(
+        f"{layer}: {_display_score(scores[layer][-1]['score'])}" for layer in layers
+    )
+    print(f"{question_id} | {layer_scores}")
+
+
+def _print_average_scores(
+    layers: list[str],
+    scores: dict[str, list[dict[str, Any]]],
+) -> None:
+    print()
+    for layer in layers:
+        numeric_scores = [
+            float(row["score"])
+            for row in scores[layer]
+            if row["score"] not in (None, "")
+        ]
+        average = sum(numeric_scores) / len(numeric_scores) if numeric_scores else None
+        label = "Average score" if len(layers) == 1 else f"Average {layer} score"
+        print(f"{label}: {_display_score(average)}")
 
 
 def _result_row(
@@ -206,11 +261,22 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--num-questions", type=int, default=20)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
+    parser.add_argument(
+        "--no-save",
+        action="store_true",
+        help="Print per-question and average scores without writing results.csv files.",
+    )
 
     parser.add_argument("--paperclip-source", default="pmc")
     parser.add_argument("--paperclip-ranking", choices=("bm25", "vector", "hybrid"), default="hybrid")
     parser.add_argument("--retrieval-limit", type=int, default=50)
-    parser.add_argument("--query-strategy", choices=("raw", "synonym"), default="synonym")
+    parser.add_argument("--query-strategy", choices=("raw", "synonym", "hyde"), default="synonym")
+    parser.add_argument("--hyde-model", default="qwen2.5:7b-instruct")
+    parser.add_argument("--hyde-base-url", default="http://localhost:11434")
+    parser.add_argument("--hyde-temperature", type=float, default=0.0)
+    parser.add_argument("--hyde-max-tokens", type=int, default=256)
+    parser.add_argument("--hyde-seed", type=int, default=42)
+    parser.add_argument("--hyde-timeout", type=float, default=180.0)
 
     parser.add_argument("--chunk-window-size", type=int, default=3)
     parser.add_argument("--chunk-stride", type=int, default=1)
