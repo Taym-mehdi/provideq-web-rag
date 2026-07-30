@@ -32,7 +32,6 @@ provideq-web-rag/
 ├── src/
 │   └── web_rag/
 ├── .gitignore
-├── HANDOFF_TO_ARYAN.md
 ├── README.md
 └── requirements.txt
 ```
