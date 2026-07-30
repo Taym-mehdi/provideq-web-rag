@@ -8,7 +8,7 @@ The system retrieves full-text scientific evidence from Paperclip, reranks the e
 
 ```text
 Question
-→ Query reformulation
+→ Raw, synonym, or HyDE query reformulation
 → Paperclip full-text retrieval
 → Sentence-window chunking
 → Lexical, MedCPT, or hybrid reranking
@@ -32,6 +32,7 @@ provideq-web-rag/
 ├── src/
 │   └── web_rag/
 ├── .gitignore
+├── HANDOFF_TO_ARYAN.md
 ├── README.md
 └── requirements.txt
 ```
@@ -66,10 +67,34 @@ Paperclip must be installed and authenticated separately. The code loads the cli
 
 Authentication can use `PAPERCLIP_API_KEY` or a stored Paperclip login.
 
+## Default configuration
+
+```text
+Query reformulation: HyDE
+Paperclip source: PMC
+Paperclip ranking: hybrid
+Retrieved papers: 10
+Local reranker: hybrid (30% BM25 + 70% MedCPT)
+Returned evidence chunks: 5
+```
+
+These are provisional integration defaults. The evaluation experiments should still compare the available alternatives before the final thesis configuration is fixed.
+
 ## Run one query
 
+Because HyDE is the default, Ollama and the configured model must be available.
+
 ```bat
-python -m web_rag.cli --question "Is potassium stable in serum gel tubes if centrifugation is delayed for up to 24 hours?" --paperclip-source pmc --paperclip-ranking hybrid --limit 50 --reranker medcpt --top-k 5 --medcpt-device auto --show-query --print-context
+ollama pull qwen2.5:7b-instruct
+python -m web_rag.cli --question "Is potassium stable in serum gel tubes if centrifugation is delayed for up to 24 hours?" --show-query --print-context
+```
+
+Available query reformulation methods:
+
+```text
+raw
+synonym
+hyde
 ```
 
 Available Paperclip ranking methods:
@@ -88,7 +113,19 @@ medcpt
 hybrid
 ```
 
+
+### HyDE query reformulation
+
+HyDE uses Ollama to generate a short hypothetical scientific passage and submits that passage to Paperclip as the retrieval query.
+
+```bat
+ollama pull qwen2.5:7b-instruct
+python -m web_rag.cli --question "Is potassium stable in serum gel tubes if centrifugation is delayed for up to 24 hours?" --query-strategy hyde --hyde-model qwen2.5:7b-instruct --paperclip-ranking hybrid --reranker medcpt --show-query --print-context
+```
+
 ## Integration
+
+See `HANDOFF_TO_ARYAN.md` for the agent integration checklist.
 
 The Web RAG can be called directly from another Python component:
 
@@ -136,6 +173,21 @@ To run all three layers:
 python -m evaluation.run_evaluation --evaluation all --num-questions 20 --paperclip-ranking hybrid --reranker hybrid
 ```
 
+To print scores in the command line without creating output files:
+
+```bat
+python -m evaluation.run_evaluation --evaluation lexical --num-questions 20 --paperclip-ranking hybrid --reranker lexical --no-save
+```
+
+Example terminal output:
+
+```text
+Q001 | score: 0.82
+Q002 | score: 0.67
+
+Average score: 0.74
+```
+
 The same random seed selects the same benchmark questions across experiments. The default seed is `42`.
 
 ## Evaluation outputs
@@ -143,7 +195,7 @@ The same random seed selects the same benchmark questions across experiments. Th
 Results are saved under:
 
 ```text
-outputs/<paperclip-ranking>_<reranker>_<evaluation>/results.csv
+outputs/<query-strategy>_<paperclip-ranking>_<reranker>_<evaluation>/results.csv
 ```
 
 Each CSV contains:

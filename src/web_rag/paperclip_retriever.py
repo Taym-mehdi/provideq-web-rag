@@ -315,7 +315,7 @@ def _normalize_paper(
 def retrieve_papers(
     query: str,
     *,
-    limit: int = 50,
+    limit: int = 10,
     source: str = "pmc",
     ranking: str = "hybrid",
     max_full_text_lines: int = 5000,
