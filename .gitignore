@@ -1,39 +1,282 @@
-# Virtual environments
-.venv/
-venv/
-env/
+# ProvideQ Web RAG
 
-# Python cache and build files
-__pycache__/
-*.py[cod]
-*$py.class
-*.egg-info/
-build/
-dist/
+This repository contains the Web Retrieval-Augmented Generation component developed for ProvideQ.
 
-# Test and analysis caches
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-.coverage
-htmlcov/
+The system retrieves full-text scientific evidence from Paperclip, reranks the extracted evidence chunks, and returns citation-ready snippets for the downstream ProvideQ agent. It does not generate the final answer.
 
-# Jupyter
-.ipynb_checkpoints/
+## Pipeline
 
-# Local configuration and secrets
-.env
-.env.*
-!.env.example
+```text
+Question
+→ Raw, synonym, HyDE, or structured LLM query expansion
+→ Paperclip full-text retrieval
+→ Sentence-window chunking
+→ Lexical, MedCPT, or hybrid reranking
+→ Evidence selection
+→ Citation-ready context
+```
 
-# Generated evaluation and retrieval outputs
-outputs/
+## Project structure
 
-# Editor and operating-system files
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
+```text
+provideq-web-rag/
+├── benchmark/
+│   └── provideq_benchmark.json
+├── evaluation/
+│   ├── retrieval_evaluation.py
+│   ├── lexical_evaluation.py
+│   ├── semantic_evaluation.py
+│   ├── llm_judge_evaluation.py
+│   ├── run_evaluation.py
+│   └── evaluation_notebook.ipynb
+├── outputs/
+├── tests/
+│   ├── test_query_reformulation.py
+│   └── test_pipeline_llmexpand.py
+├── src/
+│   └── web_rag/
+├── .gitignore
+├── HANDOFF_TO_ARYAN.md
+├── README.md
+└── requirements.txt
+```
 
-# Logs
-*.log
+The cleaned benchmark contains 91 answerable questions with gold answers and source documents.
+
+## Installation
+
+### Windows
+
+```bat
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+set PYTHONPATH=src;.
+```
+
+### Linux or macOS
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+export PYTHONPATH=src:.
+```
+
+Paperclip must be installed and authenticated separately. The code loads the client from the Python environment or from:
+
+```text
+~/.paperclip/lib
+```
+
+Authentication can use `PAPERCLIP_API_KEY` or a stored Paperclip login.
+
+## Default configuration
+
+```text
+Query reformulation: HyDE
+Paperclip source: PMC
+Paperclip ranking: hybrid
+Retrieved papers: 10
+Local reranker: hybrid (30% BM25 + 70% MedCPT)
+Returned evidence chunks: 5
+```
+
+These are provisional integration defaults. The evaluation experiments should still compare the available alternatives before the final thesis configuration is fixed.
+
+## Run one query
+
+Because HyDE is the default, Ollama and the configured model must be available.
+
+```bat
+ollama pull qwen2.5:7b-instruct
+python -m web_rag.cli --question "Is potassium stable in serum gel tubes if centrifugation is delayed for up to 24 hours?" --show-query --print-context
+```
+
+Available query reformulation methods:
+
+```text
+raw
+synonym
+hyde
+llmexpand
+```
+
+Available Paperclip ranking methods:
+
+```text
+bm25
+vector
+hybrid
+```
+
+Available local rerankers:
+
+```text
+lexical
+medcpt
+hybrid
+```
+
+
+### HyDE query reformulation
+
+HyDE uses Ollama to generate a short hypothetical scientific passage and submits that passage to Paperclip as the retrieval query.
+
+```bat
+ollama pull qwen2.5:7b-instruct
+python -m web_rag.cli --question "Is potassium stable in serum gel tubes if centrifugation is delayed for up to 24 hours?" --query-strategy hyde --hyde-model qwen2.5:7b-instruct --paperclip-ranking hybrid --reranker medcpt --show-query --print-context
+```
+
+
+### Structured LLM query expansion (`llmexpand`)
+
+This strategy keeps the original question and uses one Ollama call to create a
+conservative biomedical retrieval representation containing core concepts,
+established synonyms and abbreviations, explicit experimental conditions, and
+two complementary title/abstract-style query formulations. It does not generate
+an answer or invent study outcomes.
+
+Inspect one generated query:
+
+```bat
+python -m web_rag.cli --question "Is potassium stable in serum gel tubes if centrifugation is delayed for up to 24 hours?" --query-strategy llmexpand --paperclip-ranking vector --reranker lexical --show-query --print-context
+```
+
+Compare the new strategy with Paperclip vector and hybrid retrieval using the
+same question sample:
+
+```bat
+python -m evaluation.run_evaluation --evaluation mrr --num-questions 20 --seed 42 --query-strategy llmexpand --paperclip-ranking vector --retrieval-limit 10
+python -m evaluation.run_evaluation --evaluation mrr --num-questions 20 --seed 42 --query-strategy llmexpand --paperclip-ranking hybrid --retrieval-limit 10
+```
+
+The MRR layer evaluates retrieval only, so the local reranker is not loaded. For
+full-pipeline content evaluation, add `--reranker lexical`.
+
+Run the offline tests before the live Paperclip experiment:
+
+```bat
+python -m unittest discover -s tests -v
+```
+
+## Integration
+
+See `HANDOFF_TO_ARYAN.md` for the agent integration checklist.
+
+The Web RAG can be called directly from another Python component:
+
+```python
+from web_rag import run_pipeline
+
+result = run_pipeline(
+    "Is potassium stable in serum gel tubes after delayed centrifugation?"
+)
+
+context_text = result.context_text
+evidence_records = result.records
+retrieved_papers = result.retrieved_papers
+```
+
+`run_pipeline()` returns the evidence and does not print it. The CLI is only a testing interface.
+
+## Evaluation
+
+The evaluation runner uses 20 benchmark questions by default. A value from 1 to 91 can be selected with `--num-questions`.
+
+### Retrieval MRR
+
+This layer checks whether a benchmark gold paper appears in the Paperclip retrieval results. It uses the first matching paper rank:
+
+```text
+score = 1 / rank
+score = 0 when no gold paper is retrieved
+```
+
+It runs retrieval only, so it does not load the local chunk reranker.
+
+```bat
+python -m evaluation.run_evaluation --evaluation mrr --num-questions 20
+```
+
+With the current defaults, this evaluates HyDE with Paperclip hybrid retrieval over the top 10 papers. Use `--retrieval-limit` to test another cutoff.
+
+### Lexical evaluation
+
+```bat
+python -m evaluation.run_evaluation --evaluation lexical --num-questions 20 --paperclip-ranking hybrid --reranker lexical
+```
+
+### Semantic evaluation
+
+```bat
+python -m evaluation.run_evaluation --evaluation semantic --num-questions 20 --paperclip-ranking hybrid --reranker medcpt --semantic-device auto
+```
+
+### LLM-as-a-Judge
+
+The default judge uses Ollama with `qwen2.5:7b-instruct`.
+
+```bat
+ollama pull qwen2.5:7b-instruct
+python -m evaluation.run_evaluation --evaluation judge --num-questions 20 --paperclip-ranking hybrid --reranker hybrid
+```
+
+To run all four layers:
+
+```bat
+python -m evaluation.run_evaluation --evaluation all --num-questions 20 --paperclip-ranking hybrid --reranker hybrid
+```
+
+To print scores in the command line without creating output files:
+
+```bat
+python -m evaluation.run_evaluation --evaluation lexical --num-questions 20 --paperclip-ranking hybrid --reranker lexical --no-save
+```
+
+Example terminal output:
+
+```text
+Q001 | score: 0.82
+Q002 | score: 0.67
+
+Average score: 0.74
+```
+
+The same random seed selects the same benchmark questions across experiments. The default seed is `42`.
+
+## Evaluation outputs
+
+Content-evaluation results are saved under:
+
+```text
+outputs/<query-strategy>_<paperclip-ranking>_<reranker>_<evaluation>/results.csv
+```
+
+Retrieval MRR results are saved under:
+
+```text
+outputs/<query-strategy>_<paperclip-ranking>_retrieval_mrr/results.csv
+```
+
+Content-evaluation CSV files contain:
+
+```text
+question_id, question, answers, gold_answer, score
+```
+
+The retrieval MRR CSV contains:
+
+```text
+question_id, question, retrieved_documents, gold_documents, matched_document, first_relevant_rank, hit, score
+```
+
+## Notebook
+
+Open:
+
+```text
+evaluation/evaluation_notebook.ipynb
+```
+
+The notebook reads evaluation CSV files from `outputs/` and compares retrieval MRR together with the lexical, semantic, and LLM-as-a-judge layers.

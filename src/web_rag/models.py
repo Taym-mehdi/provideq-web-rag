@@ -13,6 +13,7 @@ class QueryBundle:
     keywords: list[str] = field(default_factory=list)
     expanded_terms: list[str] = field(default_factory=list)
     hypothetical_document: str = ""
+    expansion_details: dict[str, list[str]] = field(default_factory=dict)
 
 
 @dataclass
@@ -62,6 +63,19 @@ class CitationSource:
     url: str = ""
 
 
+@dataclass(frozen=True)
+class RetrievedPaper:
+    retrieval_rank: int
+    paper_id: str
+    title: str
+    source: str
+    year: str = ""
+    doi: str = ""
+    authors: str = ""
+    journal: str = ""
+    url: str = ""
+
+
 @dataclass
 class EvidenceRecord:
     citation_id: int
@@ -98,3 +112,4 @@ class EvidencePack:
     pipeline: PipelineInfo
     records: list[EvidenceRecord]
     context_text: str
+    retrieved_papers: list[RetrievedPaper] = field(default_factory=list)
