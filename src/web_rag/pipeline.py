@@ -26,6 +26,15 @@ def run_pipeline(
     hyde_seed: int | None = None,
     hyde_timeout: float | None = None,
     hyde_generator: Callable[[str], str] | None = None,
+    expansion_model: str | None = None,
+    expansion_base_url: str | None = None,
+    expansion_temperature: float | None = None,
+    expansion_max_tokens: int | None = None,
+    expansion_seed: int | None = None,
+    expansion_timeout: float | None = None,
+    expansion_max_terms: int | None = None,
+    expansion_max_query_chars: int | None = None,
+    expansion_generator: Callable[[str], str] | None = None,
     paperclip_source: str | None = None,
     paperclip_ranking: str | None = None,
     paperclip_max_full_text_lines: int | None = None,
@@ -72,6 +81,32 @@ def run_pipeline(
         hyde_max_tokens=hyde_max_tokens if hyde_max_tokens is not None else base.hyde_max_tokens,
         hyde_seed=hyde_seed if hyde_seed is not None else base.hyde_seed,
         hyde_timeout=hyde_timeout if hyde_timeout is not None else base.hyde_timeout,
+        expansion_model=expansion_model or base.expansion_model,
+        expansion_base_url=expansion_base_url or base.expansion_base_url,
+        expansion_temperature=(
+            expansion_temperature
+            if expansion_temperature is not None
+            else base.expansion_temperature
+        ),
+        expansion_max_tokens=(
+            expansion_max_tokens
+            if expansion_max_tokens is not None
+            else base.expansion_max_tokens
+        ),
+        expansion_seed=expansion_seed if expansion_seed is not None else base.expansion_seed,
+        expansion_timeout=(
+            expansion_timeout if expansion_timeout is not None else base.expansion_timeout
+        ),
+        expansion_max_terms=(
+            expansion_max_terms
+            if expansion_max_terms is not None
+            else base.expansion_max_terms
+        ),
+        expansion_max_query_chars=(
+            expansion_max_query_chars
+            if expansion_max_query_chars is not None
+            else base.expansion_max_query_chars
+        ),
         paperclip_source=paperclip_source or base.paperclip_source,
         paperclip_ranking=paperclip_ranking or base.paperclip_ranking,
         paperclip_max_full_text_lines=(
@@ -127,6 +162,15 @@ def run_pipeline(
         hyde_seed=effective.hyde_seed,
         hyde_timeout=effective.hyde_timeout,
         hyde_generator=hyde_generator,
+        expansion_model=effective.expansion_model,
+        expansion_base_url=effective.expansion_base_url,
+        expansion_temperature=effective.expansion_temperature,
+        expansion_max_tokens=effective.expansion_max_tokens,
+        expansion_seed=effective.expansion_seed,
+        expansion_timeout=effective.expansion_timeout,
+        expansion_max_terms=effective.expansion_max_terms,
+        expansion_max_query_chars=effective.expansion_max_query_chars,
+        expansion_generator=expansion_generator,
     )
     retrieval = retrieve_papers(
         query.search_query,
@@ -188,6 +232,36 @@ def run_pipeline(
                 effective.hyde_max_tokens if effective.query_strategy == "hyde" else None
             ),
             "hyde_seed": effective.hyde_seed if effective.query_strategy == "hyde" else None,
+            "expansion_model": (
+                effective.expansion_model
+                if effective.query_strategy == "llmexpand"
+                else None
+            ),
+            "expansion_temperature": (
+                effective.expansion_temperature
+                if effective.query_strategy == "llmexpand"
+                else None
+            ),
+            "expansion_max_tokens": (
+                effective.expansion_max_tokens
+                if effective.query_strategy == "llmexpand"
+                else None
+            ),
+            "expansion_seed": (
+                effective.expansion_seed
+                if effective.query_strategy == "llmexpand"
+                else None
+            ),
+            "expansion_max_terms": (
+                effective.expansion_max_terms
+                if effective.query_strategy == "llmexpand"
+                else None
+            ),
+            "expansion_max_query_chars": (
+                effective.expansion_max_query_chars
+                if effective.query_strategy == "llmexpand"
+                else None
+            ),
             "paperclip_mode": paperclip_mode,
             "paperclip_since": paperclip_since,
             "paperclip_sort": paperclip_sort,
@@ -220,4 +294,5 @@ def run_pipeline(
         query=query,
         pipeline=info,
         selected_chunks=selected,
+        retrieved_papers=retrieval.papers,
     )

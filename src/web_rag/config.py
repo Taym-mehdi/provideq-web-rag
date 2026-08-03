@@ -5,9 +5,9 @@ import os
 
 
 PAPERCLIP_RANKINGS = ("bm25", "vector", "hybrid")
-PAPERCLIP_ACADEMIC_SOURCES = ("pmc", "biorxiv", "medrxiv", "arxiv")
+PAPERCLIP_ACADEMIC_SOURCES = ("all", "pmc", "biorxiv", "medrxiv", "arxiv", "abstracts_only")
 PAPERCLIP_MODES = ("any", "all", "50%", "75%", "phrase")
-QUERY_STRATEGIES = ("raw", "synonym", "hyde")
+QUERY_STRATEGIES = ("raw", "synonym", "hyde", "llmexpand")
 CHUNKING_METHODS = ("sentence_window",)
 RERANKERS = ("lexical", "medcpt", "hybrid")
 
@@ -24,7 +24,16 @@ class Settings:
     hyde_seed: int = 42
     hyde_timeout: float = 180.0
 
-    paperclip_source: str = "pmc"
+    expansion_model: str = "qwen2.5:7b-instruct"
+    expansion_base_url: str = "http://localhost:11434"
+    expansion_temperature: float = 0.0
+    expansion_max_tokens: int = 420
+    expansion_seed: int = 42
+    expansion_timeout: float = 180.0
+    expansion_max_terms: int = 32
+    expansion_max_query_chars: int = 1200
+
+    paperclip_source: str = "pmc,biorxiv,medrxiv,arxiv,abstracts_only"
     paperclip_ranking: str = "hybrid"
     paperclip_max_full_text_lines: int = 5000
     paperclip_timeout: float = 120.0
@@ -85,7 +94,15 @@ def get_settings() -> Settings:
         hyde_max_tokens=_env_int("WEB_RAG_HYDE_MAX_TOKENS", 256),
         hyde_seed=_env_int("WEB_RAG_HYDE_SEED", 42),
         hyde_timeout=_env_float("WEB_RAG_HYDE_TIMEOUT", 180.0),
-        paperclip_source=os.getenv("WEB_RAG_PAPERCLIP_SOURCE", "pmc"),
+        expansion_model=os.getenv("WEB_RAG_EXPANSION_MODEL", "qwen2.5:7b-instruct"),
+        expansion_base_url=os.getenv("WEB_RAG_EXPANSION_BASE_URL", "http://localhost:11434"),
+        expansion_temperature=_env_float("WEB_RAG_EXPANSION_TEMPERATURE", 0.0),
+        expansion_max_tokens=_env_int("WEB_RAG_EXPANSION_MAX_TOKENS", 420),
+        expansion_seed=_env_int("WEB_RAG_EXPANSION_SEED", 42),
+        expansion_timeout=_env_float("WEB_RAG_EXPANSION_TIMEOUT", 180.0),
+        expansion_max_terms=_env_int("WEB_RAG_EXPANSION_MAX_TERMS", 32),
+        expansion_max_query_chars=_env_int("WEB_RAG_EXPANSION_MAX_QUERY_CHARS", 1200),
+        paperclip_source=os.getenv("WEB_RAG_PAPERCLIP_SOURCE", "pmc,biorxiv,medrxiv,arxiv,abstracts_only"),
         paperclip_ranking=os.getenv("WEB_RAG_PAPERCLIP_RANKING", "hybrid"),
         paperclip_max_full_text_lines=_env_int("WEB_RAG_PAPERCLIP_MAX_LINES", 5000),
         paperclip_timeout=_env_float("WEB_RAG_PAPERCLIP_TIMEOUT", 120.0),
@@ -123,7 +140,7 @@ def validate_paperclip_source(value: str) -> None:
     if unsupported:
         choices = ", ".join(PAPERCLIP_ACADEMIC_SOURCES)
         raise ValueError(
-            f"Only academic Paperclip sources are allowed. Unsupported: {', '.join(unsupported)}. "
+            f"Unsupported Paperclip source: {', '.join(unsupported)}. "
             f"Choose from: {choices}"
         )
 
@@ -144,6 +161,20 @@ def validate_settings(settings: Settings) -> None:
         raise ValueError("hyde_max_tokens must be greater than 0")
     if settings.hyde_timeout <= 0:
         raise ValueError("hyde_timeout must be greater than 0")
+    if not settings.expansion_model.strip():
+        raise ValueError("expansion_model must not be empty")
+    if not settings.expansion_base_url.strip():
+        raise ValueError("expansion_base_url must not be empty")
+    if not 0 <= settings.expansion_temperature <= 2:
+        raise ValueError("expansion_temperature must be between 0 and 2")
+    if settings.expansion_max_tokens <= 0:
+        raise ValueError("expansion_max_tokens must be greater than 0")
+    if settings.expansion_timeout <= 0:
+        raise ValueError("expansion_timeout must be greater than 0")
+    if settings.expansion_max_terms <= 0:
+        raise ValueError("expansion_max_terms must be greater than 0")
+    if settings.expansion_max_query_chars < 100:
+        raise ValueError("expansion_max_query_chars must be at least 100")
     if settings.chunking_method not in CHUNKING_METHODS:
         raise ValueError(f"chunking_method must be one of: {', '.join(CHUNKING_METHODS)}")
     if settings.reranker not in RERANKERS:

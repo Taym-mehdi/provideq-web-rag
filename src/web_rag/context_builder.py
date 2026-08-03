@@ -1,6 +1,15 @@
 from __future__ import annotations
 
-from .models import CitationSource, EvidencePack, EvidenceRecord, PipelineInfo, QueryBundle, TextChunk
+from .models import (
+    CitationSource,
+    EvidencePack,
+    EvidenceRecord,
+    Paper,
+    PipelineInfo,
+    QueryBundle,
+    RetrievedPaper,
+    TextChunk,
+)
 
 
 def _source_line(source: CitationSource) -> str:
@@ -22,12 +31,27 @@ def _source_line(source: CitationSource) -> str:
     return ". ".join(parts)
 
 
+def _retrieved_paper(paper: Paper, fallback_rank: int) -> RetrievedPaper:
+    return RetrievedPaper(
+        retrieval_rank=int(paper.retrieval_rank or fallback_rank),
+        paper_id=paper.paper_id,
+        title=paper.title,
+        source=paper.source,
+        year=paper.year,
+        doi=paper.doi,
+        authors=paper.authors,
+        journal=paper.journal,
+        url=paper.url,
+    )
+
+
 def build_evidence_pack(
     *,
     question: str,
     query: QueryBundle,
     pipeline: PipelineInfo,
     selected_chunks: list[TextChunk],
+    retrieved_papers: list[Paper] | None = None,
 ) -> EvidencePack:
     records: list[EvidenceRecord] = []
     context_blocks: list[str] = []
@@ -58,10 +82,16 @@ def build_evidence_pack(
         )
         context_blocks.append(f"[{citation_id}] {chunk.text}\nSource: {_source_line(source)}")
 
+    retrieval_metadata = [
+        _retrieved_paper(paper, rank)
+        for rank, paper in enumerate(retrieved_papers or [], start=1)
+    ]
+
     return EvidencePack(
         question=question,
         query=query,
         pipeline=pipeline,
         records=records,
         context_text="\n\n".join(context_blocks),
+        retrieved_papers=retrieval_metadata,
     )

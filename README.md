@@ -172,7 +172,7 @@ To run all three layers:
 python -m evaluation.run_evaluation --evaluation all --num-questions 20 --paperclip-ranking hybrid --reranker hybrid
 ```
 
-To print scores in the command line without creating output files:
+To print scores in the command line without creating output files
 
 ```bat
 python -m evaluation.run_evaluation --evaluation lexical --num-questions 20 --paperclip-ranking hybrid --reranker lexical --no-save

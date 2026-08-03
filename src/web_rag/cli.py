@@ -31,6 +31,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--hyde-seed", type=int, default=settings.hyde_seed)
     parser.add_argument("--hyde-timeout", type=float, default=settings.hyde_timeout)
 
+    parser.add_argument("--expansion-model", default=settings.expansion_model)
+    parser.add_argument("--expansion-base-url", default=settings.expansion_base_url)
+    parser.add_argument("--expansion-temperature", type=float, default=settings.expansion_temperature)
+    parser.add_argument("--expansion-max-tokens", type=int, default=settings.expansion_max_tokens)
+    parser.add_argument("--expansion-seed", type=int, default=settings.expansion_seed)
+    parser.add_argument("--expansion-timeout", type=float, default=settings.expansion_timeout)
+    parser.add_argument("--expansion-max-terms", type=int, default=settings.expansion_max_terms)
+    parser.add_argument("--expansion-max-query-chars", type=int, default=settings.expansion_max_query_chars)
+
     parser.add_argument(
         "--paperclip-source",
         "--paperclip-corpus",
@@ -96,6 +105,14 @@ def main() -> None:
             hyde_max_tokens=args.hyde_max_tokens,
             hyde_seed=args.hyde_seed,
             hyde_timeout=args.hyde_timeout,
+            expansion_model=args.expansion_model,
+            expansion_base_url=args.expansion_base_url,
+            expansion_temperature=args.expansion_temperature,
+            expansion_max_tokens=args.expansion_max_tokens,
+            expansion_seed=args.expansion_seed,
+            expansion_timeout=args.expansion_timeout,
+            expansion_max_terms=args.expansion_max_terms,
+            expansion_max_query_chars=args.expansion_max_query_chars,
             paperclip_source=args.paperclip_source,
             paperclip_ranking=args.paperclip_ranking,
             paperclip_max_full_text_lines=args.paperclip_max_lines,
@@ -135,7 +152,11 @@ def main() -> None:
         if evidence.query.strategy == "hyde":
             print(f"Hypothetical document: {evidence.query.hypothetical_document}\n")
         else:
-            print(f"Search query: {evidence.query.search_query}\n")
+            print(f"Search query: {evidence.query.search_query}")
+            if evidence.query.strategy == "llmexpand":
+                for name, values in evidence.query.expansion_details.items():
+                    print(f"{name}: {', '.join(values)}")
+            print()
     if args.show_info:
         print(to_json(evidence.pipeline))
         print()
