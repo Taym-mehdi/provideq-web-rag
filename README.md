@@ -1,214 +1,137 @@
 # ProvideQ Web RAG
 
-This repository contains the Web Retrieval-Augmented Generation component developed for ProvideQ.
+This project retrieves scientific papers and evidence snippets for biobanking questions. It returns evidence to the downstream ProvideQ agent; it does not generate the final answer.
 
-The system retrieves full-text scientific evidence from Paperclip, reranks the extracted evidence chunks, and returns citation-ready snippets for the downstream ProvideQ agent. It does not generate the final answer.
+## Current thesis experiment
 
-## Pipeline
+The current step compares document retrieval with:
 
-```text
-Question
-→ Raw, synonym, or HyDE query reformulation
-→ Paperclip full-text retrieval
-→ Sentence-window chunking
-→ Lexical, MedCPT, or hybrid reranking
-→ Evidence selection
-→ Citation-ready context
-```
+| Query method | Description |
+|---|---|
+| `raw` | Original question after whitespace cleaning |
+| `hyde` | One concise hypothetical biomedical passage |
+| `llmexpand` | Original question plus validated biomedical synonyms and equivalent terms |
 
-## Project structure
+Each method can be tested with Paperclip `bm25`, `vector`, and `hybrid`. Chunking and local reranking are not used in the MRR experiment.
+
+## Benchmark
 
 ```text
-provideq-web-rag/
-├── benchmark/
-│   └── provideq_benchmark.json
-├── evaluation/
-│   ├── lexical_evaluation.py
-│   ├── semantic_evaluation.py
-│   ├── llm_judge_evaluation.py
-│   ├── run_evaluation.py
-│   └── evaluation_notebook.ipynb
-├── outputs/
-├── src/
-│   └── web_rag/
-├── .gitignore
-├── README.md
-└── requirements.txt
+benchmark\provideq_benchmark.json
 ```
 
-The benchmark contains 97 questions with gold answers and source documents.
+The benchmark contains 90 questions in five biobanking categories.
 
-## Installation
+## Installation on Windows CMD
 
-### Windows
-
-```bat
+```cmd
 python -m venv .venv
-.venv\Scripts\activate
+call .venv\Scripts\activate.bat
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 set PYTHONPATH=src;.
 ```
 
-### Linux or macOS
+Paperclip must also be installed and authenticated.
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-export PYTHONPATH=src:.
+## Interweb configuration
+
+Interweb is used through its OpenAI-compatible API. Configuration is loaded automatically from a project-local `.env` file.
+
+Create it once:
+
+```cmd
+copy .env.example .env
+notepad .env
 ```
 
-Paperclip must be installed and authenticated separately. The code loads the client from the Python environment or from:
+Replace the placeholder API key and choose a model:
 
 ```text
-~/.paperclip/lib
+INTERWEB_APIKEY=your_complete_key
+WEB_RAG_LLM_MODEL=agents-a1:35b-a3b
 ```
 
-Authentication can use `PAPERCLIP_API_KEY` or a stored Paperclip login.
+The `.env` file is ignored by Git.
 
-## Default configuration
+Check the key and model:
+
+```cmd
+python check_interweb.py --list
+python check_interweb.py --test
+```
+
+The same model, temperature, prompt, and generated-query cache should be used for all ranking comparisons.
+
+## Run the retrieval experiment
+
+Ready-to-copy CMD commands are in:
 
 ```text
-Query reformulation: HyDE
-Paperclip source: PMC
-Paperclip ranking: hybrid
+TEST_COMMANDS.txt
+```
+
+The default settings are loaded from `.env`:
+
+```text
+Questions: 90
 Retrieved papers: 10
-Local reranker: hybrid (30% BM25 + 70% MedCPT)
-Returned evidence chunks: 5
+Paperclip sources: pmc,biorxiv,medrxiv,arxiv,abstracts_only
+Paperclip full-corpus search: enabled
+LLM provider: Interweb through OpenAI-compatible API
+LLM temperature: 0
+Seed: 42
 ```
 
-These are provisional integration defaults. The evaluation experiments should still compare the available alternatives before the final thesis configuration is fixed.
-
-## Run one query
-
-Because HyDE is the default, Ollama and the configured model must be available.
-
-```bat
-ollama pull qwen2.5:7b-instruct
-python -m web_rag.cli --question "Is potassium stable in serum gel tubes if centrifugation is delayed for up to 24 hours?" --show-query --print-context
-```
-
-Available query reformulation methods:
+For HyDE and LLM expansion, the evaluator automatically creates a model-specific query cache under:
 
 ```text
-raw
-synonym
-hyde
+outputs\query_cache\
 ```
 
-Available Paperclip ranking methods:
+This ensures that vector and hybrid retrieval receive exactly the same generated query.
+
+## Results
+
+Each run writes:
 
 ```text
-bm25
-vector
-hybrid
+outputs\<query-method>_<paperclip-ranking>_retrieval_mrr\results.csv
 ```
 
-Available local rerankers:
+The terminal prints:
 
 ```text
-lexical
-medcpt
-hybrid
+Recall@1
+Recall@3
+Recall@5
+Recall@10
+MRR@10
 ```
 
+The CSV records the exact query sent to Paperclip, the retrieved paper titles and identifiers, the matched gold paper, first relevant rank, model, source settings, and hit metrics.
 
-### HyDE query reformulation
+## Full Web RAG pipeline
 
-HyDE uses Ollama to generate a short hypothetical scientific passage and submits that passage to Paperclip as the retrieval query.
-
-```bat
-ollama pull qwen2.5:7b-instruct
-python -m web_rag.cli --question "Is potassium stable in serum gel tubes if centrifugation is delayed for up to 24 hours?" --query-strategy hyde --hyde-model qwen2.5:7b-instruct --paperclip-ranking hybrid --reranker medcpt --show-query --print-context
+```text
+Question
+→ Query reformulation through Interweb
+→ Paperclip paper retrieval
+→ Sentence-window chunking
+→ Local reranking
+→ Evidence selection
+→ Citation-ready snippets
 ```
 
-## Integration
-
-See `HANDOFF_TO_ARYAN.md` for the agent integration checklist.
-
-The Web RAG can be called directly from another Python component:
+The final pipeline also loads `.env` automatically:
 
 ```python
 from web_rag import run_pipeline
 
 result = run_pipeline(
-    "Is potassium stable in serum gel tubes after delayed centrifugation?"
+    "Is potassium stable in serum gel tubes after delayed centrifugation?",
+    query_strategy="llmexpand",
 )
 
-context_text = result.context_text
-evidence_records = result.records
+print(result.context_text)
 ```
-
-`run_pipeline()` returns the evidence and does not print it. The CLI is only a testing interface.
-
-## Evaluation
-
-The evaluation runner uses 20 benchmark questions by default. A value from 1 to 97 can be selected with `--num-questions`.
-
-### Lexical evaluation
-
-```bat
-python -m evaluation.run_evaluation --evaluation lexical --num-questions 20 --paperclip-ranking hybrid --reranker lexical
-```
-
-### Semantic evaluation
-
-```bat
-python -m evaluation.run_evaluation --evaluation semantic --num-questions 20 --paperclip-ranking hybrid --reranker medcpt --semantic-device auto
-```
-
-### LLM-as-a-Judge
-
-The default judge uses Ollama with `qwen2.5:7b-instruct`.
-
-```bat
-ollama pull qwen2.5:7b-instruct
-python -m evaluation.run_evaluation --evaluation judge --num-questions 20 --paperclip-ranking hybrid --reranker hybrid
-```
-
-To run all three layers:
-
-```bat
-python -m evaluation.run_evaluation --evaluation all --num-questions 20 --paperclip-ranking hybrid --reranker hybrid
-```
-
-To print scores in the command line without creating output files
-
-```bat
-python -m evaluation.run_evaluation --evaluation lexical --num-questions 20 --paperclip-ranking hybrid --reranker lexical --no-save
-```
-
-Example terminal output:
-
-```text
-Q001 | score: 0.82
-Q002 | score: 0.67
-
-Average score: 0.74
-```
-
-The same random seed selects the same benchmark questions across experiments. The default seed is `42`.
-
-## Evaluation outputs
-
-Results are saved under:
-
-```text
-outputs/<query-strategy>_<paperclip-ranking>_<reranker>_<evaluation>/results.csv
-```
-
-Each CSV contains:
-
-```text
-question_id, question, answers, gold_answer, score
-```
-
-## Notebook
-
-Open:
-
-```text
-evaluation/evaluation_notebook.ipynb
-```
-
-The notebook reads evaluation CSV files from `outputs/` and compares retrieval and reranking configurations for the three evaluation layers.

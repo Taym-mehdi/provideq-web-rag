@@ -280,6 +280,8 @@ def _normalize_paper(
     full_text: str,
     requested_source: str,
     retrieval_rank: int,
+    *,
+    allow_metadata_only: bool = False,
 ) -> Paper | None:
     combined = {**hit, **file_metadata}
     paper_id = _paper_id(hit) or _paper_id(file_metadata)
@@ -293,6 +295,8 @@ def _normalize_paper(
         str(_find_value(combined, ("abstract", "summary", "snippet", "description")) or "")
     )
     text = full_text or abstract
+    if not text and allow_metadata_only:
+        text = title
     if not text:
         return None
 
@@ -312,6 +316,50 @@ def _normalize_paper(
     )
 
 
+
+def _normalize_title_key(value: str) -> str:
+    text = clean_text(value).casefold().replace("&", " and ")
+    return " ".join(re.sub(r"[^a-z0-9]+", " ", text).split())
+
+
+def _normalize_doi_key(value: str) -> str:
+    text = clean_text(value)
+    text = re.sub(
+        r"^(?:doi:\s*|https?://(?:dx\.)?doi\.org/)",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    )
+    match = re.search(r"10\.\d{4,9}/[-._;()/:A-Za-z0-9]+", text)
+    return match.group(0).rstrip(".,;:)]}").casefold() if match else ""
+
+
+def _deduplication_keys(paper: Paper) -> dict[str, str]:
+    paper_id = clean_text(paper.paper_id)
+    pmcid_match = re.search(r"\bPMC\d+\b", paper_id, flags=re.IGNORECASE)
+    return {
+        "doi": _normalize_doi_key(paper.doi),
+        "pmcid": pmcid_match.group(0).upper() if pmcid_match else "",
+        "title": _normalize_title_key(paper.title),
+        "paper_id": paper_id.casefold(),
+    }
+
+
+def _is_duplicate_paper(
+    paper: Paper,
+    seen: dict[str, set[str]],
+) -> bool:
+    keys = _deduplication_keys(paper)
+    for key_type in ("doi", "pmcid", "title", "paper_id"):
+        value = keys[key_type]
+        if value and value in seen[key_type]:
+            return True
+
+    for key_type, value in keys.items():
+        if value:
+            seen[key_type].add(value)
+    return False
+
 def retrieve_papers(
     query: str,
     *,
@@ -326,7 +374,8 @@ def retrieve_papers(
     journal: str | None = None,
     article_type: str | None = None,
     author: str | None = None,
-    full_corpus: bool = False,
+    full_corpus: bool = True,
+    load_full_text: bool = True,
     timeout: float = 120.0,
     client: Any | None = None,
 ) -> PaperclipRetrieval:
@@ -344,7 +393,10 @@ def retrieve_papers(
         raise ValueError(f"mode must be one of: {', '.join(PAPERCLIP_MODES)}")
 
     active_client = client or create_client()
-    args = ["--source", source, "--ranking", ranking, "-n", str(limit), "--json"]
+    # Ask Paperclip for extra candidates so cross-source duplicates do not reduce
+    # the final number of distinct papers below the requested limit.
+    search_limit = min(max(limit * 3, limit), 1000)
+    args = ["--source", source, "--ranking", ranking, "-n", str(search_limit), "--json"]
     if mode:
         args.extend(["-m", mode])
     if since:
@@ -369,18 +421,38 @@ def retrieve_papers(
         raise PaperclipError(message)
 
     papers: list[Paper] = []
-    seen: set[str] = set()
+    seen: dict[str, set[str]] = {
+        "doi": set(),
+        "pmcid": set(),
+        "title": set(),
+        "paper_id": set(),
+    }
     hits = _extract_search_hits(active_client, result)
-    for retrieval_rank, hit in enumerate(hits[:limit], start=1):
+    for original_rank, hit in enumerate(hits, start=1):
         paper_id = _paper_id(hit)
-        if not paper_id or paper_id in seen:
+        if not paper_id:
             continue
-        seen.add(paper_id)
         metadata = _read_metadata(active_client, paper_id)
-        full_text = _read_full_text(active_client, paper_id, max_full_text_lines)
-        paper = _normalize_paper(hit, metadata, full_text, source, retrieval_rank)
-        if paper is not None:
-            papers.append(paper)
+        full_text = (
+            _read_full_text(active_client, paper_id, max_full_text_lines)
+            if load_full_text
+            else ""
+        )
+        paper = _normalize_paper(
+            hit,
+            metadata,
+            full_text,
+            source,
+            len(papers) + 1,
+            allow_metadata_only=not load_full_text,
+        )
+        if paper is None or _is_duplicate_paper(paper, seen):
+            continue
+
+        paper.metadata["paperclip_original_rank"] = original_rank
+        papers.append(paper)
+        if len(papers) >= limit:
+            break
 
     return PaperclipRetrieval(
         papers=papers,

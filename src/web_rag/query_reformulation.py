@@ -1,8 +1,3 @@
-# Research basis:
-# - Gao et al. (ACL 2023), HyDE.
-# - Wang et al. (EMNLP 2023), Query2doc.
-# - Zhang et al. (Findings of EMNLP 2024), MuGI.
-
 from __future__ import annotations
 
 import json
@@ -12,63 +7,73 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 from .models import QueryBundle
-from .text_utils import clean_text, deduplicate_text, extract_keywords, extract_numeric_terms
-
-
-BIOMEDICAL_EXPANSIONS: dict[str, tuple[str, ...]] = {
-    "serum": ("blood serum",),
-    "plasma": ("blood plasma",),
-    "blood": ("whole blood",),
-    "gel": ("serum separator", "SST"),
-    "tube": ("collection tube",),
-    "tubes": ("collection tube",),
-    "centrifugation": ("pre-centrifugation",),
-    "centrifuge": ("centrifugation", "pre-centrifugation"),
-    "delay": ("processing delay",),
-    "delayed": ("delay", "processing delay"),
-    "storage": ("sample storage",),
-    "temperature": ("storage temperature",),
-    "stability": ("stable", "unstable"),
-    "stable": ("stability", "unstable"),
-    "potassium": ("K+",),
-    "sodium": ("Na+",),
-    "phosphate": ("phosphorus",),
-    "crp": ("C-reactive protein",),
-}
-
-PHRASES = (
-    "serum separator tubes",
-    "serum separator tube",
-    "serum gel tubes",
-    "serum gel tube",
-    "delayed centrifugation",
-    "pre-centrifugation",
-    "processing delay",
-    "sample storage",
-    "storage temperature",
-    "room temperature",
-    "whole blood",
-    "c-reactive protein",
+from .text_utils import (
+    STOPWORDS,
+    clean_text,
+    deduplicate_text,
+    extract_keywords,
+    extract_numeric_terms,
+    normalize_for_deduplication,
+    tokenize,
 )
 
+
 _OLLAMA_CHAT_URL = "http://localhost:11434/api/chat"
+_LLM_PROVIDERS = ("ollama", "openai")
+
+# Bump this whenever either query-generation prompt changes. Evaluation caches
+# include this value so old generations cannot silently contaminate a new run.
+QUERY_PROMPT_VERSION = "2026-08-biomedical-ir-v4"
+
+_HYDE_SYSTEM_PROMPT = (
+    "You are a biomedical information-retrieval specialist. Generate a neutral, "
+    "retrieval-oriented pseudo-abstract that represents the kind of paper that "
+    "would answer the question. Preserve the user's intent and constraints. Do "
+    "not solve the question or invent experimental findings."
+)
+
+_EXPANSION_SYSTEM_PROMPT = (
+    "You are a biomedical information-retrieval specialist. Produce controlled "
+    "query-expansion terminology for scientific article retrieval. Preserve the "
+    "original intent, avoid answer leakage, and return only the requested JSON."
+)
+
+_GENERIC_EXPANSION_TERMS = {
+    "article",
+    "biomedical article",
+    "biomedical literature",
+    "biomarker stability",
+    "literature",
+    "paper",
+    "pre-analytical factors",
+    "pre-analytical variables",
+    "preanalytical factors",
+    "preanalytical variables",
+    "quality control",
+    "research",
+    "research paper",
+    "result",
+    "results",
+    "sample handling",
+    "sample stability",
+    "scientific article",
+    "scientific literature",
+    "specimen handling",
+    "specimen stability",
+    "study",
+}
 
 _EXPANSION_SCHEMA: dict[str, Any] = {
     "type": "object",
     "properties": {
-        "core_concepts": {"type": "array", "items": {"type": "string"}},
-        "synonyms": {"type": "array", "items": {"type": "string"}},
-        "conditions": {"type": "array", "items": {"type": "string"}},
-        "title_query": {"type": "string"},
-        "abstract_query": {"type": "string"},
+        "added_terms": {
+            "type": "array",
+            "items": {"type": "string"},
+            "maxItems": 12,
+        }
     },
-    "required": [
-        "core_concepts",
-        "synonyms",
-        "conditions",
-        "title_query",
-        "abstract_query",
-    ],
+    "required": ["added_terms"],
+    "additionalProperties": False,
 }
 
 
@@ -88,6 +93,7 @@ def build_raw_query(question: str) -> QueryBundle:
     normalized = clean_text(question)
     if not normalized:
         raise ValueError("question must not be empty")
+
     return QueryBundle(
         original_question=question,
         normalized_question=normalized,
@@ -97,38 +103,13 @@ def build_raw_query(question: str) -> QueryBundle:
     )
 
 
-def build_synonym_query(question: str, *, max_terms: int = 24) -> QueryBundle:
-    normalized = clean_text(question)
-    if not normalized:
-        raise ValueError("question must not be empty")
-    if max_terms <= 0:
-        raise ValueError("max_terms must be greater than 0")
-
-    keywords = extract_keywords(normalized)
-    lowered = normalized.casefold()
-    expanded: list[str] = [*keywords, *extract_numeric_terms(normalized)]
-    expanded.extend(phrase for phrase in PHRASES if phrase in lowered)
-    for keyword in keywords:
-        expanded.extend(BIOMEDICAL_EXPANSIONS.get(keyword, ()))
-
-    expanded_terms = deduplicate_text(expanded)[:max_terms]
-    return QueryBundle(
-        original_question=question,
-        normalized_question=normalized,
-        strategy="synonym",
-        search_query=" ".join(expanded_terms) or normalized,
-        keywords=keywords,
-        expanded_terms=expanded_terms,
-    )
-
-
 def build_hyde_query(
     question: str,
     *,
     model: str = "qwen2.5:7b-instruct",
     base_url: str = _OLLAMA_CHAT_URL,
     temperature: float = 0.0,
-    max_tokens: int = 256,
+    max_tokens: int = 180,
     seed: int = 42,
     timeout: float = 180.0,
     generator: Callable[[str], str] | None = None,
@@ -149,14 +130,19 @@ def build_hyde_query(
         task_name="HyDE generation",
     )
     hypothetical_document = _clean_hypothetical_document(generated)
-    if len(hypothetical_document) < 60:
-        raise HyDEGenerationError("HyDE returned an empty or unusually short hypothetical document")
+    if len(hypothetical_document.split()) < 25:
+        raise HyDEGenerationError("HyDE returned an unusually short hypothetical passage")
+
+    # Anchor the pseudo-document with the original question. This retains exact
+    # entities and constraints while still adding document-style retrieval context,
+    # reducing the query drift observed with a standalone hypothetical passage.
+    search_query = f"{normalized} {hypothetical_document}"
 
     return QueryBundle(
         original_question=question,
         normalized_question=normalized,
         strategy="hyde",
-        search_query=hypothetical_document,
+        search_query=search_query,
         keywords=extract_keywords(normalized),
         hypothetical_document=hypothetical_document,
     )
@@ -168,20 +154,14 @@ def build_llm_expansion_query(
     model: str = "qwen2.5:7b-instruct",
     base_url: str = _OLLAMA_CHAT_URL,
     temperature: float = 0.0,
-    max_tokens: int = 420,
+    max_tokens: int = 160,
     seed: int = 42,
     timeout: float = 180.0,
-    max_terms: int = 32,
-    max_query_chars: int = 1200,
+    max_terms: int = 8,
+    max_query_chars: int = 600,
     generator: Callable[[str], str] | None = None,
 ) -> QueryBundle:
-    """Create a conservative multi-representation biomedical retrieval query.
-
-    The LLM does not answer the question. It produces core concepts, established
-    synonyms/abbreviations, explicit conditions, and two complementary query
-    formulations. The original question is retained in the final query to reduce
-    topic drift.
-    """
+    """Append a small set of faithful biomedical expansion terms to the raw question."""
 
     normalized = clean_text(question)
     if not normalized:
@@ -191,7 +171,7 @@ def build_llm_expansion_query(
     if max_query_chars < 100:
         raise ValueError("max_query_chars must be at least 100")
 
-    prompt = _build_llm_expansion_prompt(normalized)
+    prompt = _build_llm_expansion_prompt(normalized, max_terms=max_terms)
     generated = generator(prompt) if generator is not None else _call_ollama(
         prompt,
         model=model,
@@ -204,41 +184,15 @@ def build_llm_expansion_query(
         response_format=_EXPANSION_SCHEMA,
     )
     payload = _parse_expansion_payload(generated)
-
-    core_concepts = _clean_string_list(payload.get("core_concepts"), limit=8)
-    synonyms = _clean_string_list(payload.get("synonyms"), limit=12)
-    conditions = _clean_string_list(payload.get("conditions"), limit=8)
-    title_query = clean_text(str(payload.get("title_query", "")))
-    abstract_query = clean_text(str(payload.get("abstract_query", "")))
-    query_variants = deduplicate_text(
-        [value for value in (title_query, abstract_query) if value]
-    )[:2]
-
-    if not (core_concepts or synonyms or conditions or query_variants):
-        raise LLMExpansionError("LLM query expansion returned no usable expansion fields")
-
-    keywords = extract_keywords(normalized)
-    deterministic_expansions: list[str] = []
-    for keyword in keywords:
-        deterministic_expansions.extend(BIOMEDICAL_EXPANSIONS.get(keyword, ()))
-
-    expanded_terms = deduplicate_text(
-        [
-            *core_concepts,
-            *synonyms,
-            *conditions,
-            *extract_numeric_terms(normalized),
-            *deterministic_expansions,
-        ]
-    )[:max_terms]
-
-    # Keep the original question first, then add two complementary natural-language
-    # representations for vector retrieval and compact controlled terms for hybrid retrieval.
-    narrative_parts = [normalized, *query_variants]
-    search_query = clean_text(
-        ". ".join(part.rstrip(" .") for part in narrative_parts if part)
-        + (f". {'; '.join(expanded_terms)}" if expanded_terms else "")
+    expanded_terms = _validated_expansion_terms(
+        payload.get("added_terms"),
+        question=normalized,
+        limit=max_terms,
     )
+
+    search_query = normalized
+    if expanded_terms:
+        search_query = f"{normalized} {'; '.join(expanded_terms)}"
     search_query = _truncate_at_word_boundary(search_query, max_query_chars)
 
     return QueryBundle(
@@ -246,43 +200,37 @@ def build_llm_expansion_query(
         normalized_question=normalized,
         strategy="llmexpand",
         search_query=search_query,
-        keywords=keywords,
+        keywords=extract_keywords(normalized),
         expanded_terms=expanded_terms,
-        expansion_details={
-            "core_concepts": core_concepts,
-            "synonyms": synonyms,
-            "conditions": conditions,
-            "query_variants": query_variants,
-        },
+        expansion_details={"added_terms": expanded_terms},
     )
 
 
 def reformulate_query(
     question: str,
-    strategy: str = "hyde",
+    strategy: str = "raw",
     *,
     hyde_model: str = "qwen2.5:7b-instruct",
     hyde_base_url: str = _OLLAMA_CHAT_URL,
     hyde_temperature: float = 0.0,
-    hyde_max_tokens: int = 256,
+    hyde_max_tokens: int = 180,
     hyde_seed: int = 42,
     hyde_timeout: float = 180.0,
     hyde_generator: Callable[[str], str] | None = None,
     expansion_model: str = "qwen2.5:7b-instruct",
     expansion_base_url: str = _OLLAMA_CHAT_URL,
     expansion_temperature: float = 0.0,
-    expansion_max_tokens: int = 420,
+    expansion_max_tokens: int = 160,
     expansion_seed: int = 42,
     expansion_timeout: float = 180.0,
-    expansion_max_terms: int = 32,
-    expansion_max_query_chars: int = 1200,
+    expansion_max_terms: int = 8,
+    expansion_max_query_chars: int = 600,
     expansion_generator: Callable[[str], str] | None = None,
 ) -> QueryBundle:
     selected = strategy.strip().casefold().replace("-", "_")
+
     if selected == "raw":
         return build_raw_query(question)
-    if selected == "synonym":
-        return build_synonym_query(question)
     if selected == "hyde":
         return build_hyde_query(
             question,
@@ -294,7 +242,7 @@ def reformulate_query(
             timeout=hyde_timeout,
             generator=hyde_generator,
         )
-    if selected in {"llmexpand", "llm_expansion", "structured_expansion"}:
+    if selected in {"llmexpand", "llm_expansion"}:
         return build_llm_expansion_query(
             question,
             model=expansion_model,
@@ -307,54 +255,203 @@ def reformulate_query(
             max_query_chars=expansion_max_query_chars,
             generator=expansion_generator,
         )
-    raise ValueError("Unknown query strategy. Choose from: raw, synonym, hyde, llmexpand")
+
+    raise ValueError("Unknown query strategy. Choose from: raw, hyde, llmexpand")
+
+
+def make_llm_generator(
+    provider: str,
+    *,
+    model: str,
+    base_url: str,
+    api_key: str | None = None,
+    temperature: float = 0.0,
+    max_tokens: int = 180,
+    seed: int = 42,
+    timeout: float = 180.0,
+    json_output: bool = False,
+) -> Callable[[str], str]:
+    """Create a reusable generator for Ollama or an OpenAI-compatible API."""
+
+    selected = provider.strip().casefold()
+    if selected not in _LLM_PROVIDERS:
+        raise ValueError(f"provider must be one of: {', '.join(_LLM_PROVIDERS)}")
+    if not model.strip():
+        raise ValueError("model must not be empty")
+    if not base_url.strip():
+        raise ValueError("base_url must not be empty")
+
+    if selected == "ollama":
+        response_format = _EXPANSION_SCHEMA if json_output else None
+
+        def generate_ollama(prompt: str) -> str:
+            return _call_ollama(
+                prompt,
+                model=model,
+                base_url=base_url,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                seed=seed,
+                timeout=timeout,
+                task_name="query generation",
+                response_format=response_format,
+            )
+
+        return generate_ollama
+
+    if not api_key:
+        raise ValueError("An API key is required for the OpenAI-compatible provider")
+
+    try:
+        from openai import OpenAI
+    except ImportError as exc:
+        raise QueryGenerationError(
+            "The openai package is required for an OpenAI-compatible API"
+        ) from exc
+
+    client = OpenAI(base_url=base_url.rstrip("/"), api_key=api_key, timeout=timeout)
+
+    system_prompt = (
+        _EXPANSION_SYSTEM_PROMPT if json_output else _HYDE_SYSTEM_PROMPT
+    )
+
+    def generate_openai(prompt: str) -> str:
+        request: dict[str, Any] = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            # Query reformulation needs concise final text/JSON, not hidden
+            # reasoning. Qwen reasoning models can otherwise spend the entire
+            # token budget in reasoning_content and return message.content=None.
+            "extra_body": {
+                "chat_template_kwargs": {
+                    "enable_thinking": False,
+                }
+            },
+        }
+        if json_output:
+            request["response_format"] = {"type": "json_object"}
+
+        try:
+            completion = client.chat.completions.create(**request)
+        except Exception as first_error:
+            # Some OpenAI-compatible servers do not expose response_format even
+            # when the selected model can still follow a JSON-only prompt.
+            if json_output and "response_format" in request:
+                request.pop("response_format", None)
+                try:
+                    completion = client.chat.completions.create(**request)
+                except Exception as second_error:
+                    raise QueryGenerationError(
+                        "OpenAI-compatible query generation failed: "
+                        f"{second_error}"
+                    ) from second_error
+            else:
+                raise QueryGenerationError(
+                    f"OpenAI-compatible query generation failed: {first_error}"
+                ) from first_error
+
+        content = completion.choices[0].message.content if completion.choices else ""
+        if not content:
+            raise QueryGenerationError("The LLM returned an empty response")
+        return str(content)
+
+    return generate_openai
 
 
 def _build_hyde_prompt(question: str) -> str:
     return f"""
-Write one concise hypothetical passage that could plausibly appear in the methods,
-results, or discussion section of a peer-reviewed biomedical paper and that directly
-addresses the retrieval question below.
+Create one neutral hypothetical abstract-style passage for dense scientific-paper
+retrieval. The passage should describe a paper that investigates the question, not
+pretend to know its answer.
 
-Use the scientific terminology and all important conditions from the question, such as
-the analyte, specimen type, collection tube, processing delay, temperature, duration,
-and stability outcome when they are present. Preserve numbers stated in the question,
-but do not invent additional exact measurements, citations, authors, article titles, or
-DOIs. Write only the passage, without a heading or explanation. Aim for 100 to 180 words.
+Output requirements:
+- Write 2 or 3 connected sentences, about 45 to 80 words total.
+- State the study topic, biospecimen or biological material, measured outcome, and
+  the processing, storage, or comparison variables explicitly present in the question.
+- Use standard title-and-abstract terminology, including safe acronym expansions,
+  spelling variants, or a broader class logically entailed by a named product.
+- Preserve every explicit analyte, specimen, tube, method, comparison, temperature,
+  duration, number, unit, and negation.
+- For questions asking which, how many, how much, whether, why, or for a
+  recommendation, describe what the paper evaluates or reports; do not supply a
+  candidate answer, quantity, effect direction, cause, or recommended action.
+- Do not introduce new analytes, products, diseases, populations, temperatures,
+  durations, numerical findings, effect directions, thresholds, or conclusions.
+- Do not include a heading, citation, author, journal, article title, PMID, or DOI.
 
-Retrieval question:
+Question:
 {question}
 """.strip()
 
 
-def _build_llm_expansion_prompt(question: str) -> str:
+def _build_llm_expansion_prompt(question: str, *, max_terms: int) -> str:
     return f"""
-Transform the biomedical question below into a high-recall literature retrieval
-representation. Do not answer the question and do not predict the study result.
+Generate a controlled, high-precision biomedical query expansion for scientific-paper
+retrieval. The original question will remain unchanged at the beginning of the search
+query. Return only additional terminology that is likely to occur in relevant article
+titles, abstracts, indexing terms, or methods sections.
 
-Return JSON only, using exactly this schema:
-{{
-  "core_concepts": ["..."],
-  "synonyms": ["..."],
-  "conditions": ["..."],
-  "title_query": "...",
-  "abstract_query": "..."
-}}
+Return JSON only:
+{{"added_terms": ["term 1", "term 2"]}}
+
+Use this selection process:
+1. Identify the question's explicit anchors: named product, specimen, analyte, assay,
+   measurement concept, processing step, storage condition, comparison, and outcome.
+2. Generate candidates only from these high-value classes, in priority order:
+   a. Standard abbreviation/full-form pairs used in biomedical papers, for example
+      total allowable error <-> TEa or RNA integrity number <-> RIN.
+   b. Formal commercial or standardized names for a product already named in the
+      question, plus its directly entailed specimen or device class, for example
+      PAXgene Blood RNA Tube or RNA-stabilizing blood collection tube.
+   c. Canonical title/abstract phrases for the same concept, such as delayed
+      centrifugation, freeze-thaw stability, preanalytical robustness, or
+      case-control biospecimen matching, but only when directly implied.
+   d. Precise synonyms, spelling variants, hyphenation variants, MeSH-like phrases,
+      and assay terminology for entities already present or logically entailed.
+3. Rank candidates by specificity and likelihood of appearing in a relevant title or
+   abstract. Keep only the strongest terms.
 
 Rules:
-- Preserve every explicit analyte, specimen type, collection tube, processing step,
-  comparison, negation, population, temperature, duration, and number.
-- Use only established biomedical synonyms, abbreviations, spelling variants, and
-  closely equivalent terminology. Do not add loosely related diseases or analytes.
-- core_concepts: 3 to 8 concise concepts.
-- synonyms: at most 12 concise synonym or abbreviation phrases.
-- conditions: at most 8 explicit experimental or pre-analytical constraints.
-- title_query: 8 to 25 words, phrased like a likely scientific article title.
-- abstract_query: 15 to 45 words, phrased like a methods/abstract retrieval sentence.
-- Avoid generic filler such as "study", "research", "paper", and "literature" unless
-  it is part of a necessary biomedical phrase.
-- Do not invent authors, citations, DOIs, exact outcomes, or values that are absent
-  from the question. The title_query is only a synthetic search formulation.
+- Prefer 3 to 6 high-information terms and never exceed {max_terms}.
+- Each term must contain at most 5 words.
+- Preserve named entities and technical meaning; do not rewrite the question.
+- Do not return generic standalone phrases such as sample handling, sample stability,
+  preanalytical variables, quality control, study, paper, research, result, cohort,
+  precision, or reproducibility.
+- Do not add a specimen, disease, population, product, temperature, duration,
+  intervention, or assay that is not stated or directly entailed by the question.
+- Do not guess the answer. Apply these leakage checks:
+  * For a "which" question, never add candidate instances of the requested item.
+  * For "how many" or "how much", never add quantities or ranges.
+  * For "whether" or "did", never add a positive or negative conclusion.
+  * For "why", never add possible causes.
+  * For recommendations, never add the recommended action.
+- Do not repeat wording already present unless the output is a recognized abbreviation,
+  full-form counterpart, formal standardized name, or materially different synonym.
+- Return an empty list if no safe and specific expansion exists.
+
+Examples showing the desired level of specificity:
+Question: Did any statistically changed serum biomarkers exceed their total allowable
+error limits after one freeze-thaw cycle?
+Output: {{"added_terms": ["TEa", "allowable total error", "serum analyte stability",
+"single freeze-thaw cycle"]}}
+
+Question: Which pre-analytical variations most affected RNA integrity in PAXgene blood
+collection tubes?
+Output: {{"added_terms": ["PAXgene Blood RNA Tube", "RNA-stabilizing blood collection tube",
+"whole-blood RNA stabilization", "preanalytical robustness", "RNA integrity number RIN"]}}
+
+Question: Which sample collection and handling conditions should be matched between
+cases and controls to reduce biospecimen bias?
+Output: {{"added_terms": ["case-control biospecimen matching", "preanalytical standardization",
+"biorepository SOP", "specimen handling protocol"]}}
+
+Do not copy an example term unless it is genuinely applicable to the input question.
 
 Question:
 {question}
@@ -373,15 +470,15 @@ def _call_ollama(
     task_name: str,
     response_format: str | dict[str, Any] | None = None,
 ) -> str:
-    payload = {
+    payload: dict[str, Any] = {
         "model": model,
         "messages": [
             {
                 "role": "system",
                 "content": (
-                    "You create faithful biomedical information-retrieval query "
-                    "representations. Preserve the user's constraints and never answer "
-                    "the question unless explicitly asked to generate a hypothetical passage."
+                    _EXPANSION_SYSTEM_PROMPT
+                    if response_format is not None
+                    else _HYDE_SYSTEM_PROMPT
                 ),
             },
             {"role": "user", "content": prompt},
@@ -407,10 +504,12 @@ def _call_ollama(
             response_data = json.loads(response.read().decode("utf-8"))
     except HTTPError as exc:
         body = exc.read().decode("utf-8", errors="replace")
-        raise QueryGenerationError(f"Ollama returned HTTP {exc.code} during {task_name}: {body}") from exc
+        raise QueryGenerationError(
+            f"Ollama returned HTTP {exc.code} during {task_name}: {body}"
+        ) from exc
     except URLError as exc:
         raise QueryGenerationError(
-            f"Could not connect to Ollama for {task_name}. Start Ollama and install the selected model."
+            f"Could not connect to Ollama during {task_name}"
         ) from exc
 
     content = response_data.get("message", {}).get("content", "")
@@ -430,14 +529,12 @@ def _normalize_ollama_url(base_url: str) -> str:
 
 def _clean_hypothetical_document(text: str) -> str:
     value = clean_text(text)
-    prefixes = (
+    for prefix in (
         "hypothetical passage:",
         "hypothetical document:",
         "passage:",
-    )
-    lowered = value.casefold()
-    for prefix in prefixes:
-        if lowered.startswith(prefix):
+    ):
+        if value.casefold().startswith(prefix):
             value = value[len(prefix) :].strip()
             break
     return value.strip('"').strip()
@@ -456,28 +553,70 @@ def _parse_expansion_payload(text: str) -> dict[str, Any]:
     start = value.find("{")
     end = value.rfind("}")
     if start < 0 or end <= start:
-        raise LLMExpansionError("LLM query expansion did not return a JSON object")
+        raise LLMExpansionError("LLM expansion did not return a JSON object")
 
     try:
         payload = json.loads(value[start : end + 1])
     except json.JSONDecodeError as exc:
-        raise LLMExpansionError(f"LLM query expansion returned invalid JSON: {exc.msg}") from exc
+        raise LLMExpansionError(f"LLM expansion returned invalid JSON: {exc.msg}") from exc
 
     if not isinstance(payload, dict):
-        raise LLMExpansionError("LLM query expansion JSON must be an object")
+        raise LLMExpansionError("LLM expansion JSON must be an object")
     return payload
 
 
-def _clean_string_list(value: Any, *, limit: int) -> list[str]:
+def _validated_expansion_terms(
+    value: Any,
+    *,
+    question: str,
+    limit: int,
+) -> list[str]:
     if isinstance(value, str):
         candidates = [value]
     elif isinstance(value, list):
         candidates = [item for item in value if isinstance(item, (str, int, float))]
     else:
-        candidates = []
+        raise LLMExpansionError("LLM expansion must contain an 'added_terms' list")
 
-    cleaned = [clean_text(str(item)).strip(" -;,.\t") for item in candidates]
-    return deduplicate_text([item for item in cleaned if item])[:limit]
+    question_lower = question.casefold()
+    question_tokens = {
+        token for token in tokenize(question)
+        if token not in STOPWORDS
+    }
+    allowed_numeric_terms = set(extract_numeric_terms(question))
+    valid: list[str] = []
+    seen_normalized: set[str] = set()
+
+    for candidate in candidates:
+        term = clean_text(str(candidate)).strip(" -;,.")
+        if not term or len(term.split()) > 5:
+            continue
+
+        normalized = normalize_for_deduplication(term)
+        if not normalized or normalized in seen_normalized:
+            continue
+        if normalized in _GENERIC_EXPANSION_TERMS:
+            continue
+        if term.casefold() in question_lower:
+            continue
+
+        term_tokens = {
+            token for token in tokenize(term)
+            if token not in STOPWORDS
+        }
+        # Reject a phrase that contributes no new lexical signal. Standardized
+        # spelling variants remain possible because their normalized token differs.
+        if term_tokens and term_tokens.issubset(question_tokens):
+            continue
+
+        introduced_numeric_terms = set(extract_numeric_terms(term)) - allowed_numeric_terms
+        if introduced_numeric_terms:
+            continue
+
+        seen_normalized.add(normalized)
+        valid.append(term)
+
+    return deduplicate_text(valid)[:limit]
 
 
 def _truncate_at_word_boundary(text: str, max_chars: int) -> str:

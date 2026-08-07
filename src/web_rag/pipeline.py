@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from collections.abc import Callable
+import os
 from typing import Any
 
 from .chunking import chunk_papers
@@ -10,7 +11,7 @@ from .context_builder import build_evidence_pack
 from .evidence_selection import select_evidence
 from .models import EvidencePack, PipelineInfo
 from .paperclip_retriever import retrieve_papers
-from .query_reformulation import reformulate_query
+from .query_reformulation import make_llm_generator, reformulate_query
 from .reranking import rerank_chunks
 
 
@@ -19,6 +20,11 @@ def run_pipeline(
     *,
     retrieval_limit: int | None = None,
     query_strategy: str | None = None,
+    llm_provider: str | None = None,
+    llm_model: str | None = None,
+    llm_base_url: str | None = None,
+    llm_api_key_env: str | None = None,
+    llm_api_key: str | None = None,
     hyde_model: str | None = None,
     hyde_base_url: str | None = None,
     hyde_temperature: float | None = None,
@@ -45,7 +51,7 @@ def run_pipeline(
     paperclip_journal: str | None = None,
     paperclip_article_type: str | None = None,
     paperclip_author: str | None = None,
-    paperclip_full_corpus: bool = False,
+    paperclip_full_corpus: bool | None = None,
     chunking_method: str | None = None,
     chunk_window_size: int | None = None,
     chunk_stride: int | None = None,
@@ -73,16 +79,22 @@ def run_pipeline(
         base,
         retrieval_limit=retrieval_limit if retrieval_limit is not None else base.retrieval_limit,
         query_strategy=query_strategy or base.query_strategy,
-        hyde_model=hyde_model or base.hyde_model,
-        hyde_base_url=hyde_base_url or base.hyde_base_url,
+        llm_provider=llm_provider or base.llm_provider,
+        llm_model=llm_model or base.llm_model,
+        llm_base_url=llm_base_url or base.llm_base_url,
+        llm_api_key_env=llm_api_key_env or base.llm_api_key_env,
+        hyde_model=hyde_model or llm_model or base.hyde_model,
+        hyde_base_url=hyde_base_url or llm_base_url or base.hyde_base_url,
         hyde_temperature=(
             hyde_temperature if hyde_temperature is not None else base.hyde_temperature
         ),
         hyde_max_tokens=hyde_max_tokens if hyde_max_tokens is not None else base.hyde_max_tokens,
         hyde_seed=hyde_seed if hyde_seed is not None else base.hyde_seed,
         hyde_timeout=hyde_timeout if hyde_timeout is not None else base.hyde_timeout,
-        expansion_model=expansion_model or base.expansion_model,
-        expansion_base_url=expansion_base_url or base.expansion_base_url,
+        expansion_model=expansion_model or llm_model or base.expansion_model,
+        expansion_base_url=(
+            expansion_base_url or llm_base_url or base.expansion_base_url
+        ),
         expansion_temperature=(
             expansion_temperature
             if expansion_temperature is not None
@@ -113,6 +125,11 @@ def run_pipeline(
             paperclip_max_full_text_lines
             if paperclip_max_full_text_lines is not None
             else base.paperclip_max_full_text_lines
+        ),
+        paperclip_full_corpus=(
+            paperclip_full_corpus
+            if paperclip_full_corpus is not None
+            else base.paperclip_full_corpus
         ),
         chunking_method=chunking_method or base.chunking_method,
         chunk_window_size=chunk_window_size if chunk_window_size is not None else base.chunk_window_size,
@@ -152,6 +169,48 @@ def run_pipeline(
     )
     validate_settings(effective)
 
+    resolved_hyde_generator = hyde_generator
+    resolved_expansion_generator = expansion_generator
+
+    if effective.query_strategy in {"hyde", "llmexpand"}:
+        provider = effective.llm_provider.strip().casefold()
+        resolved_api_key = llm_api_key
+        if provider == "openai" and not resolved_api_key:
+            resolved_api_key = os.getenv(effective.llm_api_key_env, "")
+            if not resolved_api_key:
+                raise ValueError(
+                    f"Environment variable {effective.llm_api_key_env} is not set. "
+                    "Add it to .env or pass llm_api_key explicitly."
+                )
+
+        if effective.query_strategy == "hyde" and resolved_hyde_generator is None:
+            resolved_hyde_generator = make_llm_generator(
+                provider,
+                model=effective.hyde_model,
+                base_url=effective.hyde_base_url,
+                api_key=resolved_api_key,
+                temperature=effective.hyde_temperature,
+                max_tokens=effective.hyde_max_tokens,
+                seed=effective.hyde_seed,
+                timeout=effective.hyde_timeout,
+                json_output=False,
+            )
+        elif (
+            effective.query_strategy == "llmexpand"
+            and resolved_expansion_generator is None
+        ):
+            resolved_expansion_generator = make_llm_generator(
+                provider,
+                model=effective.expansion_model,
+                base_url=effective.expansion_base_url,
+                api_key=resolved_api_key,
+                temperature=effective.expansion_temperature,
+                max_tokens=effective.expansion_max_tokens,
+                seed=effective.expansion_seed,
+                timeout=effective.expansion_timeout,
+                json_output=True,
+            )
+
     query = reformulate_query(
         question,
         effective.query_strategy,
@@ -161,7 +220,7 @@ def run_pipeline(
         hyde_max_tokens=effective.hyde_max_tokens,
         hyde_seed=effective.hyde_seed,
         hyde_timeout=effective.hyde_timeout,
-        hyde_generator=hyde_generator,
+        hyde_generator=resolved_hyde_generator,
         expansion_model=effective.expansion_model,
         expansion_base_url=effective.expansion_base_url,
         expansion_temperature=effective.expansion_temperature,
@@ -170,7 +229,7 @@ def run_pipeline(
         expansion_timeout=effective.expansion_timeout,
         expansion_max_terms=effective.expansion_max_terms,
         expansion_max_query_chars=effective.expansion_max_query_chars,
-        expansion_generator=expansion_generator,
+        expansion_generator=resolved_expansion_generator,
     )
     retrieval = retrieve_papers(
         query.search_query,
@@ -185,7 +244,7 @@ def run_pipeline(
         journal=paperclip_journal,
         article_type=paperclip_article_type,
         author=paperclip_author,
-        full_corpus=paperclip_full_corpus,
+        full_corpus=effective.paperclip_full_corpus,
         timeout=effective.paperclip_timeout,
         client=paperclip_client,
     )
@@ -224,6 +283,15 @@ def run_pipeline(
         returned_evidence_count=len(selected),
         parameters={
             "query_strategy": effective.query_strategy,
+            "llm_provider": (
+                effective.llm_provider if effective.query_strategy != "raw" else None
+            ),
+            "llm_model": (
+                effective.llm_model if effective.query_strategy != "raw" else None
+            ),
+            "llm_base_url": (
+                effective.llm_base_url if effective.query_strategy != "raw" else None
+            ),
             "hyde_model": effective.hyde_model if effective.query_strategy == "hyde" else None,
             "hyde_temperature": (
                 effective.hyde_temperature if effective.query_strategy == "hyde" else None
@@ -269,7 +337,7 @@ def run_pipeline(
             "paperclip_journal": paperclip_journal,
             "paperclip_article_type": paperclip_article_type,
             "paperclip_author": paperclip_author,
-            "paperclip_full_corpus": paperclip_full_corpus,
+            "paperclip_full_corpus": effective.paperclip_full_corpus,
             "paperclip_max_full_text_lines": effective.paperclip_max_full_text_lines,
             "chunk_window_size": effective.chunk_window_size,
             "chunk_stride": effective.chunk_stride,

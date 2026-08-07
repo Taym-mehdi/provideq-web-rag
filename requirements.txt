@@ -4,8 +4,9 @@ torch>=2.2
 transformers>=4.40
 sentence-transformers>=3.0
 
-# Optional OpenAI judge provider
+# OpenAI-compatible APIs, including Interweb
 openai>=1.40
+python-dotenv>=1.0
 
 # Evaluation notebook
 pandas>=2.2

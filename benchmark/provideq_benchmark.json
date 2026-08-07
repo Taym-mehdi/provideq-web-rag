@@ -1,11 +1,10 @@
 {
-  "schema_version": "2.0",
+  "schema_version": "2.1",
   "name": "ProvideQ Biobanking Web RAG Benchmark",
-  "version": "1.0.0",
-  "status": "frozen",
-  "frozen_on": "2026-08-02",
-  "source": "Peer-reviewed scientific papers indexed in PubMed and/or available through PubMed Central or the journal publisher.",
-  "description": "A frozen benchmark for evaluating scientific paper retrieval and evidence extraction in biobanking and pre-analytical biospecimen handling. Every gold answer is a verbatim contiguous snippet from the cited paper. Papers were selected independently of Paperclip or any other retrieval system.",
+  "version": "2.0.0-rc1",
+  "status": "candidate",
+  "source": "Peer-reviewed scientific papers indexed in PubMed and/or available through PubMed Central or the journal publisher. Additional gold documents were included only when a directly supporting verbatim passage could be verified.",
+  "description": "Positive-only benchmark of 90 biobanking questions revised for realistic expert use. Questions retain the original scientific intent but use more natural wording where needed. Each gold document contains its own verbatim supporting answer span. A retrieval hit is satisfied by matching any listed gold document.",
   "categories": [
     "Pre-centrifugation delay and transport",
     "Storage temperature and duration",
@@ -16,15 +15,18 @@
   "examples": [
     {
       "id": "Q001",
-      "question": "Which targeted metabolite class remained stable in non-centrifuged serum and plasma on cool packs and at room temperature for at least 24 hours?",
+      "question": "Which group of metabolites stayed stable for at least 24 hours when uncentrifuged serum and plasma were kept either on cool packs or at room temperature?",
       "gold_answers": [
-        "all analyzed sphingolipid concentrations were stable on CP and at RT for at least 24 h."
+        "all analyzed sphingolipid concentrations were stable on CP and at RT for at least 24 h"
       ],
       "gold_documents": [
         {
           "title": "Targeted Metabolomics Identifies Reliable and Stable Metabolites in Human Serum and Plasma Samples",
           "author": "Breier M, et al.",
-          "pmcid": "PMC3933650"
+          "pmcid": "PMC3933650",
+          "gold_answers": [
+            "all analyzed sphingolipid concentrations were stable on CP and at RT for at least 24 h"
+          ]
         }
       ],
       "category": "Storage temperature and duration",
@@ -32,7 +34,7 @@
     },
     {
       "id": "Q002",
-      "question": "How many of 159 targeted serum metabolites showed significantly decreased concentrations after two freeze-thaw cycles?",
+      "question": "How stable are serum metabolites after two freeze-thaw cycles?",
       "gold_answers": [
         "Only eleven out of 159 metabolites revealed significantly decreased concentrations"
       ],
@@ -40,7 +42,10 @@
         {
           "title": "Targeted Metabolomics Identifies Reliable and Stable Metabolites in Human Serum and Plasma Samples",
           "author": "Breier M, et al.",
-          "pmcid": "PMC3933650"
+          "pmcid": "PMC3933650",
+          "gold_answers": [
+            "Only eleven out of 159 metabolites revealed significantly decreased concentrations"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -48,15 +53,18 @@
     },
     {
       "id": "Q003",
-      "question": "How many serum metabolites changed significantly during prolonged pre-storage handling at room temperature?",
+      "question": "How much does prolonged room-temperature handling before storage alter the serum metabolome?",
       "gold_answers": [
-        "24 metabolites showed significant concentration changes at RT."
+        "24 metabolites showed significant concentration changes at RT"
       ],
       "gold_documents": [
         {
           "title": "Pre-Analytical Sample Quality: Metabolite Ratios as an Intrinsic Marker for Prolonged Room Temperature Exposure of Serum Samples",
           "author": "Anton G, et al.",
-          "pmcid": "PMC4379062"
+          "pmcid": "PMC4379062",
+          "gold_answers": [
+            "24 metabolites showed significant concentration changes at RT"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -64,15 +72,18 @@
     },
     {
       "id": "Q004",
-      "question": "What handling recommendation was made for serum specimens kept at room temperature before biobank storage?",
+      "question": "Should serum samples be kept at room temperature before they are stored in a biobank?",
       "gold_answers": [
-        "handling at RT should be strictly avoided in biobanks."
+        "handling at RT should be strictly avoided in biobanks"
       ],
       "gold_documents": [
         {
           "title": "Pre-Analytical Sample Quality: Metabolite Ratios as an Intrinsic Marker for Prolonged Room Temperature Exposure of Serum Samples",
           "author": "Anton G, et al.",
-          "pmcid": "PMC4379062"
+          "pmcid": "PMC4379062",
+          "gold_answers": [
+            "handling at RT should be strictly avoided in biobanks"
+          ]
         }
       ],
       "category": "Biospecimen quality control and SOPs",
@@ -80,7 +91,7 @@
     },
     {
       "id": "Q005",
-      "question": "What proportion of serum lipid metabolites was affected after one week at 4°C, −20°C, or −80°C in most lipid classes?",
+      "question": "How stable are serum lipid metabolites after one week at 4°C, −20°C, or −80°C?",
       "gold_answers": [
         "0–4% of metabolites affected by storage at 4°C, −20°C, or −80°C"
       ],
@@ -88,7 +99,10 @@
         {
           "title": "Effects of sample handling and storage on quantitative lipid analysis in human serum",
           "author": "Zivkovic AM, et al.",
-          "pmcid": "PMC2794342"
+          "pmcid": "PMC2794342",
+          "gold_answers": [
+            "0–4% of metabolites affected by storage at 4°C, −20°C, or −80°C"
+          ]
         }
       ],
       "category": "Storage temperature and duration",
@@ -96,7 +110,7 @@
     },
     {
       "id": "Q006",
-      "question": "By how much did freezing serum before density-based lipoprotein fractionation decrease HDL free cholesterol?",
+      "question": "How strongly does freezing serum before density-based lipoprotein fractionation affect HDL free cholesterol?",
       "gold_answers": [
         "decreased HDL free cholesterol by 37%"
       ],
@@ -104,7 +118,10 @@
         {
           "title": "Effects of sample handling and storage on quantitative lipid analysis in human serum",
           "author": "Zivkovic AM, et al.",
-          "pmcid": "PMC2794342"
+          "pmcid": "PMC2794342",
+          "gold_answers": [
+            "decreased HDL free cholesterol by 37%"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -112,15 +129,18 @@
     },
     {
       "id": "Q007",
-      "question": "What maximum holding condition was proposed before snap-freezing blood for combined proteomic and metabolomic analysis?",
+      "question": "How long can blood be kept on ice before snap-freezing if I want to analyze both the proteome and metabolome?",
       "gold_answers": [
-        "store blood samples for a maximum of 2 h on ice (4°C)"
+        "keeping blood samples up to 2 h on ice (4°C) prior to snap-freezing"
       ],
       "gold_documents": [
         {
           "title": "Pre-analytical processing of plasma and serum samples for combined proteome and metabolome analysis",
           "author": "Gegner HM, et al.",
-          "pmcid": "PMC9808085"
+          "pmcid": "PMC9808085",
+          "gold_answers": [
+            "keeping blood samples up to 2 h on ice (4°C) prior to snap-freezing"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -128,15 +148,18 @@
     },
     {
       "id": "Q008",
-      "question": "Did changing the centrifugation condition significantly alter the measured plasma metabolome and proteome?",
+      "question": "Does changing the centrifugation conditions significantly affect the measured plasma metabolome or proteome?",
       "gold_answers": [
-        "no significant changes in the plasma metabolome and proteome"
+        "could not attribute any significant changes in the plasma metabolome and proteome"
       ],
       "gold_documents": [
         {
           "title": "Pre-analytical processing of plasma and serum samples for combined proteome and metabolome analysis",
           "author": "Gegner HM, et al.",
-          "pmcid": "PMC9808085"
+          "pmcid": "PMC9808085",
+          "gold_answers": [
+            "could not attribute any significant changes in the plasma metabolome and proteome"
+          ]
         }
       ],
       "category": "Specimen, tube, and processing effects",
@@ -144,7 +167,7 @@
     },
     {
       "id": "Q009",
-      "question": "What range of plasma and serum cytokine changes was observed after short-term blood-processing delays?",
+      "question": "How sensitive are plasma and serum cytokine measurements to short delays in blood processing?",
       "gold_answers": [
         "range − 10.8 to 43.5%"
       ],
@@ -152,7 +175,10 @@
         {
           "title": "Effects of processing conditions on stability of immune analytes in human blood",
           "author": "Gottfried-Blackmore A, et al.",
-          "pmcid": "PMC7566484"
+          "pmcid": "PMC7566484",
+          "gold_answers": [
+            "range − 10.8 to 43.5%"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -160,7 +186,7 @@
     },
     {
       "id": "Q010",
-      "question": "What processing-delay limit was recommended for flow and mass cytometry studies of susceptible blood-cell populations?",
+      "question": "How quickly should blood be processed for flow or mass cytometry when measuring sensitive cell populations?",
       "gold_answers": [
         "should avoid time delays greater than 5 h"
       ],
@@ -168,7 +194,10 @@
         {
           "title": "Effects of processing conditions on stability of immune analytes in human blood",
           "author": "Gottfried-Blackmore A, et al.",
-          "pmcid": "PMC7566484"
+          "pmcid": "PMC7566484",
+          "gold_answers": [
+            "should avoid time delays greater than 5 h"
+          ]
         }
       ],
       "category": "Biospecimen quality control and SOPs",
@@ -176,7 +205,7 @@
     },
     {
       "id": "Q011",
-      "question": "At which temperatures and for what maximum duration were EDTA and citrate whole-blood tubes stored before plasma processing?",
+      "question": "What storage temperatures and delay durations have been evaluated for EDTA and citrate whole blood before plasma processing?",
       "gold_answers": [
         "stored at room temperature (RT) or 4°C for progressive intervals up to 72 hours"
       ],
@@ -184,7 +213,10 @@
         {
           "title": "Impact of sample processing delays on plasma markers of inflammation, chemotaxis, cell death, and blood coagulation",
           "author": "Gyorffy VJ, et al.",
-          "pmcid": "PMC11527306"
+          "pmcid": "PMC11527306",
+          "gold_answers": [
+            "stored at room temperature (RT) or 4°C for progressive intervals up to 72 hours"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -192,15 +224,18 @@
     },
     {
       "id": "Q012",
-      "question": "Which plasma marker groups showed no significant changes after processing delays up to 72 hours?",
+      "question": "Which plasma markers stayed stable even when processing was delayed for up to 72 hours?",
       "gold_answers": [
-        "no significant changes were observed in plasma cytokines, chemokines, cfDNA, or thrombin formation."
+        "no significant changes were observed in plasma cytokines, chemokines, cfDNA, or thrombin formation"
       ],
       "gold_documents": [
         {
           "title": "Impact of sample processing delays on plasma markers of inflammation, chemotaxis, cell death, and blood coagulation",
           "author": "Gyorffy VJ, et al.",
-          "pmcid": "PMC11527306"
+          "pmcid": "PMC11527306",
+          "gold_answers": [
+            "no significant changes were observed in plasma cytokines, chemokines, cfDNA, or thrombin formation"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -208,7 +243,7 @@
     },
     {
       "id": "Q013",
-      "question": "After quality control, how many serum metabolites and proteins were apparently unaffected or clearly susceptible to −20°C rather than −80°C storage?",
+      "question": "How much does storing serum at −20°C rather than −80°C affect metabolomic and proteomic biomarkers?",
       "gold_answers": [
         "120 were apparently unaffected and 15 clearly susceptible"
       ],
@@ -216,7 +251,10 @@
         {
           "title": "Effect of serum sample storage temperature on metabolomic and proteomic biomarkers",
           "author": "Valo E, et al.",
-          "pmcid": "PMC8930974"
+          "pmcid": "PMC8930974",
+          "gold_answers": [
+            "120 were apparently unaffected and 15 clearly susceptible"
+          ]
         }
       ],
       "category": "Storage temperature and duration",
@@ -224,7 +262,7 @@
     },
     {
       "id": "Q014",
-      "question": "Which serum ratio and cutoff identified storage at −20°C rather than −80°C?",
+      "question": "Which serum metabolite ratio can indicate storage at −20°C instead of −80°C, and what cutoff should be used?",
       "gold_answers": [
         "serum glutamate/glutamine ratio greater than 0.20"
       ],
@@ -232,7 +270,10 @@
         {
           "title": "Effect of serum sample storage temperature on metabolomic and proteomic biomarkers",
           "author": "Valo E, et al.",
-          "pmcid": "PMC8930974"
+          "pmcid": "PMC8930974",
+          "gold_answers": [
+            "serum glutamate/glutamine ratio greater than 0.20"
+          ]
         }
       ],
       "category": "Biospecimen quality control and SOPs",
@@ -240,15 +281,18 @@
     },
     {
       "id": "Q015",
-      "question": "Were statistically changed serum biomarkers outside their total allowable error limits after one freeze-thaw cycle?",
+      "question": "After one freeze-thaw cycle, did any changed serum biomarkers exceed their allowable analytical error limits?",
       "gold_answers": [
-        "they were within respective TEa limits."
+        "they were within respective TEa limits"
       ],
       "gold_documents": [
         {
           "title": "The Effects of a Single Freeze-Thaw Cycle on Concentrations of Nutritional, Noncommunicable Disease, and Inflammatory Biomarkers in Serum Samples",
           "author": "Abraham RA, et al.",
-          "pmcid": "PMC8154350"
+          "pmcid": "PMC8154350",
+          "gold_answers": [
+            "they were within respective TEa limits"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -256,7 +300,7 @@
     },
     {
       "id": "Q016",
-      "question": "Which protein-related serum measurements remained stable after one freeze-thaw cycle?",
+      "question": "Which protein-related serum measurements stayed stable after one freeze-thaw cycle?",
       "gold_answers": [
         "albumin (0.87%), total protein (1.00%), ferritin (− 0.58%)"
       ],
@@ -264,7 +308,10 @@
         {
           "title": "The Effects of a Single Freeze-Thaw Cycle on Concentrations of Nutritional, Noncommunicable Disease, and Inflammatory Biomarkers in Serum Samples",
           "author": "Abraham RA, et al.",
-          "pmcid": "PMC8154350"
+          "pmcid": "PMC8154350",
+          "gold_answers": [
+            "albumin (0.87%), total protein (1.00%), ferritin (− 0.58%)"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -272,7 +319,7 @@
     },
     {
       "id": "Q017",
-      "question": "How many urine metabolites remained stable at −20°C and 4°C for up to 24 hours compared with immediate −80°C storage?",
+      "question": "Are targeted urine metabolite profiles stable for 24 hours at 4°C or −20°C before transfer to −80°C storage?",
       "gold_answers": [
         "63 investigated metabolites were stable at −20 and 4 °C for up to 24 h"
       ],
@@ -280,7 +327,10 @@
         {
           "title": "Stability of targeted metabolite profiles of urine samples under different storage conditions",
           "author": "Rotter M, et al.",
-          "pmcid": "PMC5126183"
+          "pmcid": "PMC5126183",
+          "gold_answers": [
+            "63 investigated metabolites were stable at −20 and 4 °C for up to 24 h"
+          ]
         }
       ],
       "category": "Storage temperature and duration",
@@ -288,15 +338,28 @@
     },
     {
       "id": "Q018",
-      "question": "Which repeated handling practice should be avoided for urine metabolomics samples?",
+      "question": "What repeated sample-handling practice should I avoid when preparing urine samples for metabolomics?",
       "gold_answers": [
-        "multiple numbers of freeze and thaw cycles should be avoided."
+        "multiple numbers of freeze and thaw cycles should be avoided",
+        "higher storage temperatures (i.e. 4°C) and repetitive freeze-thaw cycles should be avoided"
       ],
       "gold_documents": [
         {
           "title": "Stability of targeted metabolite profiles of urine samples under different storage conditions",
           "author": "Rotter M, et al.",
-          "pmcid": "PMC5126183"
+          "pmcid": "PMC5126183",
+          "gold_answers": [
+            "multiple numbers of freeze and thaw cycles should be avoided"
+          ]
+        },
+        {
+          "title": "Mass spectrometric based approaches in urine metabolomics and biomarker discovery",
+          "author": "Khamis MM, et al.",
+          "pmid": "25881008",
+          "doi": "10.1002/mas.21455",
+          "gold_answers": [
+            "higher storage temperatures (i.e. 4°C) and repetitive freeze-thaw cycles should be avoided"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -304,15 +367,18 @@
     },
     {
       "id": "Q019",
-      "question": "Which blood collection tube type was unsuitable for circulating microRNA quantification?",
+      "question": "Which blood collection tube should I avoid for measuring circulating microRNAs?",
       "gold_answers": [
-        "Tubes with lithium-heparin were found unsuitable for miRNA quantification."
+        "Tubes with lithium-heparin were found unsuitable for miRNA quantification"
       ],
       "gold_documents": [
         {
           "title": "Stability of Circulating Blood-Based MicroRNAs – Pre-Analytic Methodological Considerations",
           "author": "Glinge C, et al.",
-          "pmcid": "PMC5289450"
+          "pmcid": "PMC5289450",
+          "gold_answers": [
+            "Tubes with lithium-heparin were found unsuitable for miRNA quantification"
+          ]
         }
       ],
       "category": "Specimen, tube, and processing effects",
@@ -320,15 +386,18 @@
     },
     {
       "id": "Q020",
-      "question": "How did four repetitive freeze-thaw cycles affect circulating microRNA concentrations?",
+      "question": "How did four repeated freeze-thaw cycles affect circulating microRNA concentrations in plasma and serum?",
       "gold_answers": [
-        "significant reduction of miRNA concentration both in plasma and serum samples."
+        "significant reduction of miRNA concentration both in plasma and serum samples"
       ],
       "gold_documents": [
         {
           "title": "Stability of Circulating Blood-Based MicroRNAs – Pre-Analytic Methodological Considerations",
           "author": "Glinge C, et al.",
-          "pmcid": "PMC5289450"
+          "pmcid": "PMC5289450",
+          "gold_answers": [
+            "significant reduction of miRNA concentration both in plasma and serum samples"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -336,7 +405,7 @@
     },
     {
       "id": "Q021",
-      "question": "For how long were cerebrospinal-fluid small-molecule metabolites relatively unaffected at 5–8°C?",
+      "question": "How long can CSF samples be kept at 5–8°C without substantially affecting small-molecule metabolites?",
       "gold_answers": [
         "storage at 5–8 °C for up to 72 h"
       ],
@@ -344,7 +413,10 @@
         {
           "title": "Assessing the Pre-Analytical Stability of Small-Molecule Metabolites in Cerebrospinal Fluid Using Direct-Infusion Metabolomics",
           "author": "Haijes HA, et al.",
-          "pmcid": "PMC6835587"
+          "pmcid": "PMC6835587",
+          "gold_answers": [
+            "storage at 5–8 °C for up to 72 h"
+          ]
         }
       ],
       "category": "Storage temperature and duration",
@@ -352,7 +424,7 @@
     },
     {
       "id": "Q022",
-      "question": "How many freeze-thaw cycles left cerebrospinal-fluid small-molecule metabolites relatively unaffected?",
+      "question": "How many freeze-thaw cycles can CSF small-molecule metabolites tolerate without major changes?",
       "gold_answers": [
         "relatively unaffected by 1–3 freeze/thaw cycles"
       ],
@@ -360,7 +432,10 @@
         {
           "title": "Assessing the Pre-Analytical Stability of Small-Molecule Metabolites in Cerebrospinal Fluid Using Direct-Infusion Metabolomics",
           "author": "Haijes HA, et al.",
-          "pmcid": "PMC6835587"
+          "pmcid": "PMC6835587",
+          "gold_answers": [
+            "relatively unaffected by 1–3 freeze/thaw cycles"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -368,15 +443,18 @@
     },
     {
       "id": "Q023",
-      "question": "What was the median absolute percent difference when serum clotting time was extended from 30 to 120 minutes?",
+      "question": "How much does extending serum clotting time from 30 to 120 minutes affect metabolite measurements?",
       "gold_answers": [
-        "median APD when extending clotting time was 9.08%."
+        "the median APD when extending clotting time was 9.08%"
       ],
       "gold_documents": [
         {
           "title": "Preanalytical Sample Handling Conditions and Their Effects on the Human Serum Metabolome in Epidemiologic Studies",
           "author": "McClain KM, et al.",
-          "pmcid": "PMC8086237"
+          "pmcid": "PMC8086237",
+          "gold_answers": [
+            "the median APD when extending clotting time was 9.08%"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -384,15 +462,27 @@
     },
     {
       "id": "Q024",
-      "question": "What matching practice was recommended for case-control serum metabolomics studies?",
+      "question": "How should I handle serum samples from cases and controls in a metabolomics study to avoid bias?",
       "gold_answers": [
-        "handling should be meticulously matched by case status."
+        "handling should be meticulously matched by case status",
+        "Cases and controls must have matching populations, collection, processing, storage, and shipping procedures."
       ],
       "gold_documents": [
         {
           "title": "Preanalytical Sample Handling Conditions and Their Effects on the Human Serum Metabolome in Epidemiologic Studies",
           "author": "McClain KM, et al.",
-          "pmcid": "PMC8086237"
+          "pmcid": "PMC8086237",
+          "gold_answers": [
+            "handling should be meticulously matched by case status"
+          ]
+        },
+        {
+          "title": "Standard Operating Procedures for Serum and Plasma Collection: Early Detection Research Network Consensus Statement Standard Operating Procedure Integration Working Group",
+          "author": "Tuck MK, et al.",
+          "pmcid": "PMC2655764",
+          "gold_answers": [
+            "Cases and controls must have matching populations, collection, processing, storage, and shipping procedures."
+          ]
         }
       ],
       "category": "Biospecimen quality control and SOPs",
@@ -408,7 +498,10 @@
         {
           "title": "The holding temperature of blood during a delay to processing can affect serum and plasma protein measurements",
           "author": "Ashworth M, et al.",
-          "pmcid": "PMC7985364"
+          "pmcid": "PMC7985364",
+          "gold_answers": [
+            "placing blood samples immediately on ice decreased the serum levels of several cytokines"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -416,15 +509,18 @@
     },
     {
       "id": "Q026",
-      "question": "Could one universal blood-holding temperature be recommended during a processing delay?",
+      "question": "Is there one best temperature for holding blood when processing is delayed, or does it depend on the analyte?",
       "gold_answers": [
-        "The optimal holding temperature for samples during a delay was analyte-specific."
+        "The optimal holding temperature for samples during a delay was analyte-specific"
       ],
       "gold_documents": [
         {
           "title": "The holding temperature of blood during a delay to processing can affect serum and plasma protein measurements",
           "author": "Ashworth M, et al.",
-          "pmcid": "PMC7985364"
+          "pmcid": "PMC7985364",
+          "gold_answers": [
+            "The optimal holding temperature for samples during a delay was analyte-specific"
+          ]
         }
       ],
       "category": "Biospecimen quality control and SOPs",
@@ -434,13 +530,16 @@
       "id": "Q027",
       "question": "How did reduced and oxidized glutathione concentrations change during a three-hour plasma-preparation delay?",
       "gold_answers": [
-        "linear increase of plasma concentrations of both reduced (GSH) and oxidized glutathione (GSSG)."
+        "linear increase of plasma concentrations of both reduced (GSH) and oxidized glutathione (GSSG)"
       ],
       "gold_documents": [
         {
           "title": "Blood Plasma Quality Control by Plasma Glutathione Status",
           "author": "Tomin T, et al.",
-          "pmcid": "PMC8226592"
+          "pmcid": "PMC8226592",
+          "gold_answers": [
+            "linear increase of plasma concentrations of both reduced (GSH) and oxidized glutathione (GSSG)"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -448,7 +547,7 @@
     },
     {
       "id": "Q028",
-      "question": "Which glutathione measurement was proposed as a readout of plasma-preparation duration?",
+      "question": "Which glutathione measurement can be used to estimate how long plasma preparation took?",
       "gold_answers": [
         "GSH gives an excellent readout of the duration of plasma preparation"
       ],
@@ -456,7 +555,10 @@
         {
           "title": "Blood Plasma Quality Control by Plasma Glutathione Status",
           "author": "Tomin T, et al.",
-          "pmcid": "PMC8226592"
+          "pmcid": "PMC8226592",
+          "gold_answers": [
+            "GSH gives an excellent readout of the duration of plasma preparation"
+          ]
         }
       ],
       "category": "Biospecimen quality control and SOPs",
@@ -464,7 +566,7 @@
     },
     {
       "id": "Q029",
-      "question": "Which pre-analytical factors determine plasma or serum inosine and hypoxanthine levels?",
+      "question": "Which handling conditions influence inosine and hypoxanthine levels in plasma or serum?",
       "gold_answers": [
         "depend on the temperature of blood and the plasma/serum contact time with the RBCs"
       ],
@@ -472,7 +574,10 @@
         {
           "title": "Discovery of Hypoxanthine and Inosine as Robust Biomarkers for Predicting the Preanalytical Quality of Human Plasma and Serum for Metabolomics",
           "author": "Gowda GAN, et al.",
-          "pmcid": "PMC11670813"
+          "pmcid": "PMC11670813",
+          "gold_answers": [
+            "depend on the temperature of blood and the plasma/serum contact time with the RBCs"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -480,15 +585,18 @@
     },
     {
       "id": "Q030",
-      "question": "Which metabolite level predicted whether whole blood had been kept at room temperature or on ice?",
+      "question": "Which metabolite can show whether whole blood was kept at room temperature or on ice?",
       "gold_answers": [
-        "could be predicted based on inosine levels."
+        "could be predicted based on inosine levels"
       ],
       "gold_documents": [
         {
           "title": "Discovery of Hypoxanthine and Inosine as Robust Biomarkers for Predicting the Preanalytical Quality of Human Plasma and Serum for Metabolomics",
           "author": "Gowda GAN, et al.",
-          "pmcid": "PMC11670813"
+          "pmcid": "PMC11670813",
+          "gold_answers": [
+            "could be predicted based on inosine levels"
+          ]
         }
       ],
       "category": "Biospecimen quality control and SOPs",
@@ -496,15 +604,29 @@
     },
     {
       "id": "Q031",
-      "question": "When should biorepository SOPs for biospecimen collection, processing, storage, and shipping be defined during clinical-trial planning?",
+      "question": "When should SOPs for collecting, processing, storing, and shipping biobank samples be established in a clinical trial?",
       "gold_answers": [
-        "be defined prospectively when designing clinical trials."
+        "be defined prospectively when designing clinical trials",
+        "Design and validate the sample collection protocol before main recruitment starts"
       ],
       "gold_documents": [
         {
           "title": "Standard Operating Procedures for Serum and Plasma Collection: Early Detection Research Network Consensus Statement Standard Operating Procedure Integration Working Group",
           "author": "Tuck MK, et al.",
-          "pmcid": "PMC2655764"
+          "pmcid": "PMC2655764",
+          "gold_answers": [
+            "be defined prospectively when designing clinical trials"
+          ]
+        },
+        {
+          "title": "Current standards for the storage of human samples in biobanks",
+          "author": "Peakman T, Elliott P.",
+          "pmid": "20923579",
+          "pmcid": "PMC2988449",
+          "doi": "10.1186/gm193",
+          "gold_answers": [
+            "Design and validate the sample collection protocol before main recruitment starts"
+          ]
         }
       ],
       "category": "Biospecimen quality control and SOPs",
@@ -512,15 +634,28 @@
     },
     {
       "id": "Q032",
-      "question": "Which procedures should be matched between cases and controls to reduce biospecimen handling bias?",
+      "question": "What should be matched between case and control samples to prevent handling-related biospecimen bias?",
       "gold_answers": [
-        "matching populations, collection, processing, storage, and shipping procedures."
+        "matching populations, collection, processing, storage, and shipping procedures",
+        "handling should be meticulously matched by case status"
       ],
       "gold_documents": [
         {
           "title": "Standard Operating Procedures for Serum and Plasma Collection: Early Detection Research Network Consensus Statement Standard Operating Procedure Integration Working Group",
           "author": "Tuck MK, et al.",
-          "pmcid": "PMC2655764"
+          "pmcid": "PMC2655764",
+          "gold_answers": [
+            "matching populations, collection, processing, storage, and shipping procedures"
+          ]
+        },
+        {
+          "title": "Preanalytical Sample Handling Conditions and Their Effects on the Human Serum Metabolome in Epidemiologic Studies",
+          "author": "McClain KM, et al.",
+          "pmid": "32959873",
+          "pmcid": "PMC8086237",
+          "gold_answers": [
+            "handling should be meticulously matched by case status"
+          ]
         }
       ],
       "category": "Biospecimen quality control and SOPs",
@@ -528,15 +663,18 @@
     },
     {
       "id": "Q033",
-      "question": "What snap-freezing target was suggested when tissue-specific warm-ischemia data are unavailable?",
+      "question": "If tissue-specific warm-ischemia data are unavailable, how quickly should tissue be snap-frozen?",
       "gold_answers": [
-        "a practical goal is snap freezing within 20 minutes."
+        "a practical goal is snap freezing within 20 minutes"
       ],
       "gold_documents": [
         {
           "title": "The procurement, storage, and quality assurance of frozen blood and tissue biospecimens in pathology, biorepository, and biobank settings",
           "author": "Shabihkhani M, et al.",
-          "pmcid": "PMC3982909"
+          "pmcid": "PMC3982909",
+          "gold_answers": [
+            "a practical goal is snap freezing within 20 minutes"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -544,15 +682,18 @@
     },
     {
       "id": "Q034",
-      "question": "When can RNA degradation become evident in tissue stored at −80°C?",
+      "question": "How long can tissue be stored at −80°C before RNA degradation may become detectable?",
       "gold_answers": [
-        "RNA can show degradation at 5 years."
+        "RNA can show degradation at 5 years"
       ],
       "gold_documents": [
         {
           "title": "The procurement, storage, and quality assurance of frozen blood and tissue biospecimens in pathology, biorepository, and biobank settings",
           "author": "Shabihkhani M, et al.",
-          "pmcid": "PMC3982909"
+          "pmcid": "PMC3982909",
+          "gold_answers": [
+            "RNA can show degradation at 5 years"
+          ]
         }
       ],
       "category": "Storage temperature and duration",
@@ -560,7 +701,7 @@
     },
     {
       "id": "Q035",
-      "question": "What diagnostic performance did the serum HG and HI ratios achieve for identifying time-to-centrifugation longer than one hour?",
+      "question": "Can the serum HG and HI ratios reliably identify samples centrifuged more than one hour after collection?",
       "gold_answers": [
         "Sensitivity/Specificity > 80%"
       ],
@@ -568,7 +709,10 @@
         {
           "title": "Metabolite Ratios as Quality Indicators for Pre-Analytical Variation in Serum and EDTA Plasma",
           "author": "Heiling S, et al.",
-          "pmcid": "PMC8465943"
+          "pmcid": "PMC8465943",
+          "gold_answers": [
+            "Sensitivity/Specificity > 80%"
+          ]
         }
       ],
       "category": "Biospecimen quality control and SOPs",
@@ -576,7 +720,7 @@
     },
     {
       "id": "Q036",
-      "question": "Which eicosanoids were identified as quality indicators for a pre-centrifugation delay longer than two hours?",
+      "question": "Which eicosanoids can be used to flag a pre-centrifugation delay longer than two hours?",
       "gold_answers": [
         "12-HETE, 15-(S)-HETE, 8-(S)-HETE, 12-oxo-HETE, (±)13-HODE and 12-(S)-HEPE"
       ],
@@ -584,7 +728,10 @@
         {
           "title": "Metabolite Ratios as Quality Indicators for Pre-Analytical Variation in Serum and EDTA Plasma",
           "author": "Heiling S, et al.",
-          "pmcid": "PMC8465943"
+          "pmcid": "PMC8465943",
+          "gold_answers": [
+            "12-HETE, 15-(S)-HETE, 8-(S)-HETE, 12-oxo-HETE, (±)13-HODE and 12-(S)-HEPE"
+          ]
         }
       ],
       "category": "Biospecimen quality control and SOPs",
@@ -592,15 +739,18 @@
     },
     {
       "id": "Q037",
-      "question": "How long were EDTA blood tubes held at 4°C or room temperature before plasma isolation in the time-course study?",
+      "question": "What holding times at 4°C and room temperature have been evaluated for EDTA blood before plasma isolation?",
       "gold_answers": [
-        "stored for up to a week at 4 °C or room temperature prior to plasma isolation."
+        "stored for up to a week at 4 °C or room temperature prior to plasma isolation"
       ],
       "gold_documents": [
         {
           "title": "Global Stability of Plasma Proteomes for Mass Spectrometry-Based Analyses",
           "author": "Zimmerman LJ, et al.",
-          "pmcid": "PMC3433892"
+          "pmcid": "PMC3433892",
+          "gold_answers": [
+            "stored for up to a week at 4 °C or room temperature prior to plasma isolation"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -608,7 +758,7 @@
     },
     {
       "id": "Q038",
-      "question": "Which pathways accounted for the small number of plasma proteins affected by ex-vivo proteolysis during variable processing?",
+      "question": "Which biological pathways contained most of the plasma proteins affected by ex-vivo proteolysis during variable processing?",
       "gold_answers": [
         "coagulation and complement pathways"
       ],
@@ -616,7 +766,10 @@
         {
           "title": "Global Stability of Plasma Proteomes for Mass Spectrometry-Based Analyses",
           "author": "Zimmerman LJ, et al.",
-          "pmcid": "PMC3433892"
+          "pmcid": "PMC3433892",
+          "gold_answers": [
+            "coagulation and complement pathways"
+          ]
         }
       ],
       "category": "Biospecimen quality control and SOPs",
@@ -624,7 +777,7 @@
     },
     {
       "id": "Q039",
-      "question": "Which room-temperature delays before centrifugation were tested for blood and cerebrospinal fluid?",
+      "question": "What room-temperature pre-centrifugation delays have been studied for blood and CSF inflammation-related protein measurements?",
       "gold_answers": [
         "blood: 1, 24, 48, 72 h; CSF: 1 and 6 h"
       ],
@@ -632,7 +785,10 @@
         {
           "title": "Assessing the Preanalytical Variability of Plasma and Cerebrospinal Fluid Processing and Its Effects on Inflammation-Related Protein Biomarkers",
           "author": "Huang J, et al.",
-          "pmcid": "PMC8554621"
+          "pmcid": "PMC8554621",
+          "gold_answers": [
+            "blood: 1, 24, 48, 72 h; CSF: 1 and 6 h"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -640,15 +796,18 @@
     },
     {
       "id": "Q040",
-      "question": "Which plasma proteins increased twofold to tenfold after a 24-hour room-temperature processing delay?",
+      "question": "Which plasma proteins rose by twofold to tenfold after blood processing was delayed for 24 hours at room temperature?",
       "gold_answers": [
-        "caspase 8, interleukin 8, interleukin 18, sirtuin 2, and sulfotransferase 1A1"
+        "Caspase 8 (CASP8), Interleukin (IL)-8, IL-18, Sirtuin 2 (SIRT2), and Sulfotransferase Family 1A Member 1 (ST1A1)"
       ],
       "gold_documents": [
         {
           "title": "Assessing the Preanalytical Variability of Plasma and Cerebrospinal Fluid Processing and Its Effects on Inflammation-Related Protein Biomarkers",
           "author": "Huang J, et al.",
-          "pmcid": "PMC8554621"
+          "pmcid": "PMC8554621",
+          "gold_answers": [
+            "Caspase 8 (CASP8), Interleukin (IL)-8, IL-18, Sirtuin 2 (SIRT2), and Sulfotransferase Family 1A Member 1 (ST1A1)"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -666,7 +825,10 @@
           "author": "Lee JE, et al.",
           "pmid": "26835245",
           "pmcid": "PMC4700770",
-          "doi": "10.1016/j.phrp.2015.11.005"
+          "doi": "10.1016/j.phrp.2015.11.005",
+          "gold_answers": [
+            "interferon-γ, IL-8, and VEGF-R2"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -684,7 +846,10 @@
           "author": "Lee JE, et al.",
           "pmid": "26835245",
           "pmcid": "PMC4700770",
-          "doi": "10.1016/j.phrp.2015.11.005"
+          "doi": "10.1016/j.phrp.2015.11.005",
+          "gold_answers": [
+            "MMP-7, tumor necrosis factor-α, and VEGF"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -692,7 +857,7 @@
     },
     {
       "id": "Q043",
-      "question": "Which serum and citrated-plasma storage conditions caused no substantial biomarker changes for up to 90 days?",
+      "question": "At which storage temperatures did serum and citrated-plasma biomarkers remain stable for up to 90 days?",
       "gold_answers": [
         "Biobanking at -80 °C and <-130 °C for up to 90 days"
       ],
@@ -701,7 +866,10 @@
           "title": "Effect of biobanking conditions on short-term stability of biomarkers in human serum and plasma",
           "author": "Zander J, et al.",
           "pmid": "24327528",
-          "doi": "10.1515/cclm-2013-0705"
+          "doi": "10.1515/cclm-2013-0705",
+          "gold_answers": [
+            "Biobanking at -80 °C and <-130 °C for up to 90 days"
+          ]
         }
       ],
       "category": "Storage temperature and duration",
@@ -709,16 +877,19 @@
     },
     {
       "id": "Q044",
-      "question": "How did occasional short-term thermal exposure affect biomarker stability during frozen storage?",
+      "question": "Do brief temperature excursions during frozen storage substantially affect biomarker stability?",
       "gold_answers": [
-        "Biomarker stability was minimally affected by occasional short-term thermal exposure."
+        "Biomarker stability was minimally affected by occasional short-term thermal exposure"
       ],
       "gold_documents": [
         {
           "title": "Effect of biobanking conditions on short-term stability of biomarkers in human serum and plasma",
           "author": "Zander J, et al.",
           "pmid": "24327528",
-          "doi": "10.1515/cclm-2013-0705"
+          "doi": "10.1515/cclm-2013-0705",
+          "gold_answers": [
+            "Biomarker stability was minimally affected by occasional short-term thermal exposure"
+          ]
         }
       ],
       "category": "Storage temperature and duration",
@@ -726,16 +897,19 @@
     },
     {
       "id": "Q045",
-      "question": "Which serum endocrine analyte was considered unstable after four freeze-thaw cycles?",
+      "question": "Which serum endocrine analyte increased beyond the allowable bias after four freeze-thaw cycles?",
       "gold_answers": [
-        "Only serum free thyroxine was considered unstable."
+        "free thyroxine in serum increased more than aB"
       ],
       "gold_documents": [
         {
           "title": "Stability of 17 endocrine analytes in serum or plasma after four cycles of repeated freezing and thawing",
           "author": "Tjernvoll E, et al.",
           "pmid": "40243258",
-          "doi": "10.1080/00365513.2025.2487989"
+          "doi": "10.1080/00365513.2025.2487989",
+          "gold_answers": [
+            "free thyroxine in serum increased more than aB"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -743,7 +917,7 @@
     },
     {
       "id": "Q046",
-      "question": "How many of the 17 endocrine analytes appeared stable through four freeze-thaw cycles?",
+      "question": "How well do endocrine analytes tolerate four freeze-thaw cycles?",
       "gold_answers": [
         "eight out of 17 analytes appeared stable for four freeze-thaw cycles"
       ],
@@ -752,7 +926,10 @@
           "title": "Stability of 17 endocrine analytes in serum or plasma after four cycles of repeated freezing and thawing",
           "author": "Tjernvoll E, et al.",
           "pmid": "40243258",
-          "doi": "10.1080/00365513.2025.2487989"
+          "doi": "10.1080/00365513.2025.2487989",
+          "gold_answers": [
+            "eight out of 17 analytes appeared stable for four freeze-thaw cycles"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -760,7 +937,7 @@
     },
     {
       "id": "Q047",
-      "question": "What centrifugation durations and force were selected for validated serum and plasma preparation?",
+      "question": "What centrifugation time and force should be used for validated serum and plasma preparation?",
       "gold_answers": [
         "10-min centrifugation for serum and 20-min for plasma at 2000 g"
       ],
@@ -769,7 +946,10 @@
           "title": "Method validation for preparing serum and plasma samples from human blood for downstream proteomic, metabolomic, and circulating nucleic acid-based applications",
           "author": "Ammerlaan W, et al.",
           "pmid": "25075813",
-          "doi": "10.1089/bio.2014.0003"
+          "doi": "10.1089/bio.2014.0003",
+          "gold_answers": [
+            "10-min centrifugation for serum and 20-min for plasma at 2000 g"
+          ]
         }
       ],
       "category": "Specimen, tube, and processing effects",
@@ -777,16 +957,19 @@
     },
     {
       "id": "Q048",
-      "question": "After a two-hour pre-centrifugation delay, which serum or plasma measurements remained stable and which did not?",
+      "question": "After blood waited two hours before centrifugation, which measurements stayed stable at both temperatures and which did not?",
       "gold_answers": [
-        "Pre-centrifugation stability after a 2-hour delay was seen at both temperatures for hemoglobin concentration and proteomics, but not for microparticle counts."
+        "hemoglobin concentration and proteomics, but not for microparticle counts"
       ],
       "gold_documents": [
         {
           "title": "Method validation for preparing serum and plasma samples from human blood for downstream proteomic, metabolomic, and circulating nucleic acid-based applications",
           "author": "Ammerlaan W, et al.",
           "pmid": "25075813",
-          "doi": "10.1089/bio.2014.0003"
+          "doi": "10.1089/bio.2014.0003",
+          "gold_answers": [
+            "hemoglobin concentration and proteomics, but not for microparticle counts"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -794,7 +977,7 @@
     },
     {
       "id": "Q049",
-      "question": "What temperature range was reviewed for long-term storage of human fluid, cell, and tissue biospecimens?",
+      "question": "What temperatures have been considered for long-term storage of human fluid, cell, and tissue biospecimens?",
       "gold_answers": [
         "between -20°C to -196°C"
       ],
@@ -803,7 +986,10 @@
           "title": "Storage of human biospecimens: selection of the optimal storage temperature",
           "author": "Hubel A, et al.",
           "pmid": "24918763",
-          "doi": "10.1089/bio.2013.0084"
+          "doi": "10.1089/bio.2013.0084",
+          "gold_answers": [
+            "between -20°C to -196°C"
+          ]
         }
       ],
       "category": "Storage temperature and duration",
@@ -811,16 +997,30 @@
     },
     {
       "id": "Q050",
-      "question": "Why can biospecimen quality after thawing differ even when specimen processing is controlled?",
+      "question": "Why can two biospecimens have different quality after thawing even if they were processed in the same way?",
       "gold_answers": [
-        "The quality of the biospecimen when thawed, however, is not only determined by processing of the biospecimen but the storage conditions as well."
+        "not only determined by processing of the biospecimen but the storage conditions as well",
+        "Human biospecimens are subject to a number of different collection, processing, and storage factors that can significantly alter their molecular composition and consistency."
       ],
       "gold_documents": [
         {
           "title": "Storage of human biospecimens: selection of the optimal storage temperature",
           "author": "Hubel A, et al.",
           "pmid": "24918763",
-          "doi": "10.1089/bio.2013.0084"
+          "doi": "10.1089/bio.2013.0084",
+          "gold_answers": [
+            "not only determined by processing of the biospecimen but the storage conditions as well"
+          ]
+        },
+        {
+          "title": "Biospecimen Reporting for Improved Study Quality",
+          "author": "Moore HM, et al.",
+          "pmid": "21826252",
+          "pmcid": "PMC3142856",
+          "doi": "10.1089/bio.2010.0036",
+          "gold_answers": [
+            "Human biospecimens are subject to a number of different collection, processing, and storage factors that can significantly alter their molecular composition and consistency."
+          ]
         }
       ],
       "category": "Storage temperature and duration",
@@ -828,16 +1028,19 @@
     },
     {
       "id": "Q051",
-      "question": "In which matrix did polymeric gel collection tubes promote metabolite-level differences?",
+      "question": "Does a polymeric gel collection tube affect metabolite levels more in serum or plasma?",
       "gold_answers": [
-        "polymeric gel only promoted differences at the metabolite level in serum"
+        "the polymeric gel only promoted differences at the metabolite level in serum"
       ],
       "gold_documents": [
         {
           "title": "Influence of the collection tube on metabolomic changes in serum and plasma",
           "author": "López-Bascón MA, et al.",
           "pmid": "26838459",
-          "doi": "10.1016/j.talanta.2015.12.079"
+          "doi": "10.1016/j.talanta.2015.12.079",
+          "gold_answers": [
+            "the polymeric gel only promoted differences at the metabolite level in serum"
+          ]
         }
       ],
       "category": "Specimen, tube, and processing effects",
@@ -845,16 +1048,19 @@
     },
     {
       "id": "Q052",
-      "question": "Which amino-acid metabolic pathways were affected in serum collected with polymeric gel tubes?",
+      "question": "Which amino acids were affected when serum was collected in polymeric gel tubes?",
       "gold_answers": [
-        "metabolism of amino acids such as alanine, proline and threonine"
+        "amino acids such as alanine, proline and threonine"
       ],
       "gold_documents": [
         {
           "title": "Influence of the collection tube on metabolomic changes in serum and plasma",
           "author": "López-Bascón MA, et al.",
           "pmid": "26838459",
-          "doi": "10.1016/j.talanta.2015.12.079"
+          "doi": "10.1016/j.talanta.2015.12.079",
+          "gold_answers": [
+            "amino acids such as alanine, proline and threonine"
+          ]
         }
       ],
       "category": "Specimen, tube, and processing effects",
@@ -862,16 +1068,19 @@
     },
     {
       "id": "Q053",
-      "question": "At which temperatures and for how long were centrifuged serum and EDTA-plasma aliquots held before first storage?",
+      "question": "What post-centrifugation holding times and temperatures have been evaluated for serum and EDTA plasma before storage?",
       "gold_answers": [
-        "either at 4°C or in ambient temperature for 1h and up to 36h"
+        "either at 4 °C or in ambient temperature for 1 h and up to 36 h"
       ],
       "gold_documents": [
         {
           "title": "Profiling post-centrifugation delay of serum and plasma with antibody bead arrays",
           "author": "Qundos U, et al.",
           "pmid": "23631827",
-          "doi": "10.1016/j.jprot.2013.04.020"
+          "doi": "10.1016/j.jprot.2013.04.020",
+          "gold_answers": [
+            "either at 4 °C or in ambient temperature for 1 h and up to 36 h"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -879,7 +1088,7 @@
     },
     {
       "id": "Q054",
-      "question": "Which protein showed decreasing levels after prolonged post-centrifugation delay in EDTA standard tubes?",
+      "question": "Which protein decreased when EDTA plasma was left for a long time after centrifugation?",
       "gold_answers": [
         "decreasing levels of caldesmon 1 (CALD1)"
       ],
@@ -888,7 +1097,10 @@
           "title": "Profiling post-centrifugation delay of serum and plasma with antibody bead arrays",
           "author": "Qundos U, et al.",
           "pmid": "23631827",
-          "doi": "10.1016/j.jprot.2013.04.020"
+          "doi": "10.1016/j.jprot.2013.04.020",
+          "gold_answers": [
+            "decreasing levels of caldesmon 1 (CALD1)"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -896,9 +1108,9 @@
     },
     {
       "id": "Q055",
-      "question": "How much change was observed in pooled EDTA plasma during the first ten freeze-thaw cycles?",
+      "question": "Which analyte was the exception when pooled EDTA plasma showed little change during the first ten freeze-thaw cycles?",
       "gold_answers": [
-        "there was little change over the first 10 freeze-thaw cycles."
+        "With the exception of free fatty acids, there was little change over the first 10 freeze-thaw cycles"
       ],
       "gold_documents": [
         {
@@ -906,7 +1118,10 @@
           "author": "Paltiel L, et al.",
           "pmid": "20428472",
           "pmcid": "PMC2860294",
-          "doi": "10.1089/cpt.2008.0012"
+          "doi": "10.1089/cpt.2008.0012",
+          "gold_answers": [
+            "With the exception of free fatty acids, there was little change over the first 10 freeze-thaw cycles"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -914,9 +1129,9 @@
     },
     {
       "id": "Q056",
-      "question": "Which analytes showed the largest percentage changes after thirty freeze-thaw cycles?",
+      "question": "Which plasma analytes are most sensitive to extensive repeated freeze-thawing?",
       "gold_answers": [
-        "free fatty acids (+32%), AST (+21%), and triglycerides (-19%)."
+        "free fatty acids (+32%), AST (+21%), and triglycerides (−19%)"
       ],
       "gold_documents": [
         {
@@ -924,7 +1139,10 @@
           "author": "Paltiel L, et al.",
           "pmid": "20428472",
           "pmcid": "PMC2860294",
-          "doi": "10.1089/cpt.2008.0012"
+          "doi": "10.1089/cpt.2008.0012",
+          "gold_answers": [
+            "free fatty acids (+32%), AST (+21%), and triglycerides (−19%)"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -932,7 +1150,7 @@
     },
     {
       "id": "Q057",
-      "question": "Which endocrine measurement increased significantly and relevantly after repeated freeze-thaw cycles?",
+      "question": "Which endocrine parameter showed a significant and clinically relevant increase after repeated freeze-thaw cycles?",
       "gold_answers": [
         "significant and relevant increases of plasma renin activity"
       ],
@@ -941,7 +1159,10 @@
           "title": "Effects of repeated freeze-thaw cycles on endocrine parameters in plasma and serum",
           "author": "Hillebrand JJ, et al.",
           "pmid": "27303059",
-          "doi": "10.1177/0004563216657361"
+          "doi": "10.1177/0004563216657361",
+          "gold_answers": [
+            "significant and relevant increases of plasma renin activity"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -951,14 +1172,17 @@
       "id": "Q058",
       "question": "Which endocrine measurement showed a small decrease after repeated freeze-thaw cycles?",
       "gold_answers": [
-        "a small decrease of adrenocorticotropic hormone."
+        "a small decrease of adrenocorticotropic hormone"
       ],
       "gold_documents": [
         {
           "title": "Effects of repeated freeze-thaw cycles on endocrine parameters in plasma and serum",
           "author": "Hillebrand JJ, et al.",
           "pmid": "27303059",
-          "doi": "10.1177/0004563216657361"
+          "doi": "10.1177/0004563216657361",
+          "gold_answers": [
+            "a small decrease of adrenocorticotropic hormone"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -966,9 +1190,9 @@
     },
     {
       "id": "Q059",
-      "question": "How did the frozen sample aliquotter obtain aliquots while avoiding thawing the parent plasma specimen?",
+      "question": "How can aliquots be taken from a frozen plasma sample without thawing the original sample?",
       "gold_answers": [
-        "automated extraction of frozen aliquots from one single frozen parent sample without thawing it."
+        "automated extraction of frozen aliquots from one single frozen parent sample without thawing it"
       ],
       "gold_documents": [
         {
@@ -976,7 +1200,10 @@
           "author": "Ellis HJ, Venturini DS.",
           "pmid": "24850092",
           "pmcid": "PMC4077011",
-          "doi": "10.1089/bio.2012.0049"
+          "doi": "10.1089/bio.2012.0049",
+          "gold_answers": [
+            "automated extraction of frozen aliquots from one single frozen parent sample without thawing it"
+          ]
         }
       ],
       "category": "Specimen, tube, and processing effects",
@@ -984,9 +1211,9 @@
     },
     {
       "id": "Q060",
-      "question": "What coefficient of variability was reported for plasma biochemical analytes in aliquots extracted without thawing the frozen parent specimen?",
+      "question": "How reproducible are biochemical measurements in plasma aliquots taken without thawing the parent sample?",
       "gold_answers": [
-        "coefficient of variability lower than 5.5%."
+        "coefficient of variability lower than 5.5%"
       ],
       "gold_documents": [
         {
@@ -994,7 +1221,10 @@
           "author": "Ellis HJ, Venturini DS.",
           "pmid": "24850092",
           "pmcid": "PMC4077011",
-          "doi": "10.1089/bio.2012.0049"
+          "doi": "10.1089/bio.2012.0049",
+          "gold_answers": [
+            "coefficient of variability lower than 5.5%"
+          ]
         }
       ],
       "category": "Biospecimen quality control and SOPs",
@@ -1002,7 +1232,7 @@
     },
     {
       "id": "Q061",
-      "question": "Which room-temperature centrifugation delays were tested for NMR-measured serum and plasma metabolites?",
+      "question": "What room-temperature delays before centrifugation have been evaluated for NMR metabolite measurements in serum and plasma?",
       "gold_answers": [
         "30 min, 1, 2, 4, or 8 h"
       ],
@@ -1012,7 +1242,10 @@
           "author": "Debik J, et al.",
           "pmid": "36454175",
           "pmcid": "PMC9753045",
-          "doi": "10.1021/acs.analchem.2c02167"
+          "doi": "10.1021/acs.analchem.2c02167",
+          "gold_answers": [
+            "30 min, 1, 2, 4, or 8 h"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -1020,9 +1253,9 @@
     },
     {
       "id": "Q062",
-      "question": "Which blood matrix was more stable for metabolites during delayed centrifugation?",
+      "question": "During delayed centrifugation, which is more stable for metabolites—plasma or serum—and what about lipoprotein subfractions?",
       "gold_answers": [
-        "plasma is more stable for metabolites"
+        "plasma is more stable for metabolites, while lipoprotein subfractions are equally stable for both types of matrices"
       ],
       "gold_documents": [
         {
@@ -1030,7 +1263,10 @@
           "author": "Debik J, et al.",
           "pmid": "36454175",
           "pmcid": "PMC9753045",
-          "doi": "10.1021/acs.analchem.2c02167"
+          "doi": "10.1021/acs.analchem.2c02167",
+          "gold_answers": [
+            "plasma is more stable for metabolites, while lipoprotein subfractions are equally stable for both types of matrices"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -1038,16 +1274,19 @@
     },
     {
       "id": "Q063",
-      "question": "For how long did 25 biochemical analytes remain acceptably stable in serum gel tubes before centrifugation?",
+      "question": "Which biochemical analyte became unstable after serum gel tubes were left at room temperature for eight hours before centrifugation?",
       "gold_answers": [
-        "Acceptable stability over the maximum storage time of 8 h"
+        "triglycerides at 8 h of storage prior to centrifugation"
       ],
       "gold_documents": [
         {
           "title": "Impact of delayed centrifugation on the stability of 32 biochemical analytes in blood samples collected in serum gel tubes and stored at room temperature",
           "author": "Sanz-Felisi M, et al.",
           "pmid": "40079584",
-          "doi": "10.1515/cclm-2025-0109"
+          "doi": "10.1515/cclm-2025-0109",
+          "gold_answers": [
+            "triglycerides at 8 h of storage prior to centrifugation"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -1055,7 +1294,7 @@
     },
     {
       "id": "Q064",
-      "question": "Which serum analytes became unstable after four hours of delayed centrifugation at room temperature?",
+      "question": "Which serum analytes became unstable after a four-hour delay before centrifugation at room temperature?",
       "gold_answers": [
         "Calcium, gamma-glutamyl transferase, glucose, inorganic phosphate and potassium"
       ],
@@ -1064,7 +1303,10 @@
           "title": "Impact of delayed centrifugation on the stability of 32 biochemical analytes in blood samples collected in serum gel tubes and stored at room temperature",
           "author": "Sanz-Felisi M, et al.",
           "pmid": "40079584",
-          "doi": "10.1515/cclm-2025-0109"
+          "doi": "10.1515/cclm-2025-0109",
+          "gold_answers": [
+            "Calcium, gamma-glutamyl transferase, glucose, inorganic phosphate and potassium"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -1072,9 +1314,9 @@
     },
     {
       "id": "Q065",
-      "question": "How did progastrin-releasing peptide concentrations change as freeze-thaw cycles increased?",
+      "question": "What happens to proGRP concentrations as the number of freeze-thaw cycles increases?",
       "gold_answers": [
-        "gradually decreased in both plasma and serum samples"
+        "Concentrations of proGRP gradually decreased in both plasma and serum samples"
       ],
       "gold_documents": [
         {
@@ -1082,7 +1324,10 @@
           "author": "Lee JE, et al.",
           "pmid": "28053839",
           "pmcid": "PMC5194227",
-          "doi": "10.1016/j.phrp.2016.11.004"
+          "doi": "10.1016/j.phrp.2016.11.004",
+          "gold_answers": [
+            "Concentrations of proGRP gradually decreased in both plasma and serum samples"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -1090,9 +1335,9 @@
     },
     {
       "id": "Q066",
-      "question": "By how much did serum progastrin-releasing peptide decline after four freeze-thaw cycles?",
+      "question": "By what percentage did serum proGRP fall after four freeze-thaw cycles?",
       "gold_answers": [
-        "up to 10.1% after four freeze-thaw cycles."
+        "up to 10.1% after four freeze–thaw cycles"
       ],
       "gold_documents": [
         {
@@ -1100,7 +1345,10 @@
           "author": "Lee JE, et al.",
           "pmid": "28053839",
           "pmcid": "PMC5194227",
-          "doi": "10.1016/j.phrp.2016.11.004"
+          "doi": "10.1016/j.phrp.2016.11.004",
+          "gold_answers": [
+            "up to 10.1% after four freeze–thaw cycles"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -1108,16 +1356,19 @@
     },
     {
       "id": "Q067",
-      "question": "For how long did most investigated analytes remain stable before centrifugation across the tested storage conditions?",
+      "question": "For how long did most investigated analytes remain stable before centrifugation under all tested storage conditions?",
       "gold_answers": [
-        "remained stable up to 24h under all storage conditions prior to centrifugation."
+        "Most of the analytes investigated remained stable up to 24 h under all storage conditions prior to centrifugation"
       ],
       "gold_documents": [
         {
           "title": "Stability study of 81 analytes in human whole blood, in serum and in plasma",
           "author": "Oddoze C, et al.",
           "pmid": "22285385",
-          "doi": "10.1016/j.clinbiochem.2012.01.012"
+          "doi": "10.1016/j.clinbiochem.2012.01.012",
+          "gold_answers": [
+            "Most of the analytes investigated remained stable up to 24 h under all storage conditions prior to centrifugation"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -1125,7 +1376,7 @@
     },
     {
       "id": "Q068",
-      "question": "Which pre-analytical variables significantly affected some analytes in whole blood, serum, or plasma?",
+      "question": "Which pre-analytical factors had a significant effect on some analytes in whole blood, serum, or plasma?",
       "gold_answers": [
         "either by delay, tube type or temperature"
       ],
@@ -1134,7 +1385,10 @@
           "title": "Stability study of 81 analytes in human whole blood, in serum and in plasma",
           "author": "Oddoze C, et al.",
           "pmid": "22285385",
-          "doi": "10.1016/j.clinbiochem.2012.01.012"
+          "doi": "10.1016/j.clinbiochem.2012.01.012",
+          "gold_answers": [
+            "either by delay, tube type or temperature"
+          ]
         }
       ],
       "category": "Specimen, tube, and processing effects",
@@ -1142,16 +1396,19 @@
     },
     {
       "id": "Q069",
-      "question": "Which four biochemical serum components were among those robust to ten repeated thaws?",
+      "question": "Which 12 serum components remained stable after ten freeze-thaw cycles?",
       "gold_answers": [
-        "cholesterol, creatinine, C-reactive protein, glucose"
+        "albumin, ASAT, cholesterol, creatinine, C-reactive protein, glucose, immunoglobulin G, potassium, testosterone, triglycerides, urea and vitamin B12"
       ],
       "gold_documents": [
         {
           "title": "Effect of multiple freeze-thaw cycles on selected biochemical serum components",
           "author": "Gislefoss RE, et al.",
           "pmid": "27987362",
-          "doi": "10.1515/cclm-2016-0892"
+          "doi": "10.1515/cclm-2016-0892",
+          "gold_answers": [
+            "albumin, ASAT, cholesterol, creatinine, C-reactive protein, glucose, immunoglobulin G, potassium, testosterone, triglycerides, urea and vitamin B12"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -1159,7 +1416,7 @@
     },
     {
       "id": "Q070",
-      "question": "Which serum components showed statistically significant pairwise differences after repeated thaws?",
+      "question": "Which serum components changed significantly after repeated thawing?",
       "gold_answers": [
         "bilirubin, sodium and TSH"
       ],
@@ -1168,7 +1425,10 @@
           "title": "Effect of multiple freeze-thaw cycles on selected biochemical serum components",
           "author": "Gislefoss RE, et al.",
           "pmid": "27987362",
-          "doi": "10.1515/cclm-2016-0892"
+          "doi": "10.1515/cclm-2016-0892",
+          "gold_answers": [
+            "bilirubin, sodium and TSH"
+          ]
         }
       ],
       "category": "Freeze-thaw and frozen storage",
@@ -1176,16 +1436,19 @@
     },
     {
       "id": "Q071",
-      "question": "What elapsed time between blood collection and processing was evaluated for serum and plasma metabolomics?",
+      "question": "What collection-to-processing delay window has been evaluated for serum and plasma metabolomics?",
       "gold_answers": [
-        "t = 0-4 h"
+        "t = 0−4 h"
       ],
       "gold_documents": [
         {
           "title": "Standard operating procedures for pre-analytical handling of blood and urine for metabolomic studies and biobanks",
           "author": "Bernini P, et al.",
           "pmid": "21380509",
-          "doi": "10.1007/s10858-011-9489-1"
+          "doi": "10.1007/s10858-011-9489-1",
+          "gold_answers": [
+            "t = 0−4 h"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -1193,16 +1456,19 @@
     },
     {
       "id": "Q072",
-      "question": "Which urine pretreatments were evaluated before storage for metabolomics biobanking?",
+      "question": "Which urine pretreatments were tested before biobank storage for metabolomics?",
       "gold_answers": [
-        "pre-storage centrifugation, filtration, and addition of the bacteriostatic preservative sodium azide."
+        "pre-storage centrifugation, filtration, and addition of the bacteriostatic preservative sodium azide"
       ],
       "gold_documents": [
         {
           "title": "Standard operating procedures for pre-analytical handling of blood and urine for metabolomic studies and biobanks",
           "author": "Bernini P, et al.",
           "pmid": "21380509",
-          "doi": "10.1007/s10858-011-9489-1"
+          "doi": "10.1007/s10858-011-9489-1",
+          "gold_answers": [
+            "pre-storage centrifugation, filtration, and addition of the bacteriostatic preservative sodium azide"
+          ]
         }
       ],
       "category": "Specimen, tube, and processing effects",
@@ -1210,7 +1476,7 @@
     },
     {
       "id": "Q073",
-      "question": "Which urine preservative caused the largest metabolomic impact, and how many metabolites were altered?",
+      "question": "Which urine preservative has the largest effect on the metabolomic profile?",
       "gold_answers": [
         "borate showing the largest impact with 125 of 1048 altered metabolites"
       ],
@@ -1219,7 +1485,10 @@
           "title": "Effects of preanalytical sample collection and handling on comprehensive metabolite measurements in human urine biospecimens",
           "author": "Braisted J, et al.",
           "pmid": "39284767",
-          "doi": "10.1093/aje/kwae347"
+          "doi": "10.1093/aje/kwae347",
+          "gold_answers": [
+            "borate showing the largest impact with 125 of 1048 altered metabolites"
+          ]
         }
       ],
       "category": "Specimen, tube, and processing effects",
@@ -1227,16 +1496,19 @@
     },
     {
       "id": "Q074",
-      "question": "How did pre-analytical handling effects on the urinary metabolome compare with those in serum?",
+      "question": "Were pre-analytical handling effects larger in urine or serum metabolomics?",
       "gold_answers": [
-        "markedly smaller than those in serum."
+        "markedly smaller than those in serum"
       ],
       "gold_documents": [
         {
           "title": "Effects of preanalytical sample collection and handling on comprehensive metabolite measurements in human urine biospecimens",
           "author": "Braisted J, et al.",
           "pmid": "39284767",
-          "doi": "10.1093/aje/kwae347"
+          "doi": "10.1093/aje/kwae347",
+          "gold_answers": [
+            "markedly smaller than those in serum"
+          ]
         }
       ],
       "category": "Specimen, tube, and processing effects",
@@ -1244,16 +1516,19 @@
     },
     {
       "id": "Q075",
-      "question": "For how long did RNA remain stable in fresh colon cancer tissue kept at room temperature or on ice before snap freezing?",
+      "question": "How long can fresh colon cancer tissue stay at room temperature or on ice before snap-freezing without reducing RNA quality?",
       "gold_answers": [
-        "up to 4 h"
+        "RNA remained stable in colon cancer tissues kept at room temperature and on ice for up to 4 h"
       ],
       "gold_documents": [
         {
           "title": "Biobanking of fresh-frozen human colon tissues: impact of tissue ex-vivo ischemia times and storage periods on RNA quality",
           "author": "Bao WG, et al.",
           "pmid": "22711177",
-          "doi": "10.1245/s10434-012-2440-1"
+          "doi": "10.1245/s10434-012-2440-1",
+          "gold_answers": [
+            "RNA remained stable in colon cancer tissues kept at room temperature and on ice for up to 4 h"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -1261,7 +1536,7 @@
     },
     {
       "id": "Q076",
-      "question": "Did long-term storage of banked colon specimens reduce RNA quality?",
+      "question": "Does storing frozen colon tissue for up to 40 months reduce RNA quality?",
       "gold_answers": [
         "long-term storage of banked colon specimens did not negatively influence RNA quality"
       ],
@@ -1270,7 +1545,10 @@
           "title": "Biobanking of fresh-frozen human colon tissues: impact of tissue ex-vivo ischemia times and storage periods on RNA quality",
           "author": "Bao WG, et al.",
           "pmid": "22711177",
-          "doi": "10.1245/s10434-012-2440-1"
+          "doi": "10.1245/s10434-012-2440-1",
+          "gold_answers": [
+            "long-term storage of banked colon specimens did not negatively influence RNA quality"
+          ]
         }
       ],
       "category": "Storage temperature and duration",
@@ -1278,7 +1556,7 @@
     },
     {
       "id": "Q077",
-      "question": "For how long did RNA remain intact when fresh kidney cancer tissue was kept on ice before freezing?",
+      "question": "How long can fresh kidney cancer tissue remain on ice before freezing without losing RNA integrity?",
       "gold_answers": [
         "RNA remained intact after 4 h on ice"
       ],
@@ -1287,7 +1565,10 @@
           "title": "Effect of Duration of Ex Vivo Ischemia Time and Storage Period on RNA Quality in Biobanked Human Renal Cell Carcinoma Tissue",
           "author": "Sun H, et al.",
           "pmid": "25567356",
-          "doi": "10.1245/s10434-014-4327-9"
+          "doi": "10.1245/s10434-014-4327-9",
+          "gold_answers": [
+            "RNA remained intact after 4 h on ice"
+          ]
         }
       ],
       "category": "Pre-centrifugation delay and transport",
@@ -1295,7 +1576,7 @@
     },
     {
       "id": "Q078",
-      "question": "How should fresh human cancer tissue be transported before biobanking to protect RNA quality?",
+      "question": "How should fresh cancer tissue be transported before biobanking to preserve RNA quality?",
       "gold_answers": [
         "should be transported on ice before biobanking"
       ],
@@ -1304,7 +1585,10 @@
           "title": "Effect of Duration of Ex Vivo Ischemia Time and Storage Period on RNA Quality in Biobanked Human Renal Cell Carcinoma Tissue",
           "author": "Sun H, et al.",
           "pmid": "25567356",
-          "doi": "10.1245/s10434-014-4327-9"
+          "doi": "10.1245/s10434-014-4327-9",
+          "gold_answers": [
+            "should be transported on ice before biobanking"
+          ]
         }
       ],
       "category": "Biospecimen quality control and SOPs",
@@ -1312,16 +1596,19 @@
     },
     {
       "id": "Q079",
-      "question": "How did more than half of the urine analytes compare with baseline after more than ten years at −22°C?",
+      "question": "Do most urine analytes remain stable after more than ten years at −22°C?",
       "gold_answers": [
-        "not significantly different from baseline."
+        "not significantly different from baseline"
       ],
       "gold_documents": [
         {
           "title": "Long-term urine biobanking: storage stability of clinical chemical parameters under moderate freezing conditions without use of preservatives",
           "author": "Remer T, et al.",
           "pmid": "25239781",
-          "doi": "10.1016/j.clinbiochem.2014.09.009"
+          "doi": "10.1016/j.clinbiochem.2014.09.009",
+          "gold_answers": [
+            "not significantly different from baseline"
+          ]
         }
       ],
       "category": "Storage temperature and duration",
@@ -1329,7 +1616,7 @@
     },
     {
       "id": "Q080",
-      "question": "What storage duration at −22°C was considered acceptable for later measurement of several urine analytes?",
+      "question": "How long can several urine analytes remain suitable for later measurement when stored at −22°C?",
       "gold_answers": [
         "periods even exceeding 10 yr"
       ],
@@ -1338,7 +1625,10 @@
           "title": "Long-term urine biobanking: storage stability of clinical chemical parameters under moderate freezing conditions without use of preservatives",
           "author": "Remer T, et al.",
           "pmid": "25239781",
-          "doi": "10.1016/j.clinbiochem.2014.09.009"
+          "doi": "10.1016/j.clinbiochem.2014.09.009",
+          "gold_answers": [
+            "periods even exceeding 10 yr"
+          ]
         }
       ],
       "category": "Storage temperature and duration",
@@ -1346,7 +1636,7 @@
     },
     {
       "id": "Q081",
-      "question": "Which pre-analytical variations most affected RNA integrity in Tempus blood collection tubes?",
+      "question": "Which handling problems have the greatest effect on RNA integrity in Tempus blood collection tubes?",
       "gold_answers": [
         "more sensitive to fill volumes and effective inversion"
       ],
@@ -1355,7 +1645,10 @@
           "title": "Preanalytical robustness of blood collection tubes with RNA stabilizers",
           "author": "Stellino C, et al.",
           "pmid": "31112504",
-          "doi": "10.1515/cclm-2019-0170"
+          "doi": "10.1515/cclm-2019-0170",
+          "gold_answers": [
+            "more sensitive to fill volumes and effective inversion"
+          ]
         }
       ],
       "category": "Specimen, tube, and processing effects",
@@ -1363,7 +1656,7 @@
     },
     {
       "id": "Q082",
-      "question": "Which pre-analytical variations most affected RNA integrity in PAXgene blood collection tubes?",
+      "question": "Which handling problems have the greatest effect on RNA integrity in PAXgene blood collection tubes?",
       "gold_answers": [
         "more sensitive to effective inversion and storage temperature"
       ],
@@ -1372,7 +1665,10 @@
           "title": "Preanalytical robustness of blood collection tubes with RNA stabilizers",
           "author": "Stellino C, et al.",
           "pmid": "31112504",
-          "doi": "10.1515/cclm-2019-0170"
+          "doi": "10.1515/cclm-2019-0170",
+          "gold_answers": [
+            "more sensitive to effective inversion and storage temperature"
+          ]
         }
       ],
       "category": "Specimen, tube, and processing effects",
@@ -1380,7 +1676,7 @@
     },
     {
       "id": "Q083",
-      "question": "Which less obvious container and centrifugation factors can affect metabolomics study validity?",
+      "question": "Which choices involving sample vials and centrifugation can affect the validity of a metabolomics study?",
       "gold_answers": [
         "vial size, material and batch, centrifuge speeds"
       ],
@@ -1389,7 +1685,10 @@
           "title": "Preanalytical Processing and Biobanking Procedures of Biological Samples for Metabolomics Research: A White Paper, Community Perspective (for \"Precision Medicine and Pharmacometabolomics Task Group\"-The Metabolomics Society Initiative)",
           "author": "Kirwan JA, et al.",
           "pmid": "29921725",
-          "doi": "10.1373/clinchem.2018.287045"
+          "doi": "10.1373/clinchem.2018.287045",
+          "gold_answers": [
+            "vial size, material and batch, centrifuge speeds"
+          ]
         }
       ],
       "category": "Biospecimen quality control and SOPs",
@@ -1397,16 +1696,30 @@
     },
     {
       "id": "Q084",
-      "question": "What should every biobank establish for metabolomics sample collection?",
+      "question": "What kind of sample-collection protocol should a biobank use for metabolomics studies?",
       "gold_answers": [
-        "a well-defined and validated protocol"
+        "a well-defined and validated protocol",
+        "Design and validate the sample collection protocol before main recruitment starts"
       ],
       "gold_documents": [
         {
           "title": "Preanalytical Processing and Biobanking Procedures of Biological Samples for Metabolomics Research: A White Paper, Community Perspective (for \"Precision Medicine and Pharmacometabolomics Task Group\"-The Metabolomics Society Initiative)",
           "author": "Kirwan JA, et al.",
           "pmid": "29921725",
-          "doi": "10.1373/clinchem.2018.287045"
+          "doi": "10.1373/clinchem.2018.287045",
+          "gold_answers": [
+            "a well-defined and validated protocol"
+          ]
+        },
+        {
+          "title": "Current standards for the storage of human samples in biobanks",
+          "author": "Peakman T, Elliott P.",
+          "pmid": "20923579",
+          "pmcid": "PMC2988449",
+          "doi": "10.1186/gm193",
+          "gold_answers": [
+            "Design and validate the sample collection protocol before main recruitment starts"
+          ]
         }
       ],
       "category": "Biospecimen quality control and SOPs",
@@ -1414,7 +1727,7 @@
     },
     {
       "id": "Q085",
-      "question": "What systematic metabolic changes were detected after urine and serum were held for 24 hours at 4°C before freezing?",
+      "question": "Do urine and serum show systematic metabolite changes after being kept at 4°C for 24 hours before freezing?",
       "gold_answers": [
         "no systematic metabolite changes"
       ],
@@ -1423,7 +1736,10 @@
           "title": "High-throughput 1H NMR-based metabolic analysis of human serum and urine for large-scale epidemiological studies: validation study",
           "author": "Barton RH, et al.",
           "pmid": "18381391",
-          "doi": "10.1093/ije/dym284"
+          "doi": "10.1093/ije/dym284",
+          "gold_answers": [
+            "no systematic metabolite changes"
+          ]
         }
       ],
       "category": "Storage temperature and duration",
@@ -1431,7 +1747,7 @@
     },
     {
       "id": "Q086",
-      "question": "How were the small differences in serum stored for 36 hours at 4°C detected?",
+      "question": "What type of analysis is needed to detect the small serum changes that occur after 36 hours at 4°C?",
       "gold_answers": [
         "detectable only by multivariate analysis"
       ],
@@ -1440,7 +1756,10 @@
           "title": "High-throughput 1H NMR-based metabolic analysis of human serum and urine for large-scale epidemiological studies: validation study",
           "author": "Barton RH, et al.",
           "pmid": "18381391",
-          "doi": "10.1093/ije/dym284"
+          "doi": "10.1093/ije/dym284",
+          "gold_answers": [
+            "detectable only by multivariate analysis"
+          ]
         }
       ],
       "category": "Storage temperature and duration",
@@ -1448,9 +1767,9 @@
     },
     {
       "id": "Q087",
-      "question": "Which plasma Alzheimer’s disease biomarkers were more stable in P100 protease-inhibitor tubes?",
+      "question": "Which plasma Alzheimer’s biomarkers became more stable when blood was collected in P100 protease-inhibitor tubes?",
       "gold_answers": [
-        "Aβ42 and Aβ40"
+        "significantly improved the stability of Aβ42 and Aβ40 across all approaches"
       ],
       "gold_documents": [
         {
@@ -1458,7 +1777,10 @@
           "author": "Chen Y, et al.",
           "pmid": "38814273",
           "pmcid": "PMC11449657",
-          "doi": "10.1111/jnc.16130"
+          "doi": "10.1111/jnc.16130",
+          "gold_answers": [
+            "significantly improved the stability of Aβ42 and Aβ40 across all approaches"
+          ]
         }
       ],
       "category": "Specimen, tube, and processing effects",
@@ -1466,9 +1788,9 @@
     },
     {
       "id": "Q088",
-      "question": "Which plasma Alzheimer’s biomarkers showed no significant tube-related differences?",
+      "question": "Which plasma Alzheimer’s biomarkers were unaffected by the choice of collection tube?",
       "gold_answers": [
-        "plasma p-tau181, GFAP, and NfL"
+        "No significant differences were observed in the levels of plasma p-tau181, GFAP, and NfL"
       ],
       "gold_documents": [
         {
@@ -1476,7 +1798,10 @@
           "author": "Chen Y, et al.",
           "pmid": "38814273",
           "pmcid": "PMC11449657",
-          "doi": "10.1111/jnc.16130"
+          "doi": "10.1111/jnc.16130",
+          "gold_answers": [
+            "No significant differences were observed in the levels of plasma p-tau181, GFAP, and NfL"
+          ]
         }
       ],
       "category": "Specimen, tube, and processing effects",
@@ -1484,16 +1809,19 @@
     },
     {
       "id": "Q089",
-      "question": "Which cold-ischemia and storage durations did not adversely influence RNA integrity in fresh-frozen tumor tissue?",
+      "question": "How much cold ischemia and frozen storage can fresh-frozen tumor tissue tolerate without reducing RNA integrity?",
       "gold_answers": [
-        "Up to 1-hour cold ischemia times and up to 6-year storage times"
+        "Up to 1-hour cold ischemia times and up to 6-year storage times did not adversely influence RNA integrity"
       ],
       "gold_documents": [
         {
           "title": "Biobanking of Fresh-Frozen Cancer Tissue: RNA Is Stable Independent of Tissue Type with Less Than 1 Hour of Cold Ischemia",
           "author": "Song SY, et al.",
           "pmid": "29148824",
-          "doi": "10.1089/bio.2017.0062"
+          "doi": "10.1089/bio.2017.0062",
+          "gold_answers": [
+            "Up to 1-hour cold ischemia times and up to 6-year storage times did not adversely influence RNA integrity"
+          ]
         }
       ],
       "category": "Storage temperature and duration",
@@ -1501,20 +1829,30 @@
     },
     {
       "id": "Q090",
-      "question": "How many of 396 analyzed tumor tissues had an RNA integrity number below seven?",
+      "question": "How common was an RNA integrity number below 7 among the frozen tumor samples?",
       "gold_answers": [
-        "Only 3 samples showed RIN of <7"
+        "Only 3 samples showed RIN of <7 out of a total of 396 analyzed tumor tissues"
       ],
       "gold_documents": [
         {
           "title": "Biobanking of Fresh-Frozen Cancer Tissue: RNA Is Stable Independent of Tissue Type with Less Than 1 Hour of Cold Ischemia",
           "author": "Song SY, et al.",
           "pmid": "29148824",
-          "doi": "10.1089/bio.2017.0062"
+          "doi": "10.1089/bio.2017.0062",
+          "gold_answers": [
+            "Only 3 samples showed RIN of <7 out of a total of 396 analyzed tumor tissues"
+          ]
         }
       ],
       "category": "Biospecimen quality control and SOPs",
       "answerable": true
     }
-  ]
+  ],
+  "evaluation_policy": {
+    "retrieval_hit": "A hit occurs when at least one listed gold document is retrieved.",
+    "first_relevant_rank": "Use the minimum rank of any matched gold document.",
+    "max_gold_documents_per_question": 3,
+    "gold_answers": "Document-specific verbatim contiguous text spans; alternatives are not cumulative requirements."
+  },
+  "revision_date": "2026-08-04"
 }

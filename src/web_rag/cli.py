@@ -5,6 +5,7 @@ from pathlib import Path
 
 from .config import (
     CHUNKING_METHODS,
+    LLM_PROVIDERS,
     PAPERCLIP_MODES,
     PAPERCLIP_RANKINGS,
     QUERY_STRATEGIES,
@@ -24,15 +25,40 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--question", dest="question_option")
     parser.add_argument("--limit", "--retrieval-limit", dest="retrieval_limit", type=int, default=settings.retrieval_limit)
     parser.add_argument("--query-strategy", choices=QUERY_STRATEGIES, default=settings.query_strategy)
-    parser.add_argument("--hyde-model", default=settings.hyde_model)
-    parser.add_argument("--hyde-base-url", default=settings.hyde_base_url)
+    parser.add_argument(
+        "--llm-provider",
+        choices=LLM_PROVIDERS,
+        default=settings.llm_provider,
+        help="Use openai for Interweb and other OpenAI-compatible APIs.",
+    )
+    parser.add_argument("--llm-model", default=settings.llm_model)
+    parser.add_argument("--llm-base-url", default=settings.llm_base_url)
+    parser.add_argument("--llm-api-key-env", default=settings.llm_api_key_env)
+    parser.add_argument(
+        "--hyde-model",
+        default=None,
+        help="Optional HyDE-specific model override.",
+    )
+    parser.add_argument(
+        "--hyde-base-url",
+        default=None,
+        help="Optional HyDE-specific API URL override.",
+    )
     parser.add_argument("--hyde-temperature", type=float, default=settings.hyde_temperature)
     parser.add_argument("--hyde-max-tokens", type=int, default=settings.hyde_max_tokens)
     parser.add_argument("--hyde-seed", type=int, default=settings.hyde_seed)
     parser.add_argument("--hyde-timeout", type=float, default=settings.hyde_timeout)
 
-    parser.add_argument("--expansion-model", default=settings.expansion_model)
-    parser.add_argument("--expansion-base-url", default=settings.expansion_base_url)
+    parser.add_argument(
+        "--expansion-model",
+        default=None,
+        help="Optional LLM-expansion-specific model override.",
+    )
+    parser.add_argument(
+        "--expansion-base-url",
+        default=None,
+        help="Optional LLM-expansion-specific API URL override.",
+    )
     parser.add_argument("--expansion-temperature", type=float, default=settings.expansion_temperature)
     parser.add_argument("--expansion-max-tokens", type=int, default=settings.expansion_max_tokens)
     parser.add_argument("--expansion-seed", type=int, default=settings.expansion_seed)
@@ -56,7 +82,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--paperclip-journal")
     parser.add_argument("--paperclip-article-type")
     parser.add_argument("--paperclip-author")
-    parser.add_argument("--paperclip-full-corpus", action="store_true")
+    parser.add_argument(
+        "--paperclip-full-corpus",
+        action=argparse.BooleanOptionalAction,
+        default=settings.paperclip_full_corpus,
+        help="Search the full Paperclip corpus. Enabled by default.",
+    )
 
     parser.add_argument("--chunking-method", choices=CHUNKING_METHODS, default=settings.chunking_method)
     parser.add_argument("--chunk-window-size", type=int, default=settings.chunk_window_size)
@@ -99,6 +130,10 @@ def main() -> None:
             question,
             retrieval_limit=args.retrieval_limit,
             query_strategy=args.query_strategy,
+            llm_provider=args.llm_provider,
+            llm_model=args.llm_model,
+            llm_base_url=args.llm_base_url,
+            llm_api_key_env=args.llm_api_key_env,
             hyde_model=args.hyde_model,
             hyde_base_url=args.hyde_base_url,
             hyde_temperature=args.hyde_temperature,
