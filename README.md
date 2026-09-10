@@ -47,16 +47,21 @@ Use Python 3.12 and the tested Paperclip environment:
 ~~~cmd
 py -3.12 -m venv .venv
 call .venv\Scripts\activate.bat
-python -m pip install --upgrade pip
+python -m pip install --upgrade pip setuptools wheel
 python -m pip install -r requirements.txt
+curl.exe -fL "https://paperclip.gxl.ai/paperclip.whl" -o "%TEMP%\gxl_paperclip-0.7.49-py3-none-any.whl"
+python -m pip install "%TEMP%\gxl_paperclip-0.7.49-py3-none-any.whl"
 python -m pip install -e .
+python -m pip check
 copy .env.example .env
 ~~~
 
-Paperclip 0.7.49 must be installed and authenticated separately. Verify it:
+The explicit download filename is required because the filename supplied by the
+Paperclip endpoint is not a valid Python wheel filename on Windows. Verify that
+Paperclip 0.7.49 was installed in the active environment:
 
 ~~~cmd
-python -c "from importlib.metadata import version; print(version('gxl-paperclip'))"
+python -c "from importlib.metadata import version; v=version('gxl-paperclip'); print(v); assert v == '0.7.49'"
 ~~~
 
 Add your own API key to `.env` before testing HyDE or LLM expansion. The raw
