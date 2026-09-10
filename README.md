@@ -60,6 +60,26 @@ The first chunking/reranking run downloads
 ncbi/MedCPT-Cross-Encoder from Hugging Face. The semantic evaluator separately
 downloads BAAI/bge-m3.
 
+## Verify the active defaults
+
+Local `.env` entries and Windows environment variables beginning with
+`WEB_RAG_` override the defaults in the code. This is useful for experiments,
+but settings from an older run can silently change the smoke test. Check the
+effective values before testing:
+
+~~~cmd
+python -c "from web_rag.config import get_settings; s=get_settings(); print('reranker:',s.reranker); print('top_k:',s.top_k); print('max_chunks_per_paper:',s.max_chunks_per_paper)"
+~~~
+
+The fixed default should print `medcpt`, `20`, and `4`. If it does not,
+remove the old lines from `.env` or set them to:
+
+~~~dotenv
+WEB_RAG_RERANKER=medcpt
+WEB_RAG_TOP_K=20
+WEB_RAG_MAX_CHUNKS_PER_PAPER=4
+~~~
+
 ## Run one end-to-end smoke test
 
 ~~~cmd

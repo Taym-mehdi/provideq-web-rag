@@ -31,6 +31,11 @@ _SECTION_HEADINGS = {
     "conclusion",
     "conclusions",
     "references",
+    "reference",
+    "bibliography",
+    "literature cited",
+    "works cited",
+    "acknowledgement",
     "acknowledgements",
     "acknowledgments",
     "funding",
@@ -40,10 +45,18 @@ _SECTION_HEADINGS = {
     "conflicts of interest",
     "data availability",
     "supplementary material",
+    "supplementary data",
+    "supplementary information",
+    "appendix",
+    "appendices",
 }
 _SKIPPED_SECTIONS = {
     "references",
+    "reference",
     "bibliography",
+    "literature cited",
+    "works cited",
+    "acknowledgement",
     "acknowledgements",
     "acknowledgments",
     "funding",
@@ -51,8 +64,28 @@ _SKIPPED_SECTIONS = {
     "competing interests",
     "conflict of interest",
     "conflicts of interest",
+    "data availability",
     "supplementary material",
+    "supplementary data",
+    "supplementary information",
+    "appendix",
+    "appendices",
 }
+_FRONT_MATTER_RE = re.compile(
+    r"^(?:received|accepted|revised|published|available online)\b",
+    flags=re.IGNORECASE,
+)
+_AFFILIATION_RE = re.compile(
+    r"^(?:\d+|[a-z])\s+.*\b(?:department|faculty|institute|university|"
+    r"hospital|school|centre|center|council|public health)\b",
+    flags=re.IGNORECASE,
+)
+_NUMBERED_REFERENCE_RE = re.compile(
+    r"(?:^|\s)(?:\[\d{1,3}\]|\d{1,3}[.)])\s+"
+    r"[A-Z][A-Za-zÀ-ÖØ-öø-ÿ'’\-]+"
+    r"(?:\s+[A-Z](?:\.)?)?(?:,|\.)"
+)
+_REFERENCE_YEAR_VOLUME_RE = re.compile(r"\b(?:19|20)\d{2}\s*;\s*\d")
 
 
 @dataclass(frozen=True)
@@ -87,6 +120,13 @@ def _is_heading(line: str) -> bool:
     return value.isupper() or title_case
 
 
+def _is_front_matter_line(line: str) -> bool:
+    value = clean_text(line)
+    if _FRONT_MATTER_RE.match(value):
+        return True
+    return word_count(value) <= 20 and bool(_AFFILIATION_RE.match(value))
+
+
 def _sentence_units(text: str) -> list[_SentenceUnit]:
     units: list[_SentenceUnit] = []
     section = ""
@@ -94,7 +134,7 @@ def _sentence_units(text: str) -> list[_SentenceUnit]:
 
     for raw_line in (text or "").splitlines():
         line = clean_text(raw_line)
-        if not line:
+        if not line or _is_front_matter_line(line):
             continue
         if _is_heading(line):
             section = line.rstrip(" .:")
@@ -187,6 +227,23 @@ def _should_skip_section(section: str) -> bool:
         or normalized.endswith(f" {name}")
         or normalized.startswith(f"{name} ")
         for name in _SKIPPED_SECTIONS
+    )
+
+
+def _looks_like_reference_block(text: str) -> bool:
+    numbered_entries = len(_NUMBERED_REFERENCE_RE.findall(text))
+    if numbered_entries >= 3:
+        return True
+    year_volume_pairs = len(_REFERENCE_YEAR_VOLUME_RE.findall(text))
+    return numbered_entries >= 2 and year_volume_pairs >= 2
+
+
+def _is_title_only_fragment(paper: Paper, section: str, text: str) -> bool:
+    if section:
+        return False
+    return (
+        normalize_for_deduplication(text)
+        == normalize_for_deduplication(paper.title)
     )
 
 
@@ -307,6 +364,8 @@ def token_aware_chunks(
                 and key not in seen
                 and word_count(text) >= min_words
                 and token_count <= max_tokens
+                and not _is_title_only_fragment(paper, section, text)
+                and not _looks_like_reference_block(text)
             ):
                 seen.add(key)
                 chunks.append(
