@@ -83,7 +83,7 @@ class Settings:
     reranker: str = "medcpt"
     top_k: int = 20
     max_chunks_per_paper: int = 4
-    near_duplicate_threshold: float = 0.90
+    near_duplicate_threshold: float = 0.95
 
     bm25_k1: float = 1.5
     bm25_b: float = 0.75
