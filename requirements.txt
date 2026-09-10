@@ -1,16 +1,12 @@
 # Runtime
-numpy>=1.26
 torch>=2.2
 transformers>=4.40
-sentence-transformers>=3.0
 openai>=1.40
 python-dotenv>=1.0
 
-# Evaluation and notebooks
-pandas>=2.2
-matplotlib>=3.8
-notebook>=7.0
-ipykernel>=6.29
+# Evaluation
+numpy>=1.26
+sentence-transformers>=3.0
 
 # Paperclip 0.7.49 is installed and authenticated separately.
 # The project loads gxl_paperclip from the active environment or ~/.paperclip/lib.

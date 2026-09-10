@@ -17,11 +17,13 @@ The no-argument defaults represent the best fixed pipeline to test first:
 | Chunk size | Maximum 512 MedCPT tokens |
 | Overlap | 20%, using at most five complete trailing sentences |
 | Chunk reranker | ncbi/MedCPT-Cross-Encoder |
-| Returned evidence | 20 unique chunks when at least 20 are available |
+| Returned evidence | 20 distinct chunks when at least 20 are available |
 
 Adjacent sentences from the same section are merged until the token budget is
 reached. Chunks never cross detected section boundaries. References,
-acknowledgements, funding, and similar non-evidence sections are skipped.
+acknowledgements, funding, indexing-keyword lists, and similar non-evidence
+content are skipped. Repeated findings from an abstract and the body of the same
+paper are removed before the final selection.
 
 This adapts Aryan's Docling HybridChunker behavior to the plain article text
 returned by Paperclip. It deliberately does not add Docling as another parsing
@@ -48,6 +50,7 @@ call .venv312\Scripts\activate.bat
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python -m pip install -e .
+copy .env.example .env
 ~~~
 
 Paperclip 0.7.49 must be installed and authenticated separately. Verify it:
@@ -56,9 +59,10 @@ Paperclip 0.7.49 must be installed and authenticated separately. Verify it:
 python -c "from importlib.metadata import version; print(version('gxl-paperclip'))"
 ~~~
 
-The first chunking/reranking run downloads
-ncbi/MedCPT-Cross-Encoder from Hugging Face. The semantic evaluator separately
-downloads BAAI/bge-m3.
+Add your own API key to `.env` before testing HyDE or LLM expansion. The raw
+default pipeline does not call the LLM. The first chunking/reranking run
+downloads ncbi/MedCPT-Cross-Encoder from Hugging Face. The semantic evaluator
+separately downloads BAAI/bge-m3.
 
 ## Verify the active defaults
 
@@ -182,4 +186,5 @@ reranking, and top-20 selection are all defaults.
 The previous document-retrieval experiments remain available under evaluation.
 Raw, HyDE, and LLM expansion can still be compared with Paperclip BM25, vector,
 or hybrid ranking. They do not alter the fixed default pipeline unless selected
-explicitly.
+explicitly. Follow [TESTING.md](TESTING.md) to run the comparisons in stages
+with matching benchmark subsets and seeds.

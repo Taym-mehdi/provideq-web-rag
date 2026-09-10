@@ -8,7 +8,7 @@ from web_rag.models import Paper, TextChunk
 
 
 def _chunk(paper: Paper, index: int, score: float) -> TextChunk:
-    unique = " ".join(f"term{index}_{value}" for value in range(10))
+    unique = " ".join(f"term{index}x{value}" for value in range(10))
     return TextChunk(
         paper=paper,
         text=f"Evidence chunk {index} {unique}",
@@ -64,6 +64,35 @@ class EvidenceSelectionTests(unittest.TestCase):
         )
 
         self.assertEqual(len(selected), 1)
+
+    def test_repeated_finding_within_one_paper_is_removed(self) -> None:
+        first = Paper("PMC1", "First", "text", "pmc")
+        second = Paper("PMC2", "Second", "text", "pmc")
+        detailed = (
+            "Serum potassium remained stable after four hours of delayed "
+            "centrifugation in separator gel tubes according to study results."
+        )
+        abbreviated = (
+            "Serum potassium was stable after four hours delayed "
+            "centrifugation in gel tubes according to results."
+        )
+        ranked = [
+            TextChunk(first, detailed, "token_aware", 0, score=3),
+            TextChunk(first, abbreviated, "token_aware", 1, score=2),
+            TextChunk(second, abbreviated, "token_aware", 0, score=1),
+        ]
+
+        selected = select_evidence(
+            ranked,
+            top_k=3,
+            max_chunks_per_paper=3,
+            near_duplicate_threshold=0.95,
+        )
+
+        self.assertEqual(
+            [(chunk.paper.paper_id, chunk.chunk_index) for chunk in selected],
+            [("PMC1", 0), ("PMC2", 0)],
+        )
 
 
 if __name__ == "__main__":

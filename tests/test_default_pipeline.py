@@ -23,6 +23,8 @@ class DefaultPipelineTests(unittest.TestCase):
             "ncbi/MedCPT-Cross-Encoder",
         )
         self.assertEqual(settings.top_k, 20)
+        self.assertEqual(settings.max_chunks_per_paper, 4)
+        self.assertEqual(settings.near_duplicate_threshold, 0.95)
 
     @patch("web_rag.pipeline.rerank_chunks")
     @patch("web_rag.pipeline.chunk_papers")
@@ -56,7 +58,7 @@ class DefaultPipelineTests(unittest.TestCase):
         for index in range(20):
             paper = papers[index % len(papers)]
             unique = " ".join(
-                f"term{index}_{value}" for value in range(10)
+                f"term{index}x{value}" for value in range(10)
             )
             chunks.append(
                 TextChunk(
@@ -69,6 +71,9 @@ class DefaultPipelineTests(unittest.TestCase):
                     end_sentence=index + 2,
                     token_count=100,
                     score=float(20 - index),
+                    score_components={
+                        "medcpt_cross_encoder": float(20 - index)
+                    },
                 )
             )
         chunk_papers.return_value = chunks
@@ -90,12 +95,26 @@ class DefaultPipelineTests(unittest.TestCase):
         )
         self.assertEqual(result.pipeline.returned_evidence_count, 20)
         self.assertEqual(len(result.records), 20)
+        self.assertEqual(
+            [record.citation_id for record in result.records],
+            list(range(1, 21)),
+        )
+        self.assertEqual(len(result.retrieved_papers), 5)
+        self.assertTrue(
+            all(paper.has_full_text for paper in result.retrieved_papers)
+        )
+        self.assertIn("[1] Evidence 0", result.context_text)
+        self.assertIn("[20] Evidence 19", result.context_text)
         record = result.records[0]
         self.assertTrue(record.has_full_text)
         self.assertEqual(record.token_count, 100)
         self.assertEqual(record.paper_retrieval_rank, 1)
         self.assertEqual(record.paperclip_original_rank, 2)
         self.assertEqual(record.rerank_rank, 1)
+        self.assertEqual(
+            record.score_components,
+            {"medcpt_cross_encoder": 20.0},
+        )
 
 
 if __name__ == "__main__":

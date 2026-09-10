@@ -6,6 +6,12 @@ from .models import TextChunk
 from .text_utils import normalize_for_deduplication, overlap_ratio
 
 
+# Abstracts and article bodies often repeat the same finding with slightly
+# different wording. A lower same-paper threshold removes that repetition while
+# preserving the stricter configurable threshold across independent papers.
+_SAME_PAPER_NEAR_DUPLICATE_THRESHOLD = 0.85
+
+
 def _paper_key(chunk: TextChunk) -> str:
     paper = chunk.paper
     return (
@@ -29,10 +35,17 @@ def _is_near_duplicate(
     selected: list[TextChunk],
     threshold: float,
 ) -> bool:
-    return any(
-        overlap_ratio(chunk.text, previous.text) >= threshold
-        for previous in selected
-    )
+    paper_key = _paper_key(chunk)
+    for previous in selected:
+        pair_threshold = threshold
+        if _paper_key(previous) == paper_key:
+            pair_threshold = min(
+                pair_threshold,
+                _SAME_PAPER_NEAR_DUPLICATE_THRESHOLD,
+            )
+        if overlap_ratio(chunk.text, previous.text) >= pair_threshold:
+            return True
+    return False
 
 
 def select_evidence(

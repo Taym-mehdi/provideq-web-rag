@@ -132,6 +132,53 @@ class TokenAwareChunkingTests(unittest.TestCase):
         self.assertTrue(chunks)
         self.assertIn("Potassium increased", chunks[0].text)
 
+    def test_removes_keyword_metadata_fragments(self) -> None:
+        paper = Paper(
+            paper_id="PMC6",
+            title="Keyword metadata",
+            source="pmc",
+            text=(
+                "Original Article\n"
+                "clinical biochemistry; plasma; preanalytical variation; "
+                "serum; stability\n"
+                "Results\n"
+                "Serum potassium increased after delayed centrifugation."
+            ),
+        )
+
+        chunks = self.chunk(paper)
+        combined = " ".join(chunk.text for chunk in chunks)
+
+        self.assertIn("potassium increased", combined)
+        self.assertNotIn("preanalytical variation", combined)
+
+    def test_trims_mixed_acknowledgement_and_reference_tails(self) -> None:
+        paper = Paper(
+            paper_id="PMC7",
+            title="Mixed tail",
+            source="pmc",
+            text=(
+                "Discussion\n"
+                "Potassium was not stable after the prolonged delay. "
+                "We wish to thank the laboratory staff for their assistance. "
+                "1. Smith J. First study. Journal. 2019; 1: 1-2.\n"
+                "Conclusion\n"
+                "The acceptable delay depends on tube type and temperature. "
+                "1. Quality of diagnostic samples. Journal. 2009; 12: 1-4. "
+                "2. Jones B. Second study. Journal. 2010; 30: 10-20. "
+                "3. Brown C. Third study. Journal. 2018; 56: 30-40."
+            ),
+        )
+
+        chunks = self.chunk(paper)
+        combined = " ".join(chunk.text for chunk in chunks)
+
+        self.assertIn("Potassium was not stable", combined)
+        self.assertIn("acceptable delay depends", combined)
+        self.assertNotIn("wish to thank", combined)
+        self.assertNotIn("Quality of diagnostic samples", combined)
+        self.assertNotIn("Jones B", combined)
+
     def test_ignores_short_front_matter_lines(self) -> None:
         paper = Paper(
             paper_id="PMC5",

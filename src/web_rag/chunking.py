@@ -86,6 +86,14 @@ _NUMBERED_REFERENCE_RE = re.compile(
     r"(?:\s+[A-Z](?:\.)?)?(?:,|\.)"
 )
 _REFERENCE_YEAR_VOLUME_RE = re.compile(r"\b(?:19|20)\d{2}\s*;\s*\d")
+_ACKNOWLEDGEMENT_START_RE = re.compile(
+    r"^(?:we\s+(?:also\s+)?(?:wish\s+to\s+)?thank\b|"
+    r"the\s+authors?\s+(?:also\s+)?(?:wish(?:es)?\s+to\s+)?thank\b)",
+    flags=re.IGNORECASE,
+)
+_NUMBERED_ITEM_RE = re.compile(
+    r"(?:^|[.!?]\s+)(\d{1,3})[.)]\s+(?=[A-Z])"
+)
 
 
 @dataclass(frozen=True)
@@ -238,6 +246,52 @@ def _looks_like_reference_block(text: str) -> bool:
     return numbered_entries >= 2 and year_volume_pairs >= 2
 
 
+def _reference_tail_start(units: list[_SentenceUnit]) -> int | None:
+    """Return the first unit of an unlabelled numbered bibliography."""
+    for index, unit in enumerate(units):
+        if not re.match(
+            r"^\d{1,3}[.)](?:\s+(?=[A-Z])|$)",
+            unit.text,
+        ):
+            continue
+
+        tail = " ".join(item.text for item in units[index:])
+        numbered_items = _NUMBERED_ITEM_RE.findall(tail)
+        year_volume_pairs = _REFERENCE_YEAR_VOLUME_RE.findall(tail)
+        if len(numbered_items) >= 3 and len(year_volume_pairs) >= 2:
+            return index
+    return None
+
+
+def _trim_non_evidence_tail(
+    units: list[_SentenceUnit],
+) -> list[_SentenceUnit]:
+    """Remove acknowledgements and an unlabelled bibliography after evidence."""
+    cutoff = len(units)
+    for index, unit in enumerate(units):
+        if _ACKNOWLEDGEMENT_START_RE.match(unit.text):
+            cutoff = index
+            break
+
+    reference_start = _reference_tail_start(units[:cutoff])
+    if reference_start is not None:
+        cutoff = min(cutoff, reference_start)
+    return units[:cutoff]
+
+
+def _looks_like_keyword_list(text: str) -> bool:
+    """Detect short semicolon-delimited indexing keywords, not prose."""
+    value = clean_text(text)
+    if re.search(r"[.!?]", value):
+        return False
+    entries = [clean_text(item) for item in value.split(";")]
+    return (
+        3 <= len(entries) <= 20
+        and word_count(value) <= 40
+        and all(entry and word_count(entry) <= 6 for entry in entries)
+    )
+
+
 def _is_title_only_fragment(paper: Paper, section: str, text: str) -> bool:
     if section:
         return False
@@ -317,6 +371,10 @@ def token_aware_chunks(
         if _should_skip_section(section):
             continue
 
+        raw_units = _trim_non_evidence_tail(raw_units)
+        if not raw_units:
+            continue
+
         prefix = _section_prefix(section)
         prefix_tokens = _token_count(active_tokenizer, prefix)
         if prefix_tokens >= max_tokens - 8:
@@ -365,6 +423,7 @@ def token_aware_chunks(
                 and word_count(text) >= min_words
                 and token_count <= max_tokens
                 and not _is_title_only_fragment(paper, section, text)
+                and not _looks_like_keyword_list(body)
                 and not _looks_like_reference_block(text)
             ):
                 seen.add(key)

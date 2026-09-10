@@ -7,20 +7,96 @@ from pathlib import Path
 
 
 CONFIGS = [
-    ("Paperclip raw hybrid", ["--retriever", "paperclip", "--query-strategy", "raw", "--paperclip-ranking", "hybrid"]),
-    ("Paperclip HyDE hybrid", ["--retriever", "paperclip", "--query-strategy", "hyde", "--paperclip-ranking", "hybrid"]),
-    ("Europe PMC direct + synonyms", ["--retriever", "europepmc", "--query-strategy", "raw", "--europepmc-mode", "direct", "--europepmc-synonym"]),
-    ("Europe PMC multi-query, no synonyms", ["--retriever", "europepmc", "--query-strategy", "raw", "--europepmc-mode", "multi", "--no-europepmc-synonym"]),
-    ("Europe PMC multi-query + synonyms", ["--retriever", "europepmc", "--query-strategy", "raw", "--europepmc-mode", "multi", "--europepmc-synonym"]),
-    ("Fusion raw", ["--retriever", "fusion", "--query-strategy", "raw", "--paperclip-ranking", "hybrid", "--europepmc-mode", "multi", "--europepmc-synonym"]),
-    ("Fusion HyDE", ["--retriever", "fusion", "--query-strategy", "hyde", "--paperclip-ranking", "hybrid", "--europepmc-mode", "multi", "--europepmc-synonym"]),
+    (
+        "Paperclip raw BM25",
+        [
+            "--retriever", "paperclip",
+            "--query-strategy", "raw",
+            "--paperclip-ranking", "bm25",
+        ],
+    ),
+    (
+        "Paperclip raw vector",
+        [
+            "--retriever", "paperclip",
+            "--query-strategy", "raw",
+            "--paperclip-ranking", "vector",
+        ],
+    ),
+    (
+        "Paperclip raw hybrid",
+        [
+            "--retriever", "paperclip",
+            "--query-strategy", "raw",
+            "--paperclip-ranking", "hybrid",
+        ],
+    ),
+    (
+        "Paperclip anchored HyDE hybrid",
+        [
+            "--retriever", "paperclip",
+            "--query-strategy", "hyde",
+            "--paperclip-ranking", "hybrid",
+            "--paperclip-query-fusion",
+            "--query-fusion-rrf-k", "10",
+            "--reformulated-query-weight", "0.5",
+        ],
+    ),
+    (
+        "Paperclip anchored LLM expansion hybrid",
+        [
+            "--retriever", "paperclip",
+            "--query-strategy", "llmexpand",
+            "--paperclip-ranking", "hybrid",
+            "--paperclip-query-fusion",
+            "--query-fusion-rrf-k", "10",
+            "--reformulated-query-weight", "0.5",
+        ],
+    ),
+    (
+        "Europe PMC direct with synonyms",
+        [
+            "--retriever", "europepmc",
+            "--query-strategy", "raw",
+            "--europepmc-mode", "direct",
+            "--europepmc-synonym",
+        ],
+    ),
+    (
+        "Europe PMC multi-query without synonyms",
+        [
+            "--retriever", "europepmc",
+            "--query-strategy", "raw",
+            "--europepmc-mode", "multi",
+            "--no-europepmc-synonym",
+        ],
+    ),
+    (
+        "Europe PMC multi-query with synonyms",
+        [
+            "--retriever", "europepmc",
+            "--query-strategy", "raw",
+            "--europepmc-mode", "multi",
+            "--europepmc-synonym",
+        ],
+    ),
+    (
+        "Paperclip and Europe PMC fusion",
+        [
+            "--retriever", "fusion",
+            "--query-strategy", "raw",
+            "--paperclip-ranking", "hybrid",
+            "--europepmc-mode", "multi",
+            "--no-europepmc-synonym",
+        ],
+    ),
 ]
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Run the focused document-retrieval sweep.")
     parser.add_argument("--benchmark", default="benchmark/provideq_benchmark.json")
-    parser.add_argument("--num-questions", type=int, default=90)
+    parser.add_argument("--num-questions", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--retrieval-limit", type=int, default=10)
     parser.add_argument("--paperclip-candidate-limit", type=int, default=30)
