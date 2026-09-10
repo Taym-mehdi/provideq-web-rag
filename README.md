@@ -1,211 +1,165 @@
 # ProvideQ Web RAG
 
-This project retrieves scientific papers and evidence snippets for biobanking questions. It returns evidence to the downstream ProvideQ agent; it does not generate the final answer.
+This module retrieves scientific papers and returns evidence chunks to the
+downstream ProvideQ agent. It does not generate the final answer.
 
-## Current thesis experiment
+## Default pipeline
 
-The current step compares document retrieval with:
+The no-argument defaults represent the best fixed pipeline to test first:
 
-| Query method | Description |
+| Stage | Default |
 |---|---|
-| `raw` | Original question after whitespace cleaning |
-| `hyde` | One concise hypothetical biomedical passage |
-| `llmexpand` | Original question plus validated biomedical synonyms and equivalent terms |
+| Query | Raw question |
+| Paper retrieval | Paperclip hybrid, full corpus |
+| Retrieved papers | 10 |
+| Article text | Full text requested explicitly |
+| Chunking | Section-preserving, tokenizer-aware |
+| Chunk size | Maximum 512 MedCPT tokens |
+| Overlap | 20%, using at most five complete trailing sentences |
+| Chunk reranker | ncbi/MedCPT-Cross-Encoder |
+| Returned evidence | 20 unique chunks when at least 20 are available |
 
-Each method can be tested with Paperclip `bm25`, `vector`, and `hybrid`. Chunking and local reranking are not used in the MRR experiment.
+Adjacent sentences from the same section are merged until the token budget is
+reached. Chunks never cross detected section boundaries. References,
+acknowledgements, funding, and similar non-evidence sections are skipped.
 
-## Benchmark
+This adapts Aryan's Docling HybridChunker behavior to the plain article text
+returned by Paperclip. It deliberately does not add Docling as another parsing
+layer because Paperclip has already extracted the text.
 
-```text
-benchmark\provideq_benchmark.json
-```
+## Solr compatibility
 
-The benchmark contains 90 questions in five biobanking categories.
+Aryan uses Solr to store and retrieve candidates from his persistent local
+corpus. Web RAG has no persistent corpus: Paperclip already performs its
+first-stage hybrid retrieval. Therefore Solr is not duplicated here.
 
-## Installation on Windows CMD
+The compatible hand-off point is the output of run_pipeline: up to 20
+MedCPT-reranked chunks with source, paper rank, rerank rank, section, sentence
+range, token count, full-text status, and score metadata. Aryan's agent can
+consume these records directly.
 
-```cmd
-python -m venv .venv
-call .venv\Scripts\activate.bat
+## Windows setup
+
+Use Python 3.12 and the tested Paperclip environment:
+
+~~~cmd
+py -3.12 -m venv .venv312
+call .venv312\Scripts\activate.bat
 python -m pip install --upgrade pip
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 python -m pip install -e .
-```
+~~~
 
-Paperclip must also be installed and authenticated.
+Paperclip 0.7.49 must be installed and authenticated separately. Verify it:
 
-## Interweb configuration
+~~~cmd
+python -c "from importlib.metadata import version; print(version('gxl-paperclip'))"
+~~~
 
-Interweb is used through its OpenAI-compatible API. Configuration is loaded automatically from a project-local `.env` file.
+The first chunking/reranking run downloads
+ncbi/MedCPT-Cross-Encoder from Hugging Face. The semantic evaluator separately
+downloads BAAI/bge-m3.
 
-Create it once:
+## Run one end-to-end smoke test
 
-```cmd
-copy .env.example .env
-notepad .env
-```
+~~~cmd
+python -m web_rag.cli "Is potassium stable in serum gel tubes after delayed centrifugation?" --output-dir outputs\smoke --show-info
+~~~
 
-Replace the placeholder API key and choose a model:
+The command writes:
 
-```text
-INTERWEB_APIKEY=your_complete_key
-WEB_RAG_LLM_MODEL=agents-a1:35b-a3b
-```
+~~~text
+outputs\smoke\evidence.json
+outputs\smoke\context.txt
+~~~
 
-The `.env` file is ignored by Git.
+Check full text, chunk count, token limits, and metadata:
 
-Check the key and model:
+~~~cmd
+python -c "import json; d=json.load(open(r'outputs\smoke\evidence.json',encoding='utf-8')); print('full-text papers:',d['pipeline']['full_text_papers_count']); print('chunks:',len(d['records'])); print('max tokens:',max((x['token_count'] for x in d['records']),default=0)); [print(x['citation_id'],x['source']['paper_id'],x['paper_retrieval_rank'],x['rerank_rank'],x['section'],x['token_count'],x['has_full_text']) for x in d['records']]"
+~~~
 
-```cmd
-python check_interweb.py --list
-python check_interweb.py --test
-```
+Expected for a normal result with enough evidence:
 
-The same model, temperature, prompt, and generated-query cache should be used for all ranking comparisons.
+- full-text papers is greater than zero;
+- 20 records are returned;
+- every token count is at most 512;
+- every record has source and ranking metadata.
 
-## Run the retrieval experiment
+The pipeline returns fewer than 20 only when fewer than 20 sufficiently distinct
+non-empty chunks are available. It never creates artificial duplicates.
 
-Ready-to-copy CMD commands are in:
+## Run the unit tests
 
-```text
-IMPROVED_QUERY_TEST_COMMANDS.txt
-```
+The tests do not download models or contact Paperclip:
 
-The default settings are loaded from `.env`:
+~~~cmd
+python -m unittest discover -s tests -v
+~~~
 
-```text
-Questions: 90
-Retrieved papers: 10
-Paperclip sources: pmc,biorxiv,medrxiv,arxiv,abstracts_only
-Paperclip full-corpus search: enabled
-LLM provider: Interweb through OpenAI-compatible API
-LLM temperature: 0
-Seed: 42
-```
+## Evaluate the final chunks
 
-For HyDE and LLM expansion, the evaluator automatically creates a model-specific query cache under:
+Start with one known benchmark question:
 
-```text
-outputs\query_cache\
-```
+~~~cmd
+python -m evaluation.run_chunk_evaluation --question-id Q039 --no-resume
+~~~
 
-This ensures that vector and hybrid retrieval receive exactly the same generated query.
+Then run a five-question check:
 
-## Results
+~~~cmd
+python -m evaluation.run_chunk_evaluation --num-questions 5 --seed 42 --no-resume
+~~~
 
-Each run writes:
+After that, run all 90 questions:
 
-```text
-outputs\<query-method>_<paperclip-ranking>_retrieval_mrr\results.csv
-```
+~~~cmd
+python -m evaluation.run_chunk_evaluation --num-questions 90 --no-resume
+~~~
 
-The terminal prints:
+The evaluator saves incrementally to:
 
-```text
-Recall@1
-Recall@3
-Recall@5
-Recall@10
-MRR@10
-```
+~~~text
+outputs\default_chunk_evaluation\results.json
+outputs\default_chunk_evaluation\summary.json
+~~~
 
-The CSV records the exact query sent to Paperclip, the retrieved paper titles and identifiers, the matched gold paper, first relevant rank, model, source settings, and hit metrics.
+results.json contains all 20 chunks and their metadata for each question,
+together with the best lexical and semantic match scores and ranks. This file
+can be used for the later LLM-as-a-judge review.
 
-## Full Web RAG pipeline
+If GPU auto-detection causes a problem, add:
 
-```text
-Question
-→ Query reformulation through Interweb
-→ Paperclip paper retrieval
-→ Sentence-window chunking
-→ Local reranking
-→ Evidence selection
-→ Citation-ready snippets
-```
+~~~cmd
+--device cpu
+~~~
 
-The final pipeline also loads `.env` automatically:
+## Python integration
 
-```python
+~~~python
 from web_rag import run_pipeline
 
 result = run_pipeline(
-    "Is potassium stable in serum gel tubes after delayed centrifugation?",
-    query_strategy="llmexpand",
+    "Is potassium stable in serum gel tubes after delayed centrifugation?"
 )
 
-print(result.context_text)
-```
+for chunk in result.records:
+    print(
+        chunk.citation_id,
+        chunk.source.paper_id,
+        chunk.rerank_rank,
+        chunk.score,
+        chunk.evidence_text,
+    )
+~~~
 
-## Focused document-retrieval comparison
+The stable integration boundary is run_pipeline(question). Raw queries,
+Paperclip hybrid retrieval, token-aware chunking, MedCPT cross-encoder
+reranking, and top-20 selection are all defaults.
 
-The retrieval stage can now be evaluated independently of chunking and reranking with
-Paperclip, Europe PMC, or Reciprocal Rank Fusion (RRF) across both sources.
+## Later retrieval experiments
 
-Europe PMC is queried in two modes:
-
-- `direct`: one Europe PMC search using the question.
-- `multi`: the question plus progressively relaxed `TITLE_ABS` keyword queries, with
-  Europe PMC rankings fused by RRF. This is the recommended mode for retrieval testing.
-
-MeSH/UniProt synonym expansion is enabled by default through Europe PMC's `synonym`
-parameter. For multi-source fusion, each source retrieves 30 candidates by default,
-duplicates are matched using DOI/PMCID/PMID/title, and RRF produces the final top 10.
-
-Run the focused seven-configuration sweep:
-
-```bash
-python -m evaluation.run_retrieval_sweep \
-  --benchmark benchmark/provideq_benchmark.json \
-  --num-questions 90 \
-  --no-resume
-```
-
-The sweep compares:
-
-1. Paperclip raw + hybrid
-2. Paperclip HyDE + hybrid
-3. Europe PMC direct + synonyms
-4. Europe PMC multi-query without synonym expansion
-5. Europe PMC multi-query + synonyms
-6. Paperclip + Europe PMC fusion with raw Paperclip query
-7. Paperclip + Europe PMC fusion with HyDE for Paperclip
-
-Results are written under `outputs/document_retrieval/`, and a ranked comparison is saved
-as `outputs/document_retrieval/summary.csv`.
-
-A single configuration can be run with, for example:
-
-```bash
-python -m evaluation.run_document_retrieval \
-  --benchmark benchmark/provideq_benchmark.json \
-  --num-questions 90 \
-  --retriever fusion \
-  --query-strategy hyde \
-  --paperclip-ranking hybrid \
-  --europepmc-mode multi \
-  --europepmc-synonym \
-  --paperclip-candidate-limit 30 \
-  --europepmc-candidate-limit 30 \
-  --retrieval-limit 10 \
-  --no-resume
-```
-
-## Drift-resistant HyDE and LLM expansion
-
-For the final fusion experiment, use `--paperclip-query-fusion`. Paperclip then
-retrieves independently with the raw question and the reformulated query, and combines
-those two rankings with weighted RRF before fusing with Europe PMC. Europe PMC keeps
-the raw question and its own fielded multi-query strategy.
-
-The reformulated branch defaults to weight `0.5` and inner `rrf_k=10`, so it acts as a
-conservative recall-oriented augmentation instead of replacing the stronger raw query.
-HyDE generates a short answer-bearing abstract-style passage. LLM expansion produces at
-most four anchored terms; deterministic validation rejects unsupported acronym guesses,
-new numeric conditions, and negation reversals.
-
-The evaluator is also fault tolerant in fusion mode. If query generation fails it falls
-back to raw retrieval; if one retrieval source fails, the other source is retained.
-Every such event is written to the CSV `warnings` column.
-
-Run the three controlled tests in `IMPROVED_QUERY_TEST_COMMANDS.txt`. They include a
-fresh raw control plus the improved HyDE and LLM-expansion variants.
+The previous document-retrieval experiments remain available under evaluation.
+Raw, HyDE, and LLM expansion can still be compared with Paperclip BM25, vector,
+or hybrid ranking. They do not alter the fixed default pipeline unless selected
+explicitly.

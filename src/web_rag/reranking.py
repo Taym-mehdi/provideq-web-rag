@@ -8,9 +8,13 @@ from .models import TextChunk
 from .text_utils import normalize_for_deduplication, word_count
 
 
-def _clean_candidates(chunks: list[TextChunk], min_words: int) -> list[TextChunk]:
+def _clean_candidates(
+    chunks: list[TextChunk],
+    min_words: int,
+) -> list[TextChunk]:
     output: list[TextChunk] = []
     seen: set[str] = set()
+
     for chunk in chunks:
         if word_count(chunk.text) < min_words:
             continue
@@ -19,6 +23,7 @@ def _clean_candidates(chunks: list[TextChunk], min_words: int) -> list[TextChunk
             continue
         seen.add(key)
         output.append(chunk)
+
     return output
 
 
@@ -30,29 +35,42 @@ def rerank_chunks(
 ) -> list[TextChunk]:
     selected = settings.reranker.strip().casefold().replace("-", "_")
     if selected not in RERANKERS:
-        raise ValueError(f"Unknown reranker '{selected}'. Choose from: {', '.join(RERANKERS)}")
+        raise ValueError(
+            f"Unknown reranker '{selected}'. "
+            f"Choose from: {', '.join(RERANKERS)}"
+        )
 
     candidates = _clean_candidates(chunks, settings.min_chunk_words)
     if selected == "lexical":
-        return rerank_lexical(question, candidates, k1=settings.bm25_k1, b=settings.bm25_b)
-    if selected == "medcpt":
-        return rerank_medcpt(
+        ranked = rerank_lexical(
             question,
             candidates,
-            query_model_name=settings.medcpt_query_model,
-            article_model_name=settings.medcpt_article_model,
+            k1=settings.bm25_k1,
+            b=settings.bm25_b,
+        )
+    elif selected == "medcpt":
+        ranked = rerank_medcpt(
+            question,
+            candidates,
+            model_name=settings.medcpt_model,
+            max_length=settings.medcpt_max_length,
             batch_size=settings.medcpt_batch_size,
             device=settings.medcpt_device,
         )
-    return rerank_hybrid(
-        question,
-        candidates,
-        lexical_weight=settings.hybrid_lexical_weight,
-        medcpt_weight=settings.hybrid_medcpt_weight,
-        bm25_k1=settings.bm25_k1,
-        bm25_b=settings.bm25_b,
-        query_model_name=settings.medcpt_query_model,
-        article_model_name=settings.medcpt_article_model,
-        batch_size=settings.medcpt_batch_size,
-        device=settings.medcpt_device,
-    )
+    else:
+        ranked = rerank_hybrid(
+            question,
+            candidates,
+            lexical_weight=settings.hybrid_lexical_weight,
+            medcpt_weight=settings.hybrid_medcpt_weight,
+            bm25_k1=settings.bm25_k1,
+            bm25_b=settings.bm25_b,
+            model_name=settings.medcpt_model,
+            max_length=settings.medcpt_max_length,
+            batch_size=settings.medcpt_batch_size,
+            device=settings.medcpt_device,
+        )
+
+    for rank, chunk in enumerate(ranked, start=1):
+        chunk.rerank_rank = rank
+    return ranked

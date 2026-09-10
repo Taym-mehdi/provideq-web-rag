@@ -1,14 +1,38 @@
 from __future__ import annotations
 
-from collections import Counter, defaultdict
+from collections import Counter
 
 from .models import TextChunk
-from .text_utils import overlap_ratio
+from .text_utils import normalize_for_deduplication, overlap_ratio
 
 
 def _paper_key(chunk: TextChunk) -> str:
     paper = chunk.paper
-    return paper.doi.casefold() or paper.paper_id.casefold() or paper.url.casefold() or paper.title.casefold()
+    return (
+        paper.doi.casefold()
+        or paper.paper_id.casefold()
+        or paper.url.casefold()
+        or paper.title.casefold()
+    )
+
+
+def _chunk_key(chunk: TextChunk) -> tuple[str, int, str]:
+    return (
+        _paper_key(chunk),
+        chunk.chunk_index,
+        normalize_for_deduplication(chunk.text),
+    )
+
+
+def _is_near_duplicate(
+    chunk: TextChunk,
+    selected: list[TextChunk],
+    threshold: float,
+) -> bool:
+    return any(
+        overlap_ratio(chunk.text, previous.text) >= threshold
+        for previous in selected
+    )
 
 
 def select_evidence(
@@ -18,6 +42,11 @@ def select_evidence(
     max_chunks_per_paper: int,
     near_duplicate_threshold: float,
 ) -> list[TextChunk]:
+    """Select diverse evidence, then relax the paper cap to fill top_k.
+
+    The paper cap is a diversity preference. Exact and near-duplicate chunks are
+    never added merely to reach the requested result count.
+    """
     if top_k <= 0:
         raise ValueError("top_k must be greater than 0")
     if max_chunks_per_paper <= 0:
@@ -26,21 +55,32 @@ def select_evidence(
         raise ValueError("near_duplicate_threshold must be between 0 and 1")
 
     selected: list[TextChunk] = []
+    selected_keys: set[tuple[str, int, str]] = set()
     counts: Counter[str] = Counter()
-    selected_by_paper: dict[str, list[TextChunk]] = defaultdict(list)
 
-    for chunk in ranked_chunks:
-        key = _paper_key(chunk)
-        if counts[key] >= max_chunks_per_paper:
-            continue
-        if any(
-            overlap_ratio(chunk.text, previous.text) >= near_duplicate_threshold
-            for previous in selected_by_paper[key]
-        ):
-            continue
-        selected.append(chunk)
-        selected_by_paper[key].append(chunk)
-        counts[key] += 1
-        if len(selected) >= top_k:
-            break
+    def add_candidates(*, enforce_paper_cap: bool) -> None:
+        for chunk in ranked_chunks:
+            if len(selected) >= top_k:
+                return
+
+            key = _chunk_key(chunk)
+            paper_key = _paper_key(chunk)
+            if key in selected_keys:
+                continue
+            if enforce_paper_cap and counts[paper_key] >= max_chunks_per_paper:
+                continue
+            if _is_near_duplicate(
+                chunk,
+                selected,
+                near_duplicate_threshold,
+            ):
+                continue
+
+            selected.append(chunk)
+            selected_keys.add(key)
+            counts[paper_key] += 1
+
+    add_candidates(enforce_paper_cap=True)
+    if len(selected) < top_k:
+        add_candidates(enforce_paper_cap=False)
     return selected

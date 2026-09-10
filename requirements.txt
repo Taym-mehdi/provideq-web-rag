@@ -1,18 +1,16 @@
-# Core numerical and model dependencies
+# Runtime
 numpy>=1.26
 torch>=2.2
 transformers>=4.40
 sentence-transformers>=3.0
-
-# OpenAI-compatible APIs, including Interweb
 openai>=1.40
 python-dotenv>=1.0
 
-# Evaluation notebook
+# Evaluation and notebooks
 pandas>=2.2
 matplotlib>=3.8
 notebook>=7.0
 ipykernel>=6.29
 
-# Paperclip is installed and authenticated separately.
-# The project loads gxl_paperclip from the environment or ~/.paperclip/lib.
+# Paperclip 0.7.49 is installed and authenticated separately.
+# The project loads gxl_paperclip from the active environment or ~/.paperclip/lib.

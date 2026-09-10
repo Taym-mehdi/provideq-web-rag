@@ -31,7 +31,11 @@ def _source_line(source: CitationSource) -> str:
     return ". ".join(parts)
 
 
-def _retrieved_paper(paper: Paper, fallback_rank: int) -> RetrievedPaper:
+def _retrieved_paper(
+    paper: Paper,
+    fallback_rank: int,
+) -> RetrievedPaper:
+    original_rank = paper.metadata.get("paperclip_original_rank")
     return RetrievedPaper(
         retrieval_rank=int(paper.retrieval_rank or fallback_rank),
         paper_id=paper.paper_id,
@@ -42,6 +46,12 @@ def _retrieved_paper(paper: Paper, fallback_rank: int) -> RetrievedPaper:
         authors=paper.authors,
         journal=paper.journal,
         url=paper.url,
+        has_full_text=bool(paper.metadata.get("has_full_text")),
+        paperclip_original_rank=(
+            int(original_rank)
+            if isinstance(original_rank, int)
+            else None
+        ),
     )
 
 
@@ -58,6 +68,7 @@ def build_evidence_pack(
 
     for citation_id, chunk in enumerate(selected_chunks, start=1):
         paper = chunk.paper
+        original_rank = paper.metadata.get("paperclip_original_rank")
         source = CitationSource(
             paper_id=paper.paper_id,
             title=paper.title,
@@ -77,10 +88,24 @@ def build_evidence_pack(
                 chunk_index=chunk.chunk_index,
                 section=chunk.section,
                 source=source,
+                token_count=chunk.token_count,
+                start_sentence=chunk.start_sentence,
+                end_sentence=chunk.end_sentence,
+                rerank_rank=chunk.rerank_rank,
+                paper_retrieval_rank=paper.retrieval_rank,
+                paperclip_original_rank=(
+                    int(original_rank)
+                    if isinstance(original_rank, int)
+                    else None
+                ),
+                has_full_text=bool(paper.metadata.get("has_full_text")),
                 score_components=dict(chunk.score_components),
             )
         )
-        context_blocks.append(f"[{citation_id}] {chunk.text}\nSource: {_source_line(source)}")
+        context_blocks.append(
+            f"[{citation_id}] {chunk.text}\n"
+            f"Source: {_source_line(source)}"
+        )
 
     retrieval_metadata = [
         _retrieved_paper(paper, rank)

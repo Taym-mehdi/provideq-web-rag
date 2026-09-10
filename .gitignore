@@ -5,10 +5,14 @@ __pycache__/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
 
 # Virtual environments
-.venv/
-venv/
+.venv*/
+venv*/
 
 # Jupyter
 .ipynb_checkpoints/
@@ -18,8 +22,9 @@ venv/
 .env.*
 !.env.example
 
-# Generated evaluation data
+# Generated evaluation data and local archives
 outputs/
+*.zip
 
 # Editors and operating systems
 .vscode/

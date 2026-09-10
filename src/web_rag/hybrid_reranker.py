@@ -12,7 +12,10 @@ def _min_max(values: list[float]) -> list[float]:
     maximum = max(values)
     if maximum == minimum:
         return [0.0] * len(values)
-    return [(value - minimum) / (maximum - minimum) for value in values]
+    return [
+        (value - minimum) / (maximum - minimum)
+        for value in values
+    ]
 
 
 def rerank_hybrid(
@@ -23,8 +26,8 @@ def rerank_hybrid(
     medcpt_weight: float,
     bm25_k1: float,
     bm25_b: float,
-    query_model_name: str,
-    article_model_name: str,
+    model_name: str,
+    max_length: int,
     batch_size: int,
     device: str,
 ) -> list[TextChunk]:
@@ -36,24 +39,33 @@ def rerank_hybrid(
 
     lexical_weight /= total_weight
     medcpt_weight /= total_weight
-    lexical_scores = _min_max(bm25_scores(question, chunks, k1=bm25_k1, b=bm25_b))
-    dense_scores = _min_max(
+    lexical_scores = _min_max(
+        bm25_scores(question, chunks, k1=bm25_k1, b=bm25_b)
+    )
+    cross_encoder_scores = _min_max(
         medcpt_scores(
             question,
             chunks,
-            query_model_name=query_model_name,
-            article_model_name=article_model_name,
+            model_name=model_name,
+            max_length=max_length,
             batch_size=batch_size,
             device=device,
         )
     )
 
-    for chunk, lexical_score, dense_score in zip(chunks, lexical_scores, dense_scores):
-        score = lexical_weight * lexical_score + medcpt_weight * dense_score
+    for chunk, lexical_score, medcpt_score in zip(
+        chunks,
+        lexical_scores,
+        cross_encoder_scores,
+    ):
+        score = (
+            lexical_weight * lexical_score
+            + medcpt_weight * medcpt_score
+        )
         chunk.score = score
         chunk.score_components = {
             "bm25_normalized": lexical_score,
-            "medcpt_normalized": dense_score,
+            "medcpt_cross_encoder_normalized": medcpt_score,
             "lexical_weight": lexical_weight,
             "medcpt_weight": medcpt_weight,
             "hybrid": score,

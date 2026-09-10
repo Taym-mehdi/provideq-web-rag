@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import replace
 from collections.abc import Callable
+from dataclasses import replace
 import os
-from typing import Any
+from typing import Any, TypeVar
 
 from .chunking import chunk_papers
 from .config import Settings, get_settings, validate_settings
@@ -13,6 +13,13 @@ from .models import EvidencePack, PipelineInfo
 from .paperclip_retriever import retrieve_papers
 from .query_reformulation import make_llm_generator, reformulate_query
 from .reranking import rerank_chunks
+
+
+T = TypeVar("T")
+
+
+def _or_default(value: T | None, default: T) -> T:
+    return default if value is None else value
 
 
 def run_pipeline(
@@ -44,6 +51,7 @@ def run_pipeline(
     paperclip_source: str | None = None,
     paperclip_ranking: str | None = None,
     paperclip_max_full_text_lines: int | None = None,
+    paperclip_timeout: float | None = None,
     paperclip_mode: str | None = None,
     paperclip_since: str | None = None,
     paperclip_sort: str | None = None,
@@ -53,20 +61,19 @@ def run_pipeline(
     paperclip_author: str | None = None,
     paperclip_full_corpus: bool | None = None,
     chunking_method: str | None = None,
-    chunk_window_size: int | None = None,
-    chunk_stride: int | None = None,
-    min_chunk_chars: int | None = None,
-    max_chunk_chars: int | None = None,
+    chunk_tokenizer_model: str | None = None,
+    chunk_max_tokens: int | None = None,
+    chunk_overlap_fraction: float | None = None,
+    chunk_max_overlap_sentences: int | None = None,
     min_chunk_words: int | None = None,
-    context_backoff: bool | None = None,
     reranker: str | None = None,
     top_k: int | None = None,
     max_chunks_per_paper: int | None = None,
     near_duplicate_threshold: float | None = None,
     bm25_k1: float | None = None,
     bm25_b: float | None = None,
-    medcpt_query_model: str | None = None,
-    medcpt_article_model: str | None = None,
+    medcpt_model: str | None = None,
+    medcpt_max_length: int | None = None,
     medcpt_batch_size: int | None = None,
     medcpt_device: str | None = None,
     hybrid_lexical_weight: float | None = None,
@@ -74,104 +81,160 @@ def run_pipeline(
     settings: Settings | None = None,
     paperclip_client: Any | None = None,
 ) -> EvidencePack:
+    """Run the default Web RAG and return citation-ready evidence chunks."""
     base = settings or get_settings()
+    effective_llm_model = _or_default(llm_model, base.llm_model)
+    effective_llm_base_url = _or_default(llm_base_url, base.llm_base_url)
+
     effective = replace(
         base,
-        retrieval_limit=retrieval_limit if retrieval_limit is not None else base.retrieval_limit,
-        query_strategy=query_strategy or base.query_strategy,
-        llm_provider=llm_provider or base.llm_provider,
-        llm_model=llm_model or base.llm_model,
-        llm_base_url=llm_base_url or base.llm_base_url,
-        llm_api_key_env=llm_api_key_env or base.llm_api_key_env,
-        hyde_model=hyde_model or llm_model or base.hyde_model,
-        hyde_base_url=hyde_base_url or llm_base_url or base.hyde_base_url,
-        hyde_temperature=(
-            hyde_temperature if hyde_temperature is not None else base.hyde_temperature
+        retrieval_limit=_or_default(retrieval_limit, base.retrieval_limit),
+        query_strategy=_or_default(query_strategy, base.query_strategy),
+        llm_provider=_or_default(llm_provider, base.llm_provider),
+        llm_model=effective_llm_model,
+        llm_base_url=effective_llm_base_url,
+        llm_api_key_env=_or_default(
+            llm_api_key_env,
+            base.llm_api_key_env,
         ),
-        hyde_max_tokens=hyde_max_tokens if hyde_max_tokens is not None else base.hyde_max_tokens,
-        hyde_seed=hyde_seed if hyde_seed is not None else base.hyde_seed,
-        hyde_timeout=hyde_timeout if hyde_timeout is not None else base.hyde_timeout,
-        expansion_model=expansion_model or llm_model or base.expansion_model,
-        expansion_base_url=(
-            expansion_base_url or llm_base_url or base.expansion_base_url
+        hyde_model=_or_default(
+            hyde_model,
+            effective_llm_model if llm_model is not None else base.hyde_model,
         ),
-        expansion_temperature=(
-            expansion_temperature
-            if expansion_temperature is not None
-            else base.expansion_temperature
+        hyde_base_url=_or_default(
+            hyde_base_url,
+            effective_llm_base_url
+            if llm_base_url is not None
+            else base.hyde_base_url,
         ),
-        expansion_max_tokens=(
-            expansion_max_tokens
-            if expansion_max_tokens is not None
-            else base.expansion_max_tokens
+        hyde_temperature=_or_default(
+            hyde_temperature,
+            base.hyde_temperature,
         ),
-        expansion_seed=expansion_seed if expansion_seed is not None else base.expansion_seed,
-        expansion_timeout=(
-            expansion_timeout if expansion_timeout is not None else base.expansion_timeout
+        hyde_max_tokens=_or_default(
+            hyde_max_tokens,
+            base.hyde_max_tokens,
         ),
-        expansion_max_terms=(
-            expansion_max_terms
-            if expansion_max_terms is not None
-            else base.expansion_max_terms
+        hyde_seed=_or_default(hyde_seed, base.hyde_seed),
+        hyde_timeout=_or_default(hyde_timeout, base.hyde_timeout),
+        expansion_model=_or_default(
+            expansion_model,
+            effective_llm_model
+            if llm_model is not None
+            else base.expansion_model,
         ),
-        expansion_max_query_chars=(
-            expansion_max_query_chars
-            if expansion_max_query_chars is not None
-            else base.expansion_max_query_chars
+        expansion_base_url=_or_default(
+            expansion_base_url,
+            effective_llm_base_url
+            if llm_base_url is not None
+            else base.expansion_base_url,
         ),
-        paperclip_source=paperclip_source or base.paperclip_source,
-        paperclip_ranking=paperclip_ranking or base.paperclip_ranking,
-        paperclip_max_full_text_lines=(
-            paperclip_max_full_text_lines
-            if paperclip_max_full_text_lines is not None
-            else base.paperclip_max_full_text_lines
+        expansion_temperature=_or_default(
+            expansion_temperature,
+            base.expansion_temperature,
         ),
-        paperclip_full_corpus=(
-            paperclip_full_corpus
-            if paperclip_full_corpus is not None
-            else base.paperclip_full_corpus
+        expansion_max_tokens=_or_default(
+            expansion_max_tokens,
+            base.expansion_max_tokens,
         ),
-        chunking_method=chunking_method or base.chunking_method,
-        chunk_window_size=chunk_window_size if chunk_window_size is not None else base.chunk_window_size,
-        chunk_stride=chunk_stride if chunk_stride is not None else base.chunk_stride,
-        min_chunk_chars=min_chunk_chars if min_chunk_chars is not None else base.min_chunk_chars,
-        max_chunk_chars=max_chunk_chars if max_chunk_chars is not None else base.max_chunk_chars,
-        min_chunk_words=min_chunk_words if min_chunk_words is not None else base.min_chunk_words,
-        context_backoff=context_backoff if context_backoff is not None else base.context_backoff,
-        reranker=reranker or base.reranker,
-        top_k=top_k if top_k is not None else base.top_k,
-        max_chunks_per_paper=(
-            max_chunks_per_paper if max_chunks_per_paper is not None else base.max_chunks_per_paper
+        expansion_seed=_or_default(
+            expansion_seed,
+            base.expansion_seed,
         ),
-        near_duplicate_threshold=(
-            near_duplicate_threshold
-            if near_duplicate_threshold is not None
-            else base.near_duplicate_threshold
+        expansion_timeout=_or_default(
+            expansion_timeout,
+            base.expansion_timeout,
         ),
-        bm25_k1=bm25_k1 if bm25_k1 is not None else base.bm25_k1,
-        bm25_b=bm25_b if bm25_b is not None else base.bm25_b,
-        medcpt_query_model=medcpt_query_model or base.medcpt_query_model,
-        medcpt_article_model=medcpt_article_model or base.medcpt_article_model,
-        medcpt_batch_size=(
-            medcpt_batch_size if medcpt_batch_size is not None else base.medcpt_batch_size
+        expansion_max_terms=_or_default(
+            expansion_max_terms,
+            base.expansion_max_terms,
         ),
-        medcpt_device=medcpt_device or base.medcpt_device,
-        hybrid_lexical_weight=(
-            hybrid_lexical_weight
-            if hybrid_lexical_weight is not None
-            else base.hybrid_lexical_weight
+        expansion_max_query_chars=_or_default(
+            expansion_max_query_chars,
+            base.expansion_max_query_chars,
         ),
-        hybrid_medcpt_weight=(
-            hybrid_medcpt_weight
-            if hybrid_medcpt_weight is not None
-            else base.hybrid_medcpt_weight
+        paperclip_source=_or_default(
+            paperclip_source,
+            base.paperclip_source,
+        ),
+        paperclip_ranking=_or_default(
+            paperclip_ranking,
+            base.paperclip_ranking,
+        ),
+        paperclip_max_full_text_lines=_or_default(
+            paperclip_max_full_text_lines,
+            base.paperclip_max_full_text_lines,
+        ),
+        paperclip_timeout=_or_default(
+            paperclip_timeout,
+            base.paperclip_timeout,
+        ),
+        paperclip_full_corpus=_or_default(
+            paperclip_full_corpus,
+            base.paperclip_full_corpus,
+        ),
+        chunking_method=_or_default(
+            chunking_method,
+            base.chunking_method,
+        ),
+        chunk_tokenizer_model=_or_default(
+            chunk_tokenizer_model,
+            base.chunk_tokenizer_model,
+        ),
+        chunk_max_tokens=_or_default(
+            chunk_max_tokens,
+            base.chunk_max_tokens,
+        ),
+        chunk_overlap_fraction=_or_default(
+            chunk_overlap_fraction,
+            base.chunk_overlap_fraction,
+        ),
+        chunk_max_overlap_sentences=_or_default(
+            chunk_max_overlap_sentences,
+            base.chunk_max_overlap_sentences,
+        ),
+        min_chunk_words=_or_default(
+            min_chunk_words,
+            base.min_chunk_words,
+        ),
+        reranker=_or_default(reranker, base.reranker),
+        top_k=_or_default(top_k, base.top_k),
+        max_chunks_per_paper=_or_default(
+            max_chunks_per_paper,
+            base.max_chunks_per_paper,
+        ),
+        near_duplicate_threshold=_or_default(
+            near_duplicate_threshold,
+            base.near_duplicate_threshold,
+        ),
+        bm25_k1=_or_default(bm25_k1, base.bm25_k1),
+        bm25_b=_or_default(bm25_b, base.bm25_b),
+        medcpt_model=_or_default(medcpt_model, base.medcpt_model),
+        medcpt_max_length=_or_default(
+            medcpt_max_length,
+            base.medcpt_max_length,
+        ),
+        medcpt_batch_size=_or_default(
+            medcpt_batch_size,
+            base.medcpt_batch_size,
+        ),
+        medcpt_device=_or_default(
+            medcpt_device,
+            base.medcpt_device,
+        ),
+        hybrid_lexical_weight=_or_default(
+            hybrid_lexical_weight,
+            base.hybrid_lexical_weight,
+        ),
+        hybrid_medcpt_weight=_or_default(
+            hybrid_medcpt_weight,
+            base.hybrid_medcpt_weight,
         ),
     )
     validate_settings(effective)
 
     resolved_hyde_generator = hyde_generator
     resolved_expansion_generator = expansion_generator
-
     if effective.query_strategy in {"hyde", "llmexpand"}:
         provider = effective.llm_provider.strip().casefold()
         resolved_api_key = llm_api_key
@@ -179,26 +242,24 @@ def run_pipeline(
             resolved_api_key = os.getenv(effective.llm_api_key_env, "")
             if not resolved_api_key:
                 raise ValueError(
-                    f"Environment variable {effective.llm_api_key_env} is not set. "
-                    "Add it to .env or pass llm_api_key explicitly."
+                    f"Environment variable {effective.llm_api_key_env} "
+                    "is not set."
                 )
 
-        if effective.query_strategy == "hyde" and resolved_hyde_generator is None:
-            resolved_hyde_generator = make_llm_generator(
-                provider,
-                model=effective.hyde_model,
-                base_url=effective.hyde_base_url,
-                api_key=resolved_api_key,
-                temperature=effective.hyde_temperature,
-                max_tokens=effective.hyde_max_tokens,
-                seed=effective.hyde_seed,
-                timeout=effective.hyde_timeout,
-                json_output=False,
-            )
-        elif (
-            effective.query_strategy == "llmexpand"
-            and resolved_expansion_generator is None
-        ):
+        if effective.query_strategy == "hyde":
+            if resolved_hyde_generator is None:
+                resolved_hyde_generator = make_llm_generator(
+                    provider,
+                    model=effective.hyde_model,
+                    base_url=effective.hyde_base_url,
+                    api_key=resolved_api_key,
+                    temperature=effective.hyde_temperature,
+                    max_tokens=effective.hyde_max_tokens,
+                    seed=effective.hyde_seed,
+                    timeout=effective.hyde_timeout,
+                    json_output=False,
+                )
+        elif resolved_expansion_generator is None:
             resolved_expansion_generator = make_llm_generator(
                 provider,
                 model=effective.expansion_model,
@@ -231,6 +292,7 @@ def run_pipeline(
         expansion_max_query_chars=effective.expansion_max_query_chars,
         expansion_generator=resolved_expansion_generator,
     )
+
     retrieval = retrieve_papers(
         query.search_query,
         limit=effective.retrieval_limit,
@@ -245,18 +307,19 @@ def run_pipeline(
         article_type=paperclip_article_type,
         author=paperclip_author,
         full_corpus=effective.paperclip_full_corpus,
+        load_full_text=True,
         timeout=effective.paperclip_timeout,
         client=paperclip_client,
     )
+
     chunks = chunk_papers(
         retrieval.papers,
         method=effective.chunking_method,
-        window_size=effective.chunk_window_size,
-        stride=effective.chunk_stride,
-        min_chars=effective.min_chunk_chars,
-        max_chars=effective.max_chunk_chars,
+        tokenizer_model=effective.chunk_tokenizer_model,
+        max_tokens=effective.chunk_max_tokens,
+        overlap_fraction=effective.chunk_overlap_fraction,
+        max_overlap_sentences=effective.chunk_max_overlap_sentences,
         min_words=effective.min_chunk_words,
-        context_backoff=effective.context_backoff,
     )
     ranked = rerank_chunks(question, chunks, settings=effective)
     selected = select_evidence(
@@ -274,7 +337,8 @@ def run_pipeline(
         retrieval_limit=effective.retrieval_limit,
         retrieved_papers_count=len(retrieval.papers),
         full_text_papers_count=sum(
-            bool(paper.metadata.get("has_full_text")) for paper in retrieval.papers
+            bool(paper.metadata.get("has_full_text"))
+            for paper in retrieval.papers
         ),
         chunking_method=effective.chunking_method,
         extracted_chunks_count=len(chunks),
@@ -283,78 +347,25 @@ def run_pipeline(
         returned_evidence_count=len(selected),
         parameters={
             "query_strategy": effective.query_strategy,
-            "llm_provider": (
-                effective.llm_provider if effective.query_strategy != "raw" else None
-            ),
-            "llm_model": (
-                effective.llm_model if effective.query_strategy != "raw" else None
-            ),
-            "llm_base_url": (
-                effective.llm_base_url if effective.query_strategy != "raw" else None
-            ),
-            "hyde_model": effective.hyde_model if effective.query_strategy == "hyde" else None,
-            "hyde_temperature": (
-                effective.hyde_temperature if effective.query_strategy == "hyde" else None
-            ),
-            "hyde_max_tokens": (
-                effective.hyde_max_tokens if effective.query_strategy == "hyde" else None
-            ),
-            "hyde_seed": effective.hyde_seed if effective.query_strategy == "hyde" else None,
-            "expansion_model": (
-                effective.expansion_model
-                if effective.query_strategy == "llmexpand"
-                else None
-            ),
-            "expansion_temperature": (
-                effective.expansion_temperature
-                if effective.query_strategy == "llmexpand"
-                else None
-            ),
-            "expansion_max_tokens": (
-                effective.expansion_max_tokens
-                if effective.query_strategy == "llmexpand"
-                else None
-            ),
-            "expansion_seed": (
-                effective.expansion_seed
-                if effective.query_strategy == "llmexpand"
-                else None
-            ),
-            "expansion_max_terms": (
-                effective.expansion_max_terms
-                if effective.query_strategy == "llmexpand"
-                else None
-            ),
-            "expansion_max_query_chars": (
-                effective.expansion_max_query_chars
-                if effective.query_strategy == "llmexpand"
-                else None
-            ),
-            "paperclip_mode": paperclip_mode,
-            "paperclip_since": paperclip_since,
-            "paperclip_sort": paperclip_sort,
-            "paperclip_year": paperclip_year,
-            "paperclip_journal": paperclip_journal,
-            "paperclip_article_type": paperclip_article_type,
-            "paperclip_author": paperclip_author,
             "paperclip_full_corpus": effective.paperclip_full_corpus,
-            "paperclip_max_full_text_lines": effective.paperclip_max_full_text_lines,
-            "chunk_window_size": effective.chunk_window_size,
-            "chunk_stride": effective.chunk_stride,
-            "min_chunk_chars": effective.min_chunk_chars,
-            "max_chunk_chars": effective.max_chunk_chars,
+            "paperclip_max_full_text_lines": (
+                effective.paperclip_max_full_text_lines
+            ),
+            "chunk_tokenizer_model": effective.chunk_tokenizer_model,
+            "chunk_max_tokens": effective.chunk_max_tokens,
+            "chunk_overlap_fraction": effective.chunk_overlap_fraction,
+            "chunk_max_overlap_sentences": (
+                effective.chunk_max_overlap_sentences
+            ),
             "min_chunk_words": effective.min_chunk_words,
-            "context_backoff": effective.context_backoff,
             "max_chunks_per_paper": effective.max_chunks_per_paper,
-            "near_duplicate_threshold": effective.near_duplicate_threshold,
-            "bm25_k1": effective.bm25_k1,
-            "bm25_b": effective.bm25_b,
-            "medcpt_query_model": effective.medcpt_query_model,
-            "medcpt_article_model": effective.medcpt_article_model,
+            "near_duplicate_threshold": (
+                effective.near_duplicate_threshold
+            ),
+            "medcpt_model": effective.medcpt_model,
+            "medcpt_max_length": effective.medcpt_max_length,
             "medcpt_batch_size": effective.medcpt_batch_size,
             "medcpt_device": effective.medcpt_device,
-            "hybrid_lexical_weight": effective.hybrid_lexical_weight,
-            "hybrid_medcpt_weight": effective.hybrid_medcpt_weight,
         },
     )
     return build_evidence_pack(

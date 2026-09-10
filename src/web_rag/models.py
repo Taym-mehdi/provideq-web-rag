@@ -47,6 +47,8 @@ class TextChunk:
     section: str = ""
     start_sentence: int | None = None
     end_sentence: int | None = None
+    token_count: int = 0
+    rerank_rank: int | None = None
     score: float = 0.0
     score_components: dict[str, float] = field(default_factory=dict)
 
@@ -74,6 +76,8 @@ class RetrievedPaper:
     authors: str = ""
     journal: str = ""
     url: str = ""
+    has_full_text: bool = False
+    paperclip_original_rank: int | None = None
 
 
 @dataclass
@@ -85,6 +89,13 @@ class EvidenceRecord:
     chunk_index: int
     section: str
     source: CitationSource
+    token_count: int = 0
+    start_sentence: int | None = None
+    end_sentence: int | None = None
+    rerank_rank: int | None = None
+    paper_retrieval_rank: int | None = None
+    paperclip_original_rank: int | None = None
+    has_full_text: bool = False
     score_components: dict[str, float] = field(default_factory=dict)
 
 

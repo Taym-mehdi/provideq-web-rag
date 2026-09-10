@@ -22,105 +22,121 @@ def resolve_device(requested: str | None = "auto") -> str:
         return "cpu"
     if value == "gpu":
         raise ValueError("Use 'cuda' instead of 'gpu', or use 'auto'.")
+
     try:
         torch.device(value)
     except (TypeError, RuntimeError) as exc:
-        raise ValueError(f"Invalid torch device '{requested}'. Use auto, cpu, cuda, cuda:N, or mps.") from exc
+        raise ValueError(
+            f"Invalid torch device '{requested}'. "
+            "Use auto, cpu, cuda, cuda:N, or mps."
+        ) from exc
     if value.startswith("cuda") and not torch.cuda.is_available():
-        raise RuntimeError("CUDA was requested but is not available. Use --medcpt-device cpu or auto.")
+        raise RuntimeError(
+            "CUDA was requested but is unavailable. "
+            "Use --medcpt-device cpu or auto."
+        )
     if value == "mps":
         mps = getattr(torch.backends, "mps", None)
         if mps is None or not mps.is_available():
-            raise RuntimeError("MPS was requested but is not available.")
+            raise RuntimeError("MPS was requested but is unavailable.")
     return value
 
 
 @lru_cache(maxsize=4)
-def _load_models(
-    query_model_name: str,
-    article_model_name: str,
+def _load_cross_encoder(
+    model_name: str,
     device: str,
-) -> tuple[Any, Any, Any, Any, str]:
+) -> tuple[Any, Any, str]:
     try:
-        from transformers import AutoModel, AutoTokenizer
+        from transformers import (
+            AutoModelForSequenceClassification,
+            AutoTokenizer,
+        )
     except ImportError as exc:
         raise RuntimeError("MedCPT requires torch and transformers") from exc
 
     resolved_device = resolve_device(device)
-    query_tokenizer = AutoTokenizer.from_pretrained(query_model_name)
-    query_model = AutoModel.from_pretrained(query_model_name).to(resolved_device).eval()
-    article_tokenizer = AutoTokenizer.from_pretrained(article_model_name)
-    article_model = AutoModel.from_pretrained(article_model_name).to(resolved_device).eval()
-    return query_tokenizer, query_model, article_tokenizer, article_model, resolved_device
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = (
+        AutoModelForSequenceClassification
+        .from_pretrained(model_name)
+        .to(resolved_device)
+        .eval()
+    )
+    return tokenizer, model, resolved_device
+
+
+def _document_text(chunk: TextChunk) -> str:
+    parts = [f"Title: {chunk.paper.title}"] if chunk.paper.title else []
+    parts.append(chunk.text)
+    return "\n".join(parts)
 
 
 def medcpt_scores(
     question: str,
     chunks: list[TextChunk],
     *,
-    query_model_name: str,
-    article_model_name: str,
+    model_name: str,
+    max_length: int = 512,
     batch_size: int = 8,
     device: str = "auto",
 ) -> list[float]:
+    """Score query-passage pairs with the MedCPT cross-encoder."""
     if not chunks:
         return []
+    if max_length < 64:
+        raise ValueError("max_length must be at least 64")
     if batch_size <= 0:
         raise ValueError("batch_size must be greater than 0")
 
     import torch
 
-    query_tokenizer, query_model, article_tokenizer, article_model, resolved_device = _load_models(
-        query_model_name,
-        article_model_name,
+    tokenizer, model, resolved_device = _load_cross_encoder(
+        model_name,
         device,
     )
-    query_input = query_tokenizer(
-        [question],
-        truncation=True,
-        padding=True,
-        max_length=64,
-        return_tensors="pt",
-    ).to(resolved_device)
-    with torch.inference_mode():
-        query_embedding = query_model(**query_input).last_hidden_state[:, 0, :]
+    documents = [_document_text(chunk) for chunk in chunks]
+    scores: list[float] = []
 
-    embeddings = []
-    document_pairs = [[chunk.paper.title, chunk.text] for chunk in chunks]
-    for start in range(0, len(document_pairs), batch_size):
-        article_input = article_tokenizer(
-            document_pairs[start : start + batch_size],
-            truncation=True,
+    for start in range(0, len(documents), batch_size):
+        batch = documents[start : start + batch_size]
+        encoded = tokenizer(
+            [question] * len(batch),
+            batch,
+            truncation="only_second",
             padding=True,
-            max_length=512,
+            max_length=max_length,
             return_tensors="pt",
         ).to(resolved_device)
-        with torch.inference_mode():
-            embeddings.append(article_model(**article_input).last_hidden_state[:, 0, :])
 
-    document_matrix = torch.cat(embeddings, dim=0)
-    values = torch.matmul(document_matrix, query_embedding.T).squeeze(1)
-    return [float(value) for value in values.detach().cpu().tolist()]
+        with torch.inference_mode():
+            logits = model(**encoded).logits.squeeze(-1)
+        scores.extend(
+            float(value)
+            for value in logits.detach().cpu().reshape(-1).tolist()
+        )
+
+    return scores
 
 
 def rerank_medcpt(
     question: str,
     chunks: list[TextChunk],
     *,
-    query_model_name: str,
-    article_model_name: str,
+    model_name: str,
+    max_length: int = 512,
     batch_size: int = 8,
     device: str = "auto",
 ) -> list[TextChunk]:
     scores = medcpt_scores(
         question,
         chunks,
-        query_model_name=query_model_name,
-        article_model_name=article_model_name,
+        model_name=model_name,
+        max_length=max_length,
         batch_size=batch_size,
         device=device,
     )
     for chunk, score in zip(chunks, scores):
         chunk.score = score
-        chunk.score_components = {"medcpt": score}
+        chunk.score_components = {"medcpt_cross_encoder": score}
     return sorted(chunks, key=lambda chunk: chunk.score, reverse=True)
