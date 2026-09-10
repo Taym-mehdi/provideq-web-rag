@@ -45,8 +45,8 @@ consume these records directly.
 Use Python 3.12 and the tested Paperclip environment:
 
 ~~~cmd
-py -3.12 -m venv .venv312
-call .venv312\Scripts\activate.bat
+py -3.12 -m venv .venv
+call .venv\Scripts\activate.bat
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 python -m pip install -e .

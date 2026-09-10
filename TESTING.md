@@ -1,6 +1,6 @@
 # Benchmark testing
 
-Run commands from Windows CMD in the repository root with `.venv312`
+Run commands from Windows CMD in the repository root with `.venv`
 activated. Keep the benchmark, seed, candidate limits, and retrieval limit fixed
 while changing one factor at a time. Generated files stay under `outputs/` and
 are intentionally ignored by Git.
