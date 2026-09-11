@@ -24,52 +24,71 @@ Accept the smoke test only when full text was loaded, 20 distinct evidence
 records were returned, no chunk exceeds 512 tokens, and every record has source,
 paper-rank, rerank-rank, section, and token-count metadata.
 
-## 2. Paperclip ranking comparison
+## 2. The 15 document-retrieval tests
 
-Start with five questions. These runs vary only Paperclip ranking:
+The sweep compares five retrieval settings with three query preparations. Every
+test returns at most 20 papers and stops before full-text loading, chunking, and
+reranking.
 
-~~~cmd
-python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever paperclip --query-strategy raw --paperclip-ranking bm25 --paperclip-candidate-limit 30 --retrieval-limit 20 --output-dir outputs\document_retrieval --no-resume
-python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever paperclip --query-strategy raw --paperclip-ranking vector --paperclip-candidate-limit 30 --retrieval-limit 20 --output-dir outputs\document_retrieval --no-resume
-python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever paperclip --query-strategy raw --paperclip-ranking hybrid --paperclip-candidate-limit 30 --retrieval-limit 20 --output-dir outputs\document_retrieval --no-resume
-~~~
+| Retrieval setting | Raw | Anchored HyDE | Anchored LLM expansion |
+| --- | --- | --- | --- |
+| Paperclip BM25 | 01 | 02 | 03 |
+| Paperclip vector | 04 | 05 | 06 |
+| Paperclip hybrid | 07 | 08 | 09 |
+| Europe PMC with synonyms | 10 | 11 | 12 |
+| Europe PMC without synonyms | 13 | 14 | 15 |
 
-Repeat the same commands with `--num-questions 90` only after the five-question
-check completes without errors.
+Both Europe PMC settings use the same `multi` mode, so synonym expansion is the
+only retrieval difference between them. For Paperclip, anchored queries fuse the
+raw and reformulated rankings. For Europe PMC, the reformulated query itself
+starts with the unchanged raw question.
 
-## 3. Query preparation comparison
-
-Keep Paperclip hybrid fixed. Raw is the control above. HyDE and controlled LLM
-expansion retain the raw question as an anchor by fusing raw and reformulated
-Paperclip rankings:
-
-~~~cmd
-python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever paperclip --query-strategy hyde --paperclip-ranking hybrid --paperclip-query-fusion --query-fusion-rrf-k 10 --reformulated-query-weight 0.5 --paperclip-candidate-limit 30 --retrieval-limit 20 --output-dir outputs\document_retrieval --no-resume
-python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever paperclip --query-strategy llmexpand --paperclip-ranking hybrid --paperclip-query-fusion --query-fusion-rrf-k 10 --reformulated-query-weight 0.5 --paperclip-candidate-limit 30 --retrieval-limit 20 --output-dir outputs\document_retrieval --no-resume
-~~~
-
-Do not reuse an old `--llm-cache` across prompt versions. If a temporary service
-failure produced warnings, resume with `--resume --retry-warnings`.
-
-## 4. Other retrieval sources
-
-After selecting the best Paperclip and query settings, compare Europe PMC and
-source fusion on the same questions:
+Check the exact test names without sending any retrieval requests:
 
 ~~~cmd
-python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever europepmc --query-strategy raw --europepmc-mode direct --europepmc-synonym --europepmc-candidate-limit 30 --retrieval-limit 20 --output-dir outputs\document_retrieval --no-resume
-python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever europepmc --query-strategy raw --europepmc-mode multi --no-europepmc-synonym --europepmc-candidate-limit 30 --retrieval-limit 20 --output-dir outputs\document_retrieval --no-resume
-python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever fusion --query-strategy raw --paperclip-ranking hybrid --paperclip-candidate-limit 30 --europepmc-mode multi --no-europepmc-synonym --europepmc-candidate-limit 30 --retrieval-limit 20 --rrf-k 60 --output-dir outputs\document_retrieval --no-resume
+python -m evaluation.run_retrieval_sweep --list-configs
 ~~~
 
-Summarize all document-retrieval runs with:
+## 3. Run the five-question pilot
+
+Start with the same five benchmark questions for all 15 configurations:
 
 ~~~cmd
-python -m evaluation.summarize_document_retrieval
+python -m evaluation.run_retrieval_sweep --num-questions 5 --seed 42 --no-resume
 ~~~
 
-Use Recall@20 as the primary document-retrieval measure, then MRR@20 and
-Recall@10. Review errors and fallback warnings before accepting a score.
+The files are written under `outputs\retrieval_15_tests`. Each numbered test
+folder contains its own `results.csv`, and the root contains `summary.csv`:
+
+~~~text
+outputs\retrieval_15_tests\
+  01_paperclip_bm25_raw\results.csv
+  02_paperclip_bm25_anchored_hyde\results.csv
+  ...
+  15_europepmc_no_synonyms_anchored_llm_expansion\results.csv
+  summary.csv
+~~~
+
+Generated HyDE and expansion queries are cached once and reused across retrieval
+settings, which keeps the query preparation identical for a fair comparison.
+Delete this run directory before deliberately changing a query prompt or model.
+
+## 4. Validate and expand the run
+
+Before using the full benchmark, inspect every `results.csv` for errors and check
+that the raw question remains visible at the start of every anchored query. Use
+Recall@20 as the primary document-retrieval measure, followed by MRR@20 and
+Recall@10.
+
+After the pilot is clean, run all 90 benchmark questions:
+
+~~~cmd
+python -m evaluation.run_retrieval_sweep --num-questions 90 --seed 42 --no-resume
+~~~
+
+If an interrupted run used the same settings, omit `--no-resume` to continue
+from its saved rows. Do not compare results created with different question
+counts, seeds, retrieval limits, prompts, or models.
 
 ## 5. Final 20-chunk evaluation
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable
@@ -44,6 +45,7 @@ class RetrievalTrace:
 
 
 RESULT_FIELDS = (
+    "configuration",
     "question_id",
     "category",
     "question",
@@ -344,6 +346,7 @@ def _result_row(
 
     rank = result.rank
     return {
+        "configuration": _config_name(args),
         "question_id": _clean(example["id"]),
         "category": _clean(example.get("category", "")),
         "question": _clean(example["question"]),
@@ -405,6 +408,7 @@ def _error_row(example: dict[str, Any], args: argparse.Namespace, exc: Exception
     row = {field: "" for field in RESULT_FIELDS}
     row.update(
         {
+            "configuration": _config_name(args),
             "question_id": _clean(example["id"]),
             "category": _clean(example.get("category", "")),
             "question": _clean(example["question"]),
@@ -441,6 +445,10 @@ def _error_row(example: dict[str, Any], args: argparse.Namespace, exc: Exception
 
 
 def _config_name(args: argparse.Namespace) -> str:
+    run_name = _clean(getattr(args, "run_name", ""))
+    if run_name:
+        return run_name
+
     parts = [args.retriever, args.query_strategy]
     if args.paperclip_query_fusion and args.query_strategy != "raw":
         weight = format(args.reformulated_query_weight, "g").replace(".", "p")
@@ -559,6 +567,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--num-questions", type=int, default=90)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
+    parser.add_argument(
+        "--run-name",
+        default="",
+        help=(
+            "Optional lowercase underscore-separated folder name. When omitted, "
+            "a name is generated from the retrieval settings."
+        ),
+    )
     parser.add_argument("--retriever", choices=RETRIEVERS, required=True)
     parser.add_argument(
         "--retrieval-limit",
@@ -646,6 +662,13 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def validate_args(args: argparse.Namespace) -> None:
+    if args.run_name and not re.fullmatch(
+        r"[a-z0-9]+(?:_[a-z0-9]+)*",
+        args.run_name,
+    ):
+        raise ValueError(
+            "run_name must contain only lowercase letters, numbers, and single underscores"
+        )
     if args.retrieval_limit < 10:
         raise ValueError("retrieval_limit must be at least 10")
     for name in ("paperclip_candidate_limit", "europepmc_candidate_limit"):

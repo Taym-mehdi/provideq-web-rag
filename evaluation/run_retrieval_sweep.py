@@ -3,94 +3,82 @@ from __future__ import annotations
 import argparse
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 
-CONFIGS = [
-    (
-        "Paperclip raw BM25",
-        [
-            "--retriever", "paperclip",
-            "--query-strategy", "raw",
-            "--paperclip-ranking", "bm25",
-        ],
-    ),
-    (
-        "Paperclip raw vector",
-        [
-            "--retriever", "paperclip",
-            "--query-strategy", "raw",
-            "--paperclip-ranking", "vector",
-        ],
-    ),
-    (
-        "Paperclip raw hybrid",
-        [
-            "--retriever", "paperclip",
-            "--query-strategy", "raw",
-            "--paperclip-ranking", "hybrid",
-        ],
-    ),
-    (
-        "Paperclip anchored HyDE hybrid",
-        [
-            "--retriever", "paperclip",
-            "--query-strategy", "hyde",
-            "--paperclip-ranking", "hybrid",
-            "--paperclip-query-fusion",
-            "--query-fusion-rrf-k", "10",
-            "--reformulated-query-weight", "0.5",
-        ],
-    ),
-    (
-        "Paperclip anchored LLM expansion hybrid",
-        [
-            "--retriever", "paperclip",
-            "--query-strategy", "llmexpand",
-            "--paperclip-ranking", "hybrid",
-            "--paperclip-query-fusion",
-            "--query-fusion-rrf-k", "10",
-            "--reformulated-query-weight", "0.5",
-        ],
-    ),
-    (
-        "Europe PMC direct with synonyms",
-        [
-            "--retriever", "europepmc",
-            "--query-strategy", "raw",
-            "--europepmc-mode", "direct",
-            "--europepmc-synonym",
-        ],
-    ),
-    (
-        "Europe PMC multi-query without synonyms",
-        [
-            "--retriever", "europepmc",
-            "--query-strategy", "raw",
-            "--europepmc-mode", "multi",
-            "--no-europepmc-synonym",
-        ],
-    ),
-    (
-        "Europe PMC multi-query with synonyms",
-        [
-            "--retriever", "europepmc",
-            "--query-strategy", "raw",
-            "--europepmc-mode", "multi",
-            "--europepmc-synonym",
-        ],
-    ),
-    (
-        "Paperclip and Europe PMC fusion",
-        [
-            "--retriever", "fusion",
-            "--query-strategy", "raw",
-            "--paperclip-ranking", "hybrid",
-            "--europepmc-mode", "multi",
-            "--no-europepmc-synonym",
-        ],
-    ),
-]
+@dataclass(frozen=True)
+class RetrievalTest:
+    name: str
+    label: str
+    arguments: tuple[str, ...]
+
+
+QUERY_SETTINGS = (
+    ("raw", "raw", "Raw"),
+    ("anchored_hyde", "hyde", "Anchored HyDE"),
+    ("anchored_llm_expansion", "llmexpand", "Anchored LLM expansion"),
+)
+
+
+def _build_configs() -> tuple[RetrievalTest, ...]:
+    """Build the fixed 5 retrieval settings x 3 query settings matrix."""
+    configs: list[RetrievalTest] = []
+
+    for ranking in ("bm25", "vector", "hybrid"):
+        for query_name, query_strategy, query_label in QUERY_SETTINGS:
+            arguments = [
+                "--retriever", "paperclip",
+                "--query-strategy", query_strategy,
+                "--paperclip-ranking", ranking,
+            ]
+            if query_strategy != "raw":
+                # The raw ranking remains the anchor and is fused with the
+                # reformulated-query ranking using the same fixed weights.
+                arguments.extend(
+                    [
+                        "--paperclip-query-fusion",
+                        "--query-fusion-rrf-k", "10",
+                        "--reformulated-query-weight", "0.5",
+                    ]
+                )
+            number = len(configs) + 1
+            configs.append(
+                RetrievalTest(
+                    name=f"{number:02d}_paperclip_{ranking}_{query_name}",
+                    label=f"Paperclip {ranking.upper()} + {query_label}",
+                    arguments=tuple(arguments),
+                )
+            )
+
+    for synonyms, synonym_name, synonym_label in (
+        (True, "synonyms", "with synonyms"),
+        (False, "no_synonyms", "without synonyms"),
+    ):
+        for query_name, query_strategy, query_label in QUERY_SETTINGS:
+            arguments = [
+                "--retriever", "europepmc",
+                "--query-strategy", query_strategy,
+                "--europepmc-mode", "multi",
+                "--europepmc-synonym" if synonyms else "--no-europepmc-synonym",
+            ]
+            if query_strategy != "raw":
+                # HyDE and LLM expansion already begin with the original
+                # question, so Europe PMC receives an explicitly anchored query.
+                arguments.append("--europepmc-use-reformulated-query")
+            number = len(configs) + 1
+            configs.append(
+                RetrievalTest(
+                    name=f"{number:02d}_europepmc_{synonym_name}_{query_name}",
+                    label=f"Europe PMC {synonym_label} + {query_label}",
+                    arguments=tuple(arguments),
+                )
+            )
+
+    return tuple(configs)
+
+
+CONFIGS = _build_configs()
 
 
 def main() -> int:
@@ -98,12 +86,25 @@ def main() -> int:
     parser.add_argument("--benchmark", default="benchmark/provideq_benchmark.json")
     parser.add_argument("--num-questions", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--output-dir", default="outputs/retrieval_15_tests")
     parser.add_argument("--retrieval-limit", type=int, default=20)
     parser.add_argument("--paperclip-candidate-limit", type=int, default=30)
     parser.add_argument("--europepmc-candidate-limit", type=int, default=30)
     parser.add_argument("--rrf-k", type=int, default=60)
     parser.add_argument("--no-resume", action="store_true")
+    parser.add_argument(
+        "--list-configs",
+        action="store_true",
+        help="Print the 15 tests and exit without making retrieval requests.",
+    )
     args = parser.parse_args()
+
+    if args.list_configs:
+        for index, config in enumerate(CONFIGS, start=1):
+            print(f"{index:02d}. {config.name}: {config.label}")
+        return 0
+
+    output_dir = Path(args.output_dir)
 
     common = [
         "--benchmark", args.benchmark,
@@ -113,30 +114,39 @@ def main() -> int:
         "--paperclip-candidate-limit", str(args.paperclip_candidate_limit),
         "--europepmc-candidate-limit", str(args.europepmc_candidate_limit),
         "--rrf-k", str(args.rrf_k),
+        "--output-dir", str(output_dir),
+        "--europepmc-cache-dir", str(output_dir / "europepmc_cache"),
     ]
     if args.no_resume:
         common.append("--no-resume")
 
-    for index, (label, config) in enumerate(CONFIGS, start=1):
-        print(f"\n{'=' * 72}\n[{index}/{len(CONFIGS)}] {label}\n{'=' * 72}")
+    for index, config in enumerate(CONFIGS, start=1):
+        print(f"\n{'=' * 72}\n[{index}/{len(CONFIGS)}] {config.label}\n{'=' * 72}")
         command = [
             sys.executable,
             "-m",
             "evaluation.run_document_retrieval",
             *common,
-            *config,
+            "--run-name", config.name,
+            *config.arguments,
         ]
         result = subprocess.run(command)
         if result.returncode != 0:
-            print(f"Stopped: {label} failed with exit code {result.returncode}")
+            print(f"Stopped: {config.label} failed with exit code {result.returncode}")
             return result.returncode
 
-    print("\nFocused retrieval sweep completed.")
-    summary_command = [sys.executable, "-m", "evaluation.summarize_document_retrieval"]
+    print("\n15-test retrieval sweep completed.")
+    summary_command = [
+        sys.executable,
+        "-m",
+        "evaluation.summarize_document_retrieval",
+        "--input-dir", str(output_dir),
+        "--output", str(output_dir / "summary.csv"),
+    ]
     summary_result = subprocess.run(summary_command)
     if summary_result.returncode != 0:
         return summary_result.returncode
-    print(f"Results are under: {Path('outputs/document_retrieval').resolve()}")
+    print(f"Results are under: {output_dir.resolve()}")
     return 0
 
 

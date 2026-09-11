@@ -189,8 +189,10 @@ cross-encoder reranking, and top-20 evidence selection are all defaults.
 
 ## Later retrieval experiments
 
-The previous document-retrieval experiments remain available under evaluation.
-Raw, HyDE, and LLM expansion can still be compared with Paperclip BM25, vector,
-or hybrid ranking. They do not alter the fixed default pipeline unless selected
-explicitly. Follow [TESTING.md](TESTING.md) to run the comparisons in stages
-with matching benchmark subsets and seeds.
+The document-retrieval sweep compares exactly 15 configurations: raw, anchored
+HyDE, and anchored LLM expansion across Paperclip BM25, vector, and hybrid, plus
+Europe PMC multi-query retrieval with and without synonyms. Each configuration
+gets a clearly numbered folder and `results.csv`; the sweep also writes a shared
+`summary.csv`. These tests stop before chunking and reranking, so they do not
+alter the fixed default pipeline. Follow [TESTING.md](TESTING.md) for the pilot
+and full-benchmark commands.

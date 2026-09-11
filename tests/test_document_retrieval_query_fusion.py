@@ -46,10 +46,34 @@ def _args() -> argparse.Namespace:
         rrf_k=60,
         europepmc_timeout=30.0,
         europepmc_cache_dir=None,
+        run_name="",
     )
 
 
 class QueryFusionRoutingTests(unittest.TestCase):
+    @patch("evaluation.run_document_retrieval.retrieve_papers_europepmc")
+    def test_europepmc_receives_the_anchored_reformulated_query(
+        self,
+        retrieve_europepmc,
+    ) -> None:
+        question = "Is potassium stable after delayed centrifugation?"
+        args = _args()
+        args.retriever = "europepmc"
+        args.paperclip_query_fusion = False
+        args.europepmc_use_reformulated_query = True
+        retrieve_europepmc.return_value = EuropePMCRetrieval([], [])
+
+        trace = _retrieve(
+            question,
+            args,
+            lambda _: '{"added_terms": ["delayed centrifugation stability"]}',
+        )
+
+        sent_query = retrieve_europepmc.call_args.args[0]
+        self.assertTrue(sent_query.startswith(question))
+        self.assertIn("delayed centrifugation stability", sent_query)
+        self.assertEqual(trace.europepmc_query, sent_query)
+
     @patch("evaluation.run_document_retrieval.retrieve_papers_europepmc")
     @patch("evaluation.run_document_retrieval.retrieve_papers_paperclip")
     def test_raw_and_expanded_queries_only_fuse_inside_paperclip(
