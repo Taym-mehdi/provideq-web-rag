@@ -11,7 +11,7 @@ The no-argument defaults represent the best fixed pipeline to test first:
 |---|---|
 | Query | Raw question |
 | Paper retrieval | Paperclip hybrid, full corpus |
-| Retrieved papers | 10 |
+| Paper retrieval limit | 20 papers |
 | Article text | Full text requested explicitly |
 | Chunking | Section-preserving, tokenizer-aware |
 | Chunk size | Maximum 512 MedCPT tokens |
@@ -77,13 +77,14 @@ but settings from an older run can silently change the smoke test. Check the
 effective values before testing:
 
 ~~~cmd
-python -c "from web_rag.config import get_settings; s=get_settings(); print('reranker:',s.reranker); print('top_k:',s.top_k); print('max_chunks_per_paper:',s.max_chunks_per_paper)"
+python -c "from web_rag.config import get_settings; s=get_settings(); print('retrieval_limit:',s.retrieval_limit); print('reranker:',s.reranker); print('top_k:',s.top_k); print('max_chunks_per_paper:',s.max_chunks_per_paper)"
 ~~~
 
-The fixed default should print `medcpt`, `20`, and `4`. If it does not,
+The fixed default should print `20`, `medcpt`, `20`, and `4`. If it does not,
 remove the old lines from `.env` or set them to:
 
 ~~~dotenv
+WEB_RAG_RETRIEVAL_LIMIT=20
 WEB_RAG_RERANKER=medcpt
 WEB_RAG_TOP_K=20
 WEB_RAG_MAX_CHUNKS_PER_PAPER=4
@@ -182,9 +183,9 @@ for chunk in result.records:
     )
 ~~~
 
-The stable integration boundary is run_pipeline(question). Raw queries,
-Paperclip hybrid retrieval, token-aware chunking, MedCPT cross-encoder
-reranking, and top-20 selection are all defaults.
+The stable integration boundary is run_pipeline(question). Raw queries, a
+20-paper Paperclip hybrid retrieval limit, token-aware chunking, MedCPT
+cross-encoder reranking, and top-20 evidence selection are all defaults.
 
 ## Later retrieval experiments
 

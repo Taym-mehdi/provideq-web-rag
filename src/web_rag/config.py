@@ -39,7 +39,7 @@ DEFAULT_MEDCPT_MODEL = "ncbi/MedCPT-Cross-Encoder"
 @dataclass(frozen=True)
 class Settings:
     # Best current document-retrieval setting from the completed comparison.
-    retrieval_limit: int = 10
+    retrieval_limit: int = 20
     query_strategy: str = "raw"
 
     # Optional HyDE and LLM-expansion experiments.

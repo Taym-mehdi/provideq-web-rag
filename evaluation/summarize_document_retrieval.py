@@ -5,7 +5,7 @@ import csv
 from pathlib import Path
 
 
-METRICS = (1, 3, 5, 10)
+METRICS = (1, 3, 5, 10, 20)
 
 
 def summarize_file(path: Path) -> dict[str, object]:
@@ -31,10 +31,16 @@ def summarize_file(path: Path) -> dict[str, object]:
             sum(int(float(row.get(f"hit_at_{cutoff}", 0) or 0)) for row in rows) / n,
             6,
         )
-    summary["mrr_at_10"] = round(
-        sum(float(row.get("reciprocal_rank", 0) or 0) for row in rows) / n,
-        6,
-    )
+    for cutoff in (10, 20):
+        summary[f"mrr_at_{cutoff}"] = round(
+            sum(
+                1.0 / rank
+                for row in rows
+                if (rank := int(float(row.get("first_relevant_rank", 0) or 0)))
+                and rank <= cutoff
+            ) / n,
+            6,
+        )
     return summary
 
 
@@ -55,8 +61,8 @@ def main() -> int:
     summaries = [summarize_file(path) for path in files]
     summaries.sort(
         key=lambda row: (
-            -float(row["recall_at_10"]),
-            -float(row["mrr_at_10"]),
+            -float(row["recall_at_20"]),
+            -float(row["mrr_at_20"]),
         )
     )
 
@@ -70,7 +76,7 @@ def main() -> int:
     print("\nDocument retrieval comparison")
     print(
         f"{'configuration':42s} {'R@1':>7s} {'R@3':>7s} "
-        f"{'R@5':>7s} {'R@10':>7s} {'MRR':>7s}"
+        f"{'R@5':>7s} {'R@10':>7s} {'R@20':>7s} {'MRR@20':>7s}"
     )
     for row in summaries:
         print(
@@ -79,7 +85,8 @@ def main() -> int:
             f"{float(row['recall_at_3']):7.4f} "
             f"{float(row['recall_at_5']):7.4f} "
             f"{float(row['recall_at_10']):7.4f} "
-            f"{float(row['mrr_at_10']):7.4f}"
+            f"{float(row['recall_at_20']):7.4f} "
+            f"{float(row['mrr_at_20']):7.4f}"
         )
     print(f"\nSaved: {output}")
     return 0

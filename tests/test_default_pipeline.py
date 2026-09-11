@@ -11,6 +11,7 @@ from web_rag.pipeline import run_pipeline
 class DefaultPipelineTests(unittest.TestCase):
     def test_defaults_match_the_aryan_compatible_pipeline(self) -> None:
         settings = Settings()
+        self.assertEqual(settings.retrieval_limit, 20)
         self.assertEqual(settings.query_strategy, "raw")
         self.assertEqual(settings.paperclip_ranking, "hybrid")
         self.assertEqual(settings.chunking_method, "token_aware")
@@ -93,6 +94,7 @@ class DefaultPipelineTests(unittest.TestCase):
         self.assertTrue(
             retrieve_papers.call_args.kwargs["load_full_text"]
         )
+        self.assertEqual(retrieve_papers.call_args.kwargs["limit"], 20)
         self.assertEqual(result.pipeline.returned_evidence_count, 20)
         self.assertEqual(len(result.records), 20)
         self.assertEqual(

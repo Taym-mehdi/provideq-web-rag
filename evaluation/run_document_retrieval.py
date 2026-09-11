@@ -77,6 +77,7 @@ RESULT_FIELDS = (
     "hit_at_3",
     "hit_at_5",
     "hit_at_10",
+    "hit_at_20",
     "reciprocal_rank",
     "matched_document",
     "match_type",
@@ -380,6 +381,7 @@ def _result_row(
         "hit_at_3": int(rank is not None and rank <= 3),
         "hit_at_5": int(rank is not None and rank <= 5),
         "hit_at_10": int(rank is not None and rank <= 10),
+        "hit_at_20": int(rank is not None and rank <= 20),
         "reciprocal_rank": round(float(result.score), 6),
         "matched_document": _clean(result.matched_title),
         "match_type": _clean(result.match_type),
@@ -431,6 +433,7 @@ def _error_row(example: dict[str, Any], args: argparse.Namespace, exc: Exception
             "hit_at_3": 0,
             "hit_at_5": 0,
             "hit_at_10": 0,
+            "hit_at_20": 0,
             "reciprocal_rank": 0.0,
         }
     )
@@ -481,7 +484,11 @@ def _ordered(selected: list[dict[str, Any]], by_id: dict[str, dict[str, Any]]) -
     return [by_id[str(example["id"])] for example in selected if str(example["id"]) in by_id]
 
 
-def _print_summary(rows: list[dict[str, Any]], label: str) -> None:
+def _print_summary(
+    rows: list[dict[str, Any]],
+    label: str,
+    retrieval_limit: int,
+) -> None:
     print(f"\n=== {label} ===")
     if not rows:
         print("No results")
@@ -491,11 +498,13 @@ def _print_summary(rows: list[dict[str, Any]], label: str) -> None:
     print(f"Questions: {len(rows)}")
     print(f"Errors: {errors}")
     print(f"Warnings: {warnings}")
-    for cutoff in (1, 3, 5, 10):
+    for cutoff in (1, 3, 5, 10, 20):
+        if cutoff > retrieval_limit:
+            continue
         recall = sum(int(float(row.get(f"hit_at_{cutoff}", 0) or 0)) for row in rows) / len(rows)
         print(f"Recall@{cutoff}: {recall:.4f}")
     mrr = sum(float(row.get("reciprocal_rank", 0) or 0) for row in rows) / len(rows)
-    print(f"MRR@10: {mrr:.4f}")
+    print(f"MRR@{retrieval_limit}: {mrr:.4f}")
 
 
 def run(args: argparse.Namespace) -> Path:
@@ -534,7 +543,7 @@ def run(args: argparse.Namespace) -> Path:
 
     rows = _ordered(selected, rows_by_id)
     _write_rows(rows, output)
-    _print_summary(rows, _config_name(args))
+    _print_summary(rows, _config_name(args), args.retrieval_limit)
     return output
 
 
@@ -551,7 +560,11 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--output-dir", default=str(DEFAULT_OUTPUT_DIR))
     parser.add_argument("--retriever", choices=RETRIEVERS, required=True)
-    parser.add_argument("--retrieval-limit", type=int, default=10)
+    parser.add_argument(
+        "--retrieval-limit",
+        type=int,
+        default=settings.retrieval_limit,
+    )
 
     parser.add_argument("--query-strategy", choices=QUERY_STRATEGIES, default="raw")
     parser.add_argument("--llm-provider", choices=("ollama", "openai"), default=settings.llm_provider)

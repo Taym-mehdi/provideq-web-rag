@@ -12,7 +12,7 @@ python -m unittest discover -s tests -v
 python -c "from web_rag.config import get_settings; s=get_settings(); print(s.query_strategy, s.paperclip_ranking, s.retrieval_limit, s.reranker, s.top_k, s.max_chunks_per_paper)"
 ~~~
 
-The fixed baseline is `raw hybrid 10 medcpt 20 4`.
+The fixed baseline is `raw hybrid 20 medcpt 20 4`.
 
 Run one end-to-end request before any benchmark sweep:
 
@@ -29,9 +29,9 @@ paper-rank, rerank-rank, section, and token-count metadata.
 Start with five questions. These runs vary only Paperclip ranking:
 
 ~~~cmd
-python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever paperclip --query-strategy raw --paperclip-ranking bm25 --paperclip-candidate-limit 30 --retrieval-limit 10 --output-dir outputs\document_retrieval --no-resume
-python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever paperclip --query-strategy raw --paperclip-ranking vector --paperclip-candidate-limit 30 --retrieval-limit 10 --output-dir outputs\document_retrieval --no-resume
-python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever paperclip --query-strategy raw --paperclip-ranking hybrid --paperclip-candidate-limit 30 --retrieval-limit 10 --output-dir outputs\document_retrieval --no-resume
+python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever paperclip --query-strategy raw --paperclip-ranking bm25 --paperclip-candidate-limit 30 --retrieval-limit 20 --output-dir outputs\document_retrieval --no-resume
+python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever paperclip --query-strategy raw --paperclip-ranking vector --paperclip-candidate-limit 30 --retrieval-limit 20 --output-dir outputs\document_retrieval --no-resume
+python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever paperclip --query-strategy raw --paperclip-ranking hybrid --paperclip-candidate-limit 30 --retrieval-limit 20 --output-dir outputs\document_retrieval --no-resume
 ~~~
 
 Repeat the same commands with `--num-questions 90` only after the five-question
@@ -44,8 +44,8 @@ expansion retain the raw question as an anchor by fusing raw and reformulated
 Paperclip rankings:
 
 ~~~cmd
-python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever paperclip --query-strategy hyde --paperclip-ranking hybrid --paperclip-query-fusion --query-fusion-rrf-k 10 --reformulated-query-weight 0.5 --paperclip-candidate-limit 30 --retrieval-limit 10 --output-dir outputs\document_retrieval --no-resume
-python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever paperclip --query-strategy llmexpand --paperclip-ranking hybrid --paperclip-query-fusion --query-fusion-rrf-k 10 --reformulated-query-weight 0.5 --paperclip-candidate-limit 30 --retrieval-limit 10 --output-dir outputs\document_retrieval --no-resume
+python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever paperclip --query-strategy hyde --paperclip-ranking hybrid --paperclip-query-fusion --query-fusion-rrf-k 10 --reformulated-query-weight 0.5 --paperclip-candidate-limit 30 --retrieval-limit 20 --output-dir outputs\document_retrieval --no-resume
+python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever paperclip --query-strategy llmexpand --paperclip-ranking hybrid --paperclip-query-fusion --query-fusion-rrf-k 10 --reformulated-query-weight 0.5 --paperclip-candidate-limit 30 --retrieval-limit 20 --output-dir outputs\document_retrieval --no-resume
 ~~~
 
 Do not reuse an old `--llm-cache` across prompt versions. If a temporary service
@@ -57,9 +57,9 @@ After selecting the best Paperclip and query settings, compare Europe PMC and
 source fusion on the same questions:
 
 ~~~cmd
-python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever europepmc --query-strategy raw --europepmc-mode direct --europepmc-synonym --europepmc-candidate-limit 30 --retrieval-limit 10 --output-dir outputs\document_retrieval --no-resume
-python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever europepmc --query-strategy raw --europepmc-mode multi --no-europepmc-synonym --europepmc-candidate-limit 30 --retrieval-limit 10 --output-dir outputs\document_retrieval --no-resume
-python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever fusion --query-strategy raw --paperclip-ranking hybrid --paperclip-candidate-limit 30 --europepmc-mode multi --no-europepmc-synonym --europepmc-candidate-limit 30 --retrieval-limit 10 --rrf-k 60 --output-dir outputs\document_retrieval --no-resume
+python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever europepmc --query-strategy raw --europepmc-mode direct --europepmc-synonym --europepmc-candidate-limit 30 --retrieval-limit 20 --output-dir outputs\document_retrieval --no-resume
+python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever europepmc --query-strategy raw --europepmc-mode multi --no-europepmc-synonym --europepmc-candidate-limit 30 --retrieval-limit 20 --output-dir outputs\document_retrieval --no-resume
+python -m evaluation.run_document_retrieval --benchmark benchmark/provideq_benchmark.json --num-questions 5 --seed 42 --retriever fusion --query-strategy raw --paperclip-ranking hybrid --paperclip-candidate-limit 30 --europepmc-mode multi --no-europepmc-synonym --europepmc-candidate-limit 30 --retrieval-limit 20 --rrf-k 60 --output-dir outputs\document_retrieval --no-resume
 ~~~
 
 Summarize all document-retrieval runs with:
@@ -68,8 +68,8 @@ Summarize all document-retrieval runs with:
 python -m evaluation.summarize_document_retrieval
 ~~~
 
-Use Recall@10 as the primary document-retrieval measure, then MRR@10 and
-Recall@5. Review errors and fallback warnings before accepting a score.
+Use Recall@20 as the primary document-retrieval measure, then MRR@20 and
+Recall@10. Review errors and fallback warnings before accepting a score.
 
 ## 5. Final 20-chunk evaluation
 

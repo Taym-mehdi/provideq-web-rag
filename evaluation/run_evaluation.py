@@ -69,6 +69,7 @@ RESULT_FIELDS = (
     "hit_at_3",
     "hit_at_5",
     "hit_at_10",
+    "hit_at_20",
     "reciprocal_rank",
     "matched_document",
     "match_type",
@@ -413,6 +414,7 @@ def _result_row(
         "hit_at_3": int(rank is not None and rank <= 3),
         "hit_at_5": int(rank is not None and rank <= 5),
         "hit_at_10": int(rank is not None and rank <= 10),
+        "hit_at_20": int(rank is not None and rank <= 20),
         "reciprocal_rank": round(float(result.score), 6),
         "matched_document": _clean(result.matched_title),
         "match_type": _clean(result.match_type),
@@ -546,6 +548,7 @@ def _error_row(
         "hit_at_3": 0,
         "hit_at_5": 0,
         "hit_at_10": 0,
+        "hit_at_20": 0,
         "reciprocal_rank": 0.0,
         "matched_document": "",
         "match_type": "",
@@ -574,7 +577,7 @@ def _print_summary(rows: list[dict[str, Any]], retrieval_limit: int) -> None:
     print("\nRetrieval summary")
     print(f"Questions: {len(rows)}")
     print(f"Errors: {errors}")
-    for cutoff in (1, 3, 5, 10):
+    for cutoff in (1, 3, 5, 10, 20):
         if cutoff <= retrieval_limit:
             recall = sum(int(row[f"hit_at_{cutoff}"]) for row in rows) / len(rows)
             print(f"Recall@{cutoff}: {recall:.4f}")

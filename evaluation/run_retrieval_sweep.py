@@ -98,7 +98,7 @@ def main() -> int:
     parser.add_argument("--benchmark", default="benchmark/provideq_benchmark.json")
     parser.add_argument("--num-questions", type=int, default=5)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--retrieval-limit", type=int, default=10)
+    parser.add_argument("--retrieval-limit", type=int, default=20)
     parser.add_argument("--paperclip-candidate-limit", type=int, default=30)
     parser.add_argument("--europepmc-candidate-limit", type=int, default=30)
     parser.add_argument("--rrf-k", type=int, default=60)

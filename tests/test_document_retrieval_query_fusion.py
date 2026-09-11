@@ -31,7 +31,7 @@ def _args() -> argparse.Namespace:
         expansion_max_query_chars=400,
         retriever="fusion",
         paperclip_candidate_limit=30,
-        retrieval_limit=10,
+        retrieval_limit=20,
         paperclip_source="pmc",
         paperclip_ranking="hybrid",
         paperclip_full_corpus=True,
