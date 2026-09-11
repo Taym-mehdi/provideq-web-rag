@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -114,8 +115,8 @@ class RetrievalSweepTests(unittest.TestCase):
         self.assertEqual(
             summary_command[-4:],
             [
-                "--input-dir", output_dir,
-                "--output", f"{output_dir}/summary.csv",
+                "--input-dir", str(Path(output_dir)),
+                "--output", str(Path(output_dir) / "summary.csv"),
             ],
         )
 
