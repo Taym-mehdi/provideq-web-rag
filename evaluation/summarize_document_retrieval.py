@@ -76,7 +76,8 @@ def main() -> int:
     print("\nDocument retrieval comparison")
     print(
         f"{'configuration':42s} {'R@1':>7s} {'R@3':>7s} "
-        f"{'R@5':>7s} {'R@10':>7s} {'R@20':>7s} {'MRR@20':>7s}"
+        f"{'R@5':>7s} {'R@10':>7s} {'R@20':>7s} "
+        f"{'MRR@10':>7s} {'MRR@20':>7s}"
     )
     for row in summaries:
         print(
@@ -86,6 +87,7 @@ def main() -> int:
             f"{float(row['recall_at_5']):7.4f} "
             f"{float(row['recall_at_10']):7.4f} "
             f"{float(row['recall_at_20']):7.4f} "
+            f"{float(row['mrr_at_10']):7.4f} "
             f"{float(row['mrr_at_20']):7.4f}"
         )
     print(f"\nSaved: {output}")

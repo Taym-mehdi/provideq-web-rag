@@ -93,6 +93,16 @@ def main() -> int:
     parser.add_argument("--rrf-k", type=int, default=60)
     parser.add_argument("--no-resume", action="store_true")
     parser.add_argument(
+        "--retry-errors",
+        action="store_true",
+        help="When resuming, rerun only rows previously saved with status=error.",
+    )
+    parser.add_argument(
+        "--retry-warnings",
+        action="store_true",
+        help="When resuming, rerun rows that previously used a fallback.",
+    )
+    parser.add_argument(
         "--list-configs",
         action="store_true",
         help="Print the 15 tests and exit without making retrieval requests.",
@@ -119,6 +129,10 @@ def main() -> int:
     ]
     if args.no_resume:
         common.append("--no-resume")
+    if args.retry_errors:
+        common.append("--retry-errors")
+    if args.retry_warnings:
+        common.append("--retry-warnings")
 
     for index, config in enumerate(CONFIGS, start=1):
         print(f"\n{'=' * 72}\n[{index}/{len(CONFIGS)}] {config.label}\n{'=' * 72}")

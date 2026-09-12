@@ -12,8 +12,8 @@ if "dotenv" not in sys.modules:
     dotenv.load_dotenv = lambda *args, **kwargs: False
     sys.modules["dotenv"] = dotenv
 
-from evaluation.run_document_retrieval import _retrieve
-from web_rag.europepmc_retriever import EuropePMCRetrieval
+from evaluation.run_document_retrieval import _error_row, _print_summary, _retrieve
+from web_rag.europepmc_retriever import EuropePMCError, EuropePMCRetrieval
 from web_rag.models import Paper, PaperclipRetrieval
 from web_rag.query_reformulation import QueryGenerationError
 
@@ -159,6 +159,63 @@ class QueryFusionRoutingTests(unittest.TestCase):
 
         self.assertEqual(trace.papers[0].title, "Raw hit")
         self.assertIn("Europe PMC failed", trace.warnings[0])
+
+
+class RetrievalOutputTests(unittest.TestCase):
+    def test_europepmc_error_row_has_only_relevant_source_metadata(self) -> None:
+        args = _args()
+        args.retriever = "europepmc"
+        args.paperclip_query_fusion = False
+        variants = [
+            "Which conditions affect RNA integrity?",
+            "TITLE_ABS:(conditions RNA integrity)",
+        ]
+        error = EuropePMCError(
+            "Europe PMC query variant 2/2 failed",
+            query=variants[0],
+            failed_variant=variants[1],
+            failed_variant_index=2,
+            query_variants=variants,
+        )
+        example = {
+            "id": "Q001",
+            "category": "test",
+            "question": variants[0],
+            "gold_documents": [{"title": "Gold paper", "pmid": "123"}],
+        }
+
+        row = _error_row(example, args, error)
+
+        self.assertEqual(row["paperclip_ranking"], "")
+        self.assertEqual(row["paperclip_source"], "")
+        self.assertEqual(row["paperclip_query_fusion"], "")
+        self.assertEqual(row["europepmc_mode"], "multi")
+        self.assertEqual(row["europepmc_query"], variants[0])
+        self.assertEqual(row["europepmc_failed_query_variant"], variants[1])
+        self.assertEqual(row["europepmc_failed_variant_index"], 2)
+        self.assertEqual(row["europepmc_query_variants"], " | ".join(variants))
+
+    @patch("builtins.print")
+    def test_summary_reports_mrr_at_10_and_20(self, print_mock) -> None:
+        rows = [
+            {"status": "success", "first_relevant_rank": 5, "reciprocal_rank": 0.2},
+            {
+                "status": "success",
+                "first_relevant_rank": 15,
+                "reciprocal_rank": 1 / 15,
+            },
+            {"status": "success", "first_relevant_rank": "", "reciprocal_rank": 0},
+        ]
+        for row in rows:
+            for cutoff in (1, 3, 5, 10, 20):
+                rank = int(row["first_relevant_rank"] or 0)
+                row[f"hit_at_{cutoff}"] = int(bool(rank) and rank <= cutoff)
+
+        _print_summary(rows, "test", 20)
+
+        messages = [call.args[0] for call in print_mock.call_args_list]
+        self.assertIn("MRR@10: 0.0667", messages)
+        self.assertIn("MRR@20: 0.0889", messages)
 
 
 if __name__ == "__main__":

@@ -1,8 +1,16 @@
 from __future__ import annotations
 
+import io
 import unittest
+import urllib.error
+from unittest.mock import MagicMock, patch
 
-from web_rag.europepmc_retriever import build_query_variants
+from web_rag.europepmc_retriever import (
+    EuropePMCError,
+    _request_json,
+    build_query_variants,
+    retrieve_papers_europepmc,
+)
 from web_rag.models import Paper
 from web_rag.multi_source_retriever import reciprocal_rank_fusion
 
@@ -15,6 +23,50 @@ class EuropePMCQueryTests(unittest.TestCase):
         )
         self.assertGreaterEqual(len(variants), 2)
         self.assertTrue(any(value.startswith("TITLE_ABS:(") for value in variants))
+
+    @patch("web_rag.europepmc_retriever._search_variant")
+    def test_failed_multi_query_reports_the_exact_variant(self, search_variant) -> None:
+        question = "How stable are serum metabolites after repeated freeze-thaw cycles?"
+        variants = build_query_variants(question, mode="multi")
+        search_variant.side_effect = [[], EuropePMCError("Europe PMC HTTP 404")]
+
+        with self.assertRaises(EuropePMCError) as raised:
+            retrieve_papers_europepmc(
+                question,
+                limit=20,
+                candidate_limit=30,
+                mode="multi",
+                cache_dir=None,
+            )
+
+        error = raised.exception
+        self.assertEqual(error.query, question)
+        self.assertEqual(error.failed_variant, variants[1])
+        self.assertEqual(error.failed_variant_index, 2)
+        self.assertEqual(error.query_variants, variants)
+        self.assertIn("variant 2/", str(error))
+
+    @patch("web_rag.europepmc_retriever.time.sleep")
+    @patch("web_rag.europepmc_retriever.urllib.request.urlopen")
+    def test_transient_404_is_retried(self, urlopen, sleep) -> None:
+        not_found = urllib.error.HTTPError(
+            url="https://example.invalid",
+            code=404,
+            msg="Not Found",
+            hdrs=None,
+            fp=io.BytesIO(b""),
+        )
+        response = MagicMock()
+        response.__enter__.return_value.read.return_value = (
+            b'{"resultList": {"result": []}}'
+        )
+        urlopen.side_effect = [not_found, response]
+
+        payload = _request_json({"query": "test"}, timeout=1.0, retries=1)
+
+        self.assertEqual(payload, {"resultList": {"result": []}})
+        self.assertEqual(urlopen.call_count, 2)
+        sleep.assert_called_once()
 
 
 class FusionTests(unittest.TestCase):

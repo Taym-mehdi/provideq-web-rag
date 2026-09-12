@@ -20,7 +20,22 @@ EUROPEPMC_SEARCH_URL = "https://www.ebi.ac.uk/europepmc/webservices/rest/search"
 
 
 class EuropePMCError(RuntimeError):
-    pass
+    """Europe PMC request failure with optional query-variant context."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        query: str = "",
+        failed_variant: str = "",
+        failed_variant_index: int | None = None,
+        query_variants: list[str] | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.query = query
+        self.failed_variant = failed_variant
+        self.failed_variant_index = failed_variant_index
+        self.query_variants = list(query_variants or [])
 
 
 @dataclass(frozen=True)
@@ -190,7 +205,10 @@ def _request_json(
                 body = exc.read().decode("utf-8", errors="replace")
             except Exception:
                 pass
-            if exc.code not in {429, 500, 502, 503, 504} or attempt >= retries:
+            # The search path is fixed, so an intermittent empty 404 is normally a
+            # gateway/service failure rather than a missing resource. Retrying it is
+            # safe and has proven useful during benchmark sweeps.
+            if exc.code not in {404, 408, 429, 500, 502, 503, 504} or attempt >= retries:
                 raise EuropePMCError(
                     f"Europe PMC HTTP {exc.code}: {clean_text(body)[:300]}"
                 ) from exc
@@ -432,15 +450,29 @@ def retrieve_papers_europepmc(
     email = email or os.getenv("EUROPEPMC_EMAIL", "").strip() or None
     resolved_cache_dir = Path(cache_dir) if cache_dir else None
 
+    def search_variant(variant: str, variant_index: int, search_limit: int) -> list[Paper]:
+        try:
+            return _search_variant(
+                variant,
+                limit=search_limit,
+                synonym=synonym,
+                timeout=timeout,
+                email=email,
+                cache_dir=resolved_cache_dir,
+            )
+        except Exception as exc:
+            detail = clean_text(str(exc)) or type(exc).__name__
+            raise EuropePMCError(
+                "Europe PMC query variant "
+                f"{variant_index}/{len(variants)} failed: {variant} | {detail}",
+                query=query,
+                failed_variant=variant,
+                failed_variant_index=variant_index,
+                query_variants=variants,
+            ) from exc
+
     if mode == "direct":
-        papers = _search_variant(
-            variants[0],
-            limit=max(limit, candidate_limit),
-            synonym=synonym,
-            timeout=timeout,
-            email=email,
-            cache_dir=resolved_cache_dir,
-        )[:limit]
+        papers = search_variant(variants[0], 1, max(limit, candidate_limit))[:limit]
         for rank, paper in enumerate(papers, start=1):
             paper.retrieval_rank = rank
         return EuropePMCRetrieval(papers=papers, query_variants=variants)
@@ -449,14 +481,7 @@ def retrieve_papers_europepmc(
     entries: list[dict[str, Any]] = []
     key_to_index: dict[str, int] = {}
     for variant_index, variant in enumerate(variants, start=1):
-        papers = _search_variant(
-            variant,
-            limit=candidate_limit,
-            synonym=synonym,
-            timeout=timeout,
-            email=email,
-            cache_dir=resolved_cache_dir,
-        )
+        papers = search_variant(variant, variant_index, candidate_limit)
         for rank, paper in enumerate(papers, start=1):
             keys = paper_keys(paper)
             existing_index = next(

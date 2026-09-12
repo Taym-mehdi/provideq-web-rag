@@ -24,13 +24,14 @@ _LLM_PROVIDERS = ("ollama", "openai")
 
 # Bump this whenever either query-generation prompt changes. Evaluation caches
 # include this value so old generations cannot silently contaminate a new run.
-QUERY_PROMPT_VERSION = "2026-09-biomedical-ir-v5"
+QUERY_PROMPT_VERSION = "2026-09-biomedical-ir-v6"
 
 _HYDE_SYSTEM_PROMPT = (
-    "You are a biomedical information-retrieval specialist. Generate a concise "
-    "hypothetical passage that resembles the title and abstract language of a paper "
-    "that answers the question. Preserve exact entities and conditions. A plausible "
-    "finding is useful for retrieval, but never invent an exact number or citation."
+    "You are a biomedical information-retrieval specialist. Generate a concise, "
+    "neutral hypothetical study-scope passage that resembles title and abstract "
+    "language. Preserve the question's exact entities and conditions. Improve dense "
+    "retrieval without predicting the answer or inventing a result, candidate, "
+    "mechanism, entity, condition, number, or citation."
 )
 
 _EXPANSION_SYSTEM_PROMPT = (
@@ -414,22 +415,26 @@ def make_llm_generator(
 
 def _build_hyde_prompt(question: str) -> str:
     return f"""
-Create one concise hypothetical title-and-abstract passage for dense biomedical-paper
-retrieval. It should resemble text from a paper that answers the question. The passage
-is a retrieval probe, not a claim shown to the user.
+Create one concise, neutral hypothetical title-and-abstract passage for dense
+biomedical-paper retrieval. It should describe the study scope needed to answer the
+question without guessing the answer. The passage is a retrieval probe, not a claim
+shown to the user.
 
 Output requirements:
 - Write 1 or 2 connected sentences, 30 to 55 words total.
-- Begin immediately with the biomedical topic. Never begin with generic boilerplate
-  such as "This study evaluates", "This paper investigates", or "The research".
-- Include the specimen, analyte, method, outcome, and comparison conditions explicitly
-  present in the question.
-- State a concise plausible finding when it helps answer a which, whether, why, how,
-  or recommendation question. Use cautious language when the finding is uncertain.
+- Describe only the objective, measurement, and comparison needed by the question.
+- Include the specimen, analyte, method, outcome, and comparison conditions only when
+  they are explicitly present in the question.
+- Remain neutral: do not state a result, direction of effect, causal mechanism,
+  candidate answer, threshold, conclusion, or recommendation.
+- For a which/what question, refer to the requested class but never name candidate
+  instances. For whether/did, never assert yes or no. For why/how, never invent a
+  cause or procedure. For recommendations, never propose the action.
 - Preserve every explicit analyte, specimen, tube, method, comparison, temperature,
   duration, number, unit, and negation.
-- Never invent an exact number, temperature, duration, product, population, article
-  title, or experimental condition that is absent from the question.
+- Never introduce a specific analyte, biomarker, molecule, pathway, product, specimen,
+  disease, population, assay, processing step, temperature, duration, or experimental
+  condition that is absent from the question.
 - Keep unknown acronyms exactly as written; do not guess their full forms.
 - Do not include a heading, citation, author, journal, article title, PMID, or DOI.
 

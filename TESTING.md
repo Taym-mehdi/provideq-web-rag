@@ -71,14 +71,29 @@ outputs\retrieval_15_tests\
 
 Generated HyDE and expansion queries are cached once and reused across retrieval
 settings, which keeps the query preparation identical for a fair comparison.
-Delete this run directory before deliberately changing a query prompt or model.
+Use a new output directory, or rerun with `--no-resume`, after deliberately
+changing a query prompt or model. The prompt version is part of the query-cache
+name, so older generated queries cannot be reused silently.
 
 ## 4. Validate and expand the run
 
 Before using the full benchmark, inspect every `results.csv` for errors and check
 that the raw question remains visible at the start of every anchored query. Use
-Recall@20 as the primary document-retrieval measure, followed by MRR@20 and
-Recall@10.
+Recall@20 as the primary document-retrieval measure, followed by Recall@10,
+MRR@10, and MRR@20. Both MRR values are included in `summary.csv` and the console
+comparison.
+
+If a transient service or connection problem affects only some saved rows, retry
+those rows without repeating completed requests:
+
+~~~cmd
+python -m evaluation.run_retrieval_sweep --num-questions 5 --seed 42 --retry-errors
+~~~
+
+The Europe PMC error columns record the full query-variant list, the exact failed
+variant, and its index. A multi-query configuration remains an error if any of its
+variants fails, so partial source responses cannot make configurations
+incomparable.
 
 After the pilot is clean, run all 90 benchmark questions:
 

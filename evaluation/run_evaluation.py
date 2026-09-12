@@ -581,8 +581,16 @@ def _print_summary(rows: list[dict[str, Any]], retrieval_limit: int) -> None:
         if cutoff <= retrieval_limit:
             recall = sum(int(row[f"hit_at_{cutoff}"]) for row in rows) / len(rows)
             print(f"Recall@{cutoff}: {recall:.4f}")
-    mrr = sum(float(row["reciprocal_rank"]) for row in rows) / len(rows)
-    print(f"MRR@{retrieval_limit}: {mrr:.4f}")
+    for cutoff in (10, 20):
+        if cutoff > retrieval_limit:
+            continue
+        mrr = sum(
+            float(row.get("reciprocal_rank", 0) or 0)
+            for row in rows
+            if int(float(row.get("first_relevant_rank", 0) or 0)) <= cutoff
+            and int(float(row.get("first_relevant_rank", 0) or 0)) > 0
+        ) / len(rows)
+        print(f"MRR@{cutoff}: {mrr:.4f}")
 
 
 def run_evaluation(

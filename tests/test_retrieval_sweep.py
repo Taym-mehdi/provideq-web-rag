@@ -99,6 +99,8 @@ class RetrievalSweepTests(unittest.TestCase):
                 "run_retrieval_sweep",
                 "--num-questions", "1",
                 "--output-dir", output_dir,
+                "--retry-errors",
+                "--retry-warnings",
             ],
         ):
             self.assertEqual(main(), 0)
@@ -111,6 +113,9 @@ class RetrievalSweepTests(unittest.TestCase):
             [command[command.index("--run-name") + 1] for command in retrieval_commands],
             list(EXPECTED_NAMES),
         )
+        for command in retrieval_commands:
+            self.assertIn("--retry-errors", command)
+            self.assertIn("--retry-warnings", command)
         summary_command = run_subprocess.call_args_list[-1].args[0]
         self.assertEqual(
             summary_command[-4:],

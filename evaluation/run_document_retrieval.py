@@ -68,6 +68,8 @@ RESULT_FIELDS = (
     "paperclip_query",
     "europepmc_query",
     "europepmc_query_variants",
+    "europepmc_failed_query_variant",
+    "europepmc_failed_variant_index",
     "retrieved_count",
     "retrieved_documents",
     "retrieved_document_ids",
@@ -358,7 +360,9 @@ def _result_row(
         "paperclip_ranking": args.paperclip_ranking if args.retriever != "europepmc" else "",
         "paperclip_source": args.paperclip_source if args.retriever != "europepmc" else "",
         "paperclip_candidate_limit": args.paperclip_candidate_limit if args.retriever == "fusion" else "",
-        "paperclip_query_fusion": int(args.paperclip_query_fusion),
+        "paperclip_query_fusion": (
+            int(args.paperclip_query_fusion) if args.retriever != "europepmc" else ""
+        ),
         "query_fusion_rrf_k": (
             args.query_fusion_rrf_k if args.paperclip_query_fusion else ""
         ),
@@ -373,6 +377,8 @@ def _result_row(
         "paperclip_query": trace.paperclip_query,
         "europepmc_query": trace.europepmc_query,
         "europepmc_query_variants": " | ".join(trace.europepmc_query_variants),
+        "europepmc_failed_query_variant": "",
+        "europepmc_failed_variant_index": "",
         "retrieved_count": len(ordered),
         "retrieved_documents": " | ".join(retrieved_titles),
         "retrieved_document_ids": " | ".join(retrieved_ids),
@@ -406,6 +412,11 @@ def _error_row(example: dict[str, Any], args: argparse.Namespace, exc: Exception
         if (identifier := _gold_identifier(document))
     )
     row = {field: "" for field in RESULT_FIELDS}
+    uses_paperclip = args.retriever in {"paperclip", "fusion"}
+    uses_europepmc = args.retriever in {"europepmc", "fusion"}
+    query_variants = getattr(exc, "query_variants", [])
+    if not isinstance(query_variants, list):
+        query_variants = []
     row.update(
         {
             "configuration": _config_name(args),
@@ -416,21 +427,51 @@ def _error_row(example: dict[str, Any], args: argparse.Namespace, exc: Exception
             "error": _clean(exc),
             "retriever": args.retriever,
             "query_strategy": args.query_strategy,
-            "paperclip_ranking": args.paperclip_ranking,
-            "paperclip_source": args.paperclip_source,
-            "paperclip_candidate_limit": args.paperclip_candidate_limit,
-            "paperclip_query_fusion": int(args.paperclip_query_fusion),
+            "paperclip_ranking": args.paperclip_ranking if uses_paperclip else "",
+            "paperclip_source": args.paperclip_source if uses_paperclip else "",
+            "paperclip_candidate_limit": (
+                args.paperclip_candidate_limit if args.retriever == "fusion" else ""
+            ),
+            "paperclip_query_fusion": (
+                int(args.paperclip_query_fusion) if uses_paperclip else ""
+            ),
             "query_fusion_rrf_k": (
-                args.query_fusion_rrf_k if args.paperclip_query_fusion else ""
+                args.query_fusion_rrf_k
+                if uses_paperclip and args.paperclip_query_fusion
+                else ""
             ),
             "reformulated_query_weight": (
-                args.reformulated_query_weight if args.paperclip_query_fusion else ""
+                args.reformulated_query_weight
+                if uses_paperclip and args.paperclip_query_fusion
+                else ""
             ),
-            "europepmc_mode": args.europepmc_mode,
-            "europepmc_synonym": int(args.europepmc_synonym),
-            "europepmc_candidate_limit": args.europepmc_candidate_limit,
-            "rrf_k": args.rrf_k,
+            "europepmc_mode": args.europepmc_mode if uses_europepmc else "",
+            "europepmc_synonym": (
+                int(args.europepmc_synonym) if uses_europepmc else ""
+            ),
+            "europepmc_candidate_limit": (
+                args.europepmc_candidate_limit if uses_europepmc else ""
+            ),
+            "rrf_k": args.rrf_k if uses_europepmc else "",
             "retrieval_limit": args.retrieval_limit,
+            "europepmc_query": (
+                _clean(getattr(exc, "query", "")) if uses_europepmc else ""
+            ),
+            "europepmc_query_variants": (
+                " | ".join(_clean(value) for value in query_variants)
+                if uses_europepmc
+                else ""
+            ),
+            "europepmc_failed_query_variant": (
+                _clean(getattr(exc, "failed_variant", ""))
+                if uses_europepmc
+                else ""
+            ),
+            "europepmc_failed_variant_index": (
+                getattr(exc, "failed_variant_index", "") or ""
+                if uses_europepmc
+                else ""
+            ),
             "gold_documents": gold_titles,
             "gold_document_ids": gold_ids,
             "hit_at_1": 0,
@@ -511,8 +552,16 @@ def _print_summary(
             continue
         recall = sum(int(float(row.get(f"hit_at_{cutoff}", 0) or 0)) for row in rows) / len(rows)
         print(f"Recall@{cutoff}: {recall:.4f}")
-    mrr = sum(float(row.get("reciprocal_rank", 0) or 0) for row in rows) / len(rows)
-    print(f"MRR@{retrieval_limit}: {mrr:.4f}")
+    for cutoff in (10, 20):
+        if cutoff > retrieval_limit:
+            continue
+        mrr = sum(
+            float(row.get("reciprocal_rank", 0) or 0)
+            for row in rows
+            if int(float(row.get("first_relevant_rank", 0) or 0)) <= cutoff
+            and int(float(row.get("first_relevant_rank", 0) or 0)) > 0
+        ) / len(rows)
+        print(f"MRR@{cutoff}: {mrr:.4f}")
 
 
 def run(args: argparse.Namespace) -> Path:

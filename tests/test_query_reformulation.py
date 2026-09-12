@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from web_rag.query_reformulation import (
+    QUERY_PROMPT_VERSION,
     _validated_expansion_terms,
     build_hyde_query,
 )
@@ -12,16 +13,26 @@ class HyDEQueryTests(unittest.TestCase):
     def test_hyde_keeps_the_original_question_as_an_anchor(self) -> None:
         question = "Which pathways contain plasma proteins affected by ex-vivo proteolysis?"
         passage = (
-            "Plasma proteome stability during variable processing may involve proteins "
-            "from coagulation and complement pathways, with ex-vivo proteolysis altering "
-            "mass-spectrometry measurements across preanalytical handling conditions."
+            "Plasma proteins affected by ex-vivo proteolysis are assessed to determine "
+            "which pathways contain them. The neutral comparison measures the stated "
+            "plasma protein outcome without predicting candidate pathways or a result."
         )
+        prompts: list[str] = []
 
-        query = build_hyde_query(question, generator=lambda _: passage)
+        def generate(prompt: str) -> str:
+            prompts.append(prompt)
+            return passage
+
+        query = build_hyde_query(question, generator=generate)
 
         self.assertEqual(query.hypothetical_document, passage)
         self.assertTrue(query.search_query.startswith(question))
-        self.assertIn("coagulation and complement", query.search_query)
+        self.assertIn("do not state a result", prompts[0])
+        self.assertIn("never name candidate", prompts[0])
+        self.assertNotIn("State a concise plausible finding", prompts[0])
+
+    def test_hyde_prompt_change_has_a_new_cache_version(self) -> None:
+        self.assertEqual(QUERY_PROMPT_VERSION, "2026-09-biomedical-ir-v6")
 
 
 class ExpansionValidationTests(unittest.TestCase):
