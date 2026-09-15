@@ -1,0 +1,16 @@
+configuration,retriever,query_strategy,paperclip_ranking,europepmc_mode,europepmc_synonym,questions,errors,recall_at_1,recall_at_3,recall_at_5,recall_at_10,recall_at_20,mrr_at_10,mrr_at_20
+05_paperclip_vector_anchored_hyde,paperclip,hyde,vector,,,90,0,0.333333,0.422222,0.455556,0.477778,0.5,0.384383,0.386134
+06_paperclip_vector_anchored_llm_expansion,paperclip,llmexpand,vector,,,90,0,0.322222,0.388889,0.444444,0.488889,0.5,0.369396,0.37009
+04_paperclip_vector_raw,paperclip,raw,vector,,,90,0,0.344444,0.4,0.433333,0.466667,0.488889,0.378457,0.380006
+09_paperclip_hybrid_anchored_llm_expansion,paperclip,llmexpand,hybrid,,,90,0,0.222222,0.333333,0.366667,0.366667,0.444444,0.272593,0.277639
+08_paperclip_hybrid_anchored_hyde,paperclip,hyde,hybrid,,,90,0,0.277778,0.333333,0.366667,0.4,0.422222,0.312619,0.31373
+07_paperclip_hybrid_raw,paperclip,raw,hybrid,,,90,0,0.233333,0.322222,0.366667,0.4,0.422222,0.287932,0.289134
+13_europepmc_no_synonyms_raw,europepmc,raw,,multi,0,90,0,0.177778,0.277778,0.333333,0.366667,0.377778,0.238642,0.239383
+10_europepmc_synonyms_raw,europepmc,raw,,multi,1,90,0,0.2,0.266667,0.322222,0.344444,0.355556,0.248519,0.249373
+15_europepmc_no_synonyms_anchored_llm_expansion,europepmc,llmexpand,,multi,0,90,0,0.133333,0.188889,0.2,0.244444,0.3,0.163933,0.168113
+12_europepmc_synonyms_anchored_llm_expansion,europepmc,llmexpand,,multi,1,90,0,0.122222,0.188889,0.2,0.233333,0.288889,0.15884,0.162995
+02_paperclip_bm25_anchored_hyde,paperclip,hyde,bm25,,,90,0,0.077778,0.122222,0.155556,0.177778,0.211111,0.104074,0.106163
+11_europepmc_synonyms_anchored_hyde,europepmc,hyde,,multi,1,90,0,0.055556,0.111111,0.144444,0.177778,0.211111,0.094286,0.096629
+14_europepmc_no_synonyms_anchored_hyde,europepmc,hyde,,multi,0,90,0,0.055556,0.111111,0.133333,0.177778,0.211111,0.0906,0.092926
+03_paperclip_bm25_anchored_llm_expansion,paperclip,llmexpand,bm25,,,90,0,0.1,0.144444,0.166667,0.177778,0.2,0.123519,0.125098
+01_paperclip_bm25_raw,paperclip,raw,bm25,,,90,0,0.088889,0.122222,0.133333,0.166667,0.177778,0.109012,0.109666
