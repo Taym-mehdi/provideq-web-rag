@@ -11,11 +11,15 @@ except ImportError:
         return False
 
 
+# Read both candidate files. Existing variables keep priority, while variables
+# absent from the caller's .env can still come from Web RAG's package-local .env.
 _PROJECT_ROOT = Path(__file__).resolve().parents[2]
-for _dotenv_path in (Path.cwd() / ".env", _PROJECT_ROOT / ".env"):
+_dotenv_candidates = (Path.cwd() / ".env", _PROJECT_ROOT / ".env")
+for _dotenv_path in dict.fromkeys(
+    path.resolve() for path in _dotenv_candidates
+):
     if _dotenv_path.is_file():
         load_dotenv(dotenv_path=_dotenv_path, override=False)
-        break
 
 
 PAPERCLIP_RANKINGS = ("bm25", "vector", "hybrid")

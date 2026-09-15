@@ -23,7 +23,43 @@ venv*/
 !.env.example
 
 # Generated evaluation data and local archives
-outputs/
+# Keep the completed 90-question v6 retrieval results, but ignore raw API caches.
+outputs/**
+!outputs/retrieval_15_tests_90_v6/
+!outputs/retrieval_15_tests_90_v6/README.md
+!outputs/retrieval_15_tests_90_v6/summary.csv
+!outputs/retrieval_15_tests_90_v6/query_cache/
+!outputs/retrieval_15_tests_90_v6/query_cache/*.json
+!outputs/retrieval_15_tests_90_v6/01_paperclip_bm25_raw/
+!outputs/retrieval_15_tests_90_v6/01_paperclip_bm25_raw/results.csv
+!outputs/retrieval_15_tests_90_v6/02_paperclip_bm25_anchored_hyde/
+!outputs/retrieval_15_tests_90_v6/02_paperclip_bm25_anchored_hyde/results.csv
+!outputs/retrieval_15_tests_90_v6/03_paperclip_bm25_anchored_llm_expansion/
+!outputs/retrieval_15_tests_90_v6/03_paperclip_bm25_anchored_llm_expansion/results.csv
+!outputs/retrieval_15_tests_90_v6/04_paperclip_vector_raw/
+!outputs/retrieval_15_tests_90_v6/04_paperclip_vector_raw/results.csv
+!outputs/retrieval_15_tests_90_v6/05_paperclip_vector_anchored_hyde/
+!outputs/retrieval_15_tests_90_v6/05_paperclip_vector_anchored_hyde/results.csv
+!outputs/retrieval_15_tests_90_v6/06_paperclip_vector_anchored_llm_expansion/
+!outputs/retrieval_15_tests_90_v6/06_paperclip_vector_anchored_llm_expansion/results.csv
+!outputs/retrieval_15_tests_90_v6/07_paperclip_hybrid_raw/
+!outputs/retrieval_15_tests_90_v6/07_paperclip_hybrid_raw/results.csv
+!outputs/retrieval_15_tests_90_v6/08_paperclip_hybrid_anchored_hyde/
+!outputs/retrieval_15_tests_90_v6/08_paperclip_hybrid_anchored_hyde/results.csv
+!outputs/retrieval_15_tests_90_v6/09_paperclip_hybrid_anchored_llm_expansion/
+!outputs/retrieval_15_tests_90_v6/09_paperclip_hybrid_anchored_llm_expansion/results.csv
+!outputs/retrieval_15_tests_90_v6/10_europepmc_synonyms_raw/
+!outputs/retrieval_15_tests_90_v6/10_europepmc_synonyms_raw/results.csv
+!outputs/retrieval_15_tests_90_v6/11_europepmc_synonyms_anchored_hyde/
+!outputs/retrieval_15_tests_90_v6/11_europepmc_synonyms_anchored_hyde/results.csv
+!outputs/retrieval_15_tests_90_v6/12_europepmc_synonyms_anchored_llm_expansion/
+!outputs/retrieval_15_tests_90_v6/12_europepmc_synonyms_anchored_llm_expansion/results.csv
+!outputs/retrieval_15_tests_90_v6/13_europepmc_no_synonyms_raw/
+!outputs/retrieval_15_tests_90_v6/13_europepmc_no_synonyms_raw/results.csv
+!outputs/retrieval_15_tests_90_v6/14_europepmc_no_synonyms_anchored_hyde/
+!outputs/retrieval_15_tests_90_v6/14_europepmc_no_synonyms_anchored_hyde/results.csv
+!outputs/retrieval_15_tests_90_v6/15_europepmc_no_synonyms_anchored_llm_expansion/
+!outputs/retrieval_15_tests_90_v6/15_europepmc_no_synonyms_anchored_llm_expansion/results.csv
 *.zip
 
 # Editors and operating systems
