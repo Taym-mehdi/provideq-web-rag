@@ -196,3 +196,40 @@ gets a clearly numbered folder and `results.csv`; the sweep also writes a shared
 `summary.csv`. These tests stop before chunking and reranking, so they do not
 alter the fixed default pipeline. Follow [TESTING.md](TESTING.md) for the pilot
 and full-benchmark commands.
+
+## Optional Claude + Paperclip experiment
+
+The `experiment/claude-paperclip` branch contains a separate document-retrieval
+test. Claude can make up to three adaptive searches through Paperclip's hosted
+MCP server, while the comparison baseline sends the unchanged raw question to
+Paperclip hybrid retrieval. Neither path performs chunking or answer generation
+in this first comparison.
+
+The experiment does not change `run_pipeline`, its defaults, or Aryan's
+20-chunk integration contract. It also explicitly ignores `.claude` project and
+user customizations so that the checked-in prompt is the only agent instruction.
+
+Install the optional dependency and add two private values to `.env`:
+
+~~~cmd
+python -m pip install -e ".[claude]"
+~~~
+
+~~~dotenv
+ANTHROPIC_API_KEY=your_anthropic_api_key
+PAPERCLIP_API_KEY=your_paperclip_api_key
+~~~
+
+Create the Paperclip key at <https://paperclip.gxl.ai/keys>. Run the default
+one-question comparison with:
+
+~~~cmd
+python -m evaluation.run_claude_paperclip_test --question-id Q003
+~~~
+
+Q003 is intentional: the saved raw-hybrid run missed its gold paper, while an
+anchored expansion found it, so it provides room for an adaptive method to help.
+The command writes `comparison.json` and `papers.csv` under
+`outputs\claude_paperclip_smoke\Q003`. A result is labelled `improved` only when
+Claude moves the first matching gold paper to a better rank than the fixed
+baseline, or finds it when the baseline does not.

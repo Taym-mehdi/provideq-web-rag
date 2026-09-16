@@ -121,3 +121,42 @@ semantic score and rank. Use those saved chunks for the later LLM-as-a-judge
 review. A configuration is not ready to become the new default until its run has
 no unexplained errors, its settings are recorded, and spot-checks show no
 keyword-only, bibliography, acknowledgement, or duplicate evidence fragments.
+
+## 6. Claude-controlled Paperclip pilot
+
+Run this only from the experimental branch. It is an isolated document-retrieval
+comparison and does not modify the fixed pipeline.
+
+Install the optional Agent SDK:
+
+~~~cmd
+python -m pip install -e ".[claude]"
+~~~
+
+Add `ANTHROPIC_API_KEY` and `PAPERCLIP_API_KEY` to the local `.env`. The second
+key is created at <https://paperclip.gxl.ai/keys>. Do not commit either key.
+
+Run the single-question comparison:
+
+~~~cmd
+python -m evaluation.run_claude_paperclip_test --question-id Q003
+~~~
+
+The fixed side uses the raw question, Paperclip hybrid ranking, the configured
+academic sources, and a final limit of 20 papers. The Claude side has the same
+source, ranking, and 20-paper limit, but may issue at most three Paperclip MCP
+searches. It is instructed not to use `map`, `reduce`, routines, general web
+search, or final-answer generation.
+
+Inspect both files before interpreting the printed label:
+
+~~~text
+outputs\claude_paperclip_smoke\Q003\comparison.json
+outputs\claude_paperclip_smoke\Q003\papers.csv
+~~~
+
+`comparison.json` records the adaptive queries, MCP tool calls, both ranked
+paper lists, gold match and first-relevant rank, token usage, cost when reported,
+runtime, and the raw structured response. `papers.csv` provides a direct
+paper-by-paper review. One question is only a smoke test; an `improved` label is
+not enough to replace the default without a larger repeated benchmark.
