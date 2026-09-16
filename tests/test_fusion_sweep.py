@@ -17,6 +17,9 @@ EXPECTED_NAMES = (
     "01_fusion_paperclip_vector_raw_europepmc_raw_no_synonyms",
     "02_fusion_paperclip_vector_anchored_hyde_europepmc_raw_no_synonyms",
     "03_fusion_paperclip_vector_anchored_llm_expansion_europepmc_raw_no_synonyms",
+    "04_fusion_paperclip_hybrid_raw_europepmc_raw_no_synonyms",
+    "05_fusion_paperclip_hybrid_anchored_hyde_europepmc_raw_no_synonyms",
+    "06_fusion_paperclip_hybrid_anchored_llm_expansion_europepmc_raw_no_synonyms",
 )
 
 
@@ -25,11 +28,18 @@ def _value(arguments: tuple[str, ...] | list[str], option: str) -> str:
 
 
 class FusionSweepTests(unittest.TestCase):
-    def test_sweep_has_the_three_focused_configurations(self) -> None:
+    def test_sweep_has_the_six_focused_configurations(self) -> None:
         self.assertEqual(tuple(config.name for config in CONFIGS), EXPECTED_NAMES)
+        grouped: dict[str, set[str]] = {}
+        for config in CONFIGS:
+            ranking = _value(config.arguments, "--paperclip-ranking")
+            grouped.setdefault(ranking, set()).add(config.query_strategy)
         self.assertEqual(
-            {config.query_strategy for config in CONFIGS},
-            {"raw", "hyde", "llmexpand"},
+            grouped,
+            {
+                "vector": {"raw", "hyde", "llmexpand"},
+                "hybrid": {"raw", "hyde", "llmexpand"},
+            },
         )
 
     def test_every_configuration_uses_the_fixed_source_settings(self) -> None:
@@ -37,7 +47,10 @@ class FusionSweepTests(unittest.TestCase):
             arguments = config.arguments
             with self.subTest(config=config.name):
                 self.assertEqual(_value(arguments, "--retriever"), "fusion")
-                self.assertEqual(_value(arguments, "--paperclip-ranking"), "vector")
+                self.assertIn(
+                    _value(arguments, "--paperclip-ranking"),
+                    {"vector", "hybrid"},
+                )
                 self.assertEqual(_value(arguments, "--europepmc-mode"), "multi")
                 self.assertIn("--no-europepmc-synonym", arguments)
                 self.assertIn(
@@ -80,7 +93,7 @@ class FusionSweepTests(unittest.TestCase):
 
     @patch("evaluation.run_fusion_sweep.subprocess.run")
     @patch("builtins.print")
-    def test_runner_writes_three_runs_and_one_summary(
+    def test_runner_writes_six_runs_and_one_summary(
         self,
         _print,
         run_subprocess,
@@ -100,9 +113,9 @@ class FusionSweepTests(unittest.TestCase):
         ):
             self.assertEqual(main(), 0)
 
-        self.assertEqual(run_subprocess.call_count, 4)
+        self.assertEqual(run_subprocess.call_count, 7)
         retrieval_commands = [
-            call.args[0] for call in run_subprocess.call_args_list[:3]
+            call.args[0] for call in run_subprocess.call_args_list[:6]
         ]
         self.assertEqual(
             [command[command.index("--run-name") + 1] for command in retrieval_commands],
@@ -115,6 +128,15 @@ class FusionSweepTests(unittest.TestCase):
         )
         self.assertEqual(
             _value(retrieval_commands[2], "--llm-cache"),
+            str(DEFAULT_LLM_EXPANSION_CACHE),
+        )
+        self.assertNotIn("--llm-cache", retrieval_commands[3])
+        self.assertEqual(
+            _value(retrieval_commands[4], "--llm-cache"),
+            str(DEFAULT_HYDE_CACHE),
+        )
+        self.assertEqual(
+            _value(retrieval_commands[5], "--llm-cache"),
             str(DEFAULT_LLM_EXPANSION_CACHE),
         )
         for command in retrieval_commands:

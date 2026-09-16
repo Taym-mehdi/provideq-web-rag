@@ -108,15 +108,18 @@ counts, seeds, retrieval limits, prompts, or models.
 ## 5. Focused retrieval-fusion tests
 
 The completed 15-test benchmark identified Paperclip vector as the strongest
-Paperclip ranking and raw Europe PMC without synonyms as the most useful
-independent lexical source. The focused sweep therefore changes only the query
-preparation used inside Paperclip:
+single Paperclip ranking and raw Europe PMC without synonyms as the most useful
+independent lexical source. The fusion sweep compares vector against hybrid
+under the same three query preparations while keeping Europe PMC fixed:
 
 | Test | Paperclip side | Europe PMC side | Final fusion |
 | --- | --- | --- | --- |
 | 01 | Vector, raw | Multi-query, raw, no synonyms | Equal-weight RRF |
 | 02 | Vector, raw + anchored HyDE | Multi-query, raw, no synonyms | Equal-weight RRF |
 | 03 | Vector, raw + anchored LLM expansion | Multi-query, raw, no synonyms | Equal-weight RRF |
+| 04 | Hybrid, raw | Multi-query, raw, no synonyms | Equal-weight RRF |
+| 05 | Hybrid, raw + anchored HyDE | Multi-query, raw, no synonyms | Equal-weight RRF |
+| 06 | Hybrid, raw + anchored LLM expansion | Multi-query, raw, no synonyms | Equal-weight RRF |
 
 Each source contributes up to 30 candidates. Duplicate papers are merged by
 identifier, equal-weight RRF uses `k=60`, and only the best 20 fused papers are
@@ -136,7 +139,7 @@ Run a five-question smoke test first:
 python -m evaluation.run_fusion_sweep --num-questions 5 --seed 42 --output-dir outputs\retrieval_fusion_90 --no-resume
 ~~~
 
-If all three folders contain five successful rows with no unexplained warning,
+If all six folders contain five successful rows with no unexplained warning,
 run the fixed 90-question comparison:
 
 ~~~cmd
@@ -145,7 +148,7 @@ python -m evaluation.run_fusion_sweep --num-questions 90 --seed 42 --output-dir 
 
 The sweep reuses the approved HyDE and LLM-expansion query caches from the v6
 90-question run. This keeps query preparation identical and avoids new LLM
-generation. Results are written to three clearly numbered folders plus
+generation. Results are written to six clearly numbered folders plus
 `summary.csv`. The 90-question command resumes the five clean pilot rows and
 reuses the Europe PMC response cache. If retrieval is interrupted, run the same
 command again; use `--retry-errors` only for rows affected by transient service

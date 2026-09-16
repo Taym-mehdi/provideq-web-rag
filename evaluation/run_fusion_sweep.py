@@ -27,60 +27,64 @@ DEFAULT_LLM_EXPANSION_CACHE = (
 
 
 def _build_configs() -> tuple[FusionTest, ...]:
-    """Build the focused fusion comparison selected from the 15-run benchmark."""
+    """Build the six focused fusion configurations."""
     configs: list[FusionTest] = []
     query_settings = (
         (
             "raw",
             "raw",
-            "Paperclip vector raw + Europe PMC raw without synonyms",
+            "raw",
         ),
         (
             "anchored_hyde",
             "hyde",
-            "Paperclip vector raw/HyDE + Europe PMC raw without synonyms",
+            "raw/HyDE",
         ),
         (
             "anchored_llm_expansion",
             "llmexpand",
-            "Paperclip vector raw/LLM expansion + Europe PMC raw without synonyms",
+            "raw/LLM expansion",
         ),
     )
 
-    for query_name, query_strategy, description in query_settings:
-        arguments = [
-            "--retriever", "fusion",
-            "--query-strategy", query_strategy,
-            "--paperclip-ranking", "vector",
-            "--europepmc-mode", "multi",
-            "--no-europepmc-synonym",
-            # Europe PMC stays on the raw question. Its own multi-query builder
-            # performs source-specific lexical relaxation.
-            "--no-europepmc-use-reformulated-query",
-        ]
-        if query_strategy != "raw":
-            # Only Paperclip receives the generated query. Its raw result stays
-            # anchored and receives twice the weight of the reformulated result.
-            arguments.extend(
-                [
-                    "--paperclip-query-fusion",
-                    "--query-fusion-rrf-k", "10",
-                    "--reformulated-query-weight", "0.5",
-                ]
-            )
+    for ranking in ("vector", "hybrid"):
+        for query_name, query_strategy, query_label in query_settings:
+            arguments = [
+                "--retriever", "fusion",
+                "--query-strategy", query_strategy,
+                "--paperclip-ranking", ranking,
+                "--europepmc-mode", "multi",
+                "--no-europepmc-synonym",
+                # Europe PMC stays on the raw question. Its own multi-query
+                # builder performs source-specific lexical relaxation.
+                "--no-europepmc-use-reformulated-query",
+            ]
+            if query_strategy != "raw":
+                # Only Paperclip receives the generated query. Its raw result
+                # stays anchored and receives twice the reformulated weight.
+                arguments.extend(
+                    [
+                        "--paperclip-query-fusion",
+                        "--query-fusion-rrf-k", "10",
+                        "--reformulated-query-weight", "0.5",
+                    ]
+                )
 
-        number = len(configs) + 1
-        configs.append(
-            FusionTest(
-                name=(
-                    f"{number:02d}_fusion_paperclip_vector_{query_name}_"
-                    "europepmc_raw_no_synonyms"
-                ),
-                label=f"Fusion: {description}",
-                query_strategy=query_strategy,
-                arguments=tuple(arguments),
+            number = len(configs) + 1
+            configs.append(
+                FusionTest(
+                    name=(
+                        f"{number:02d}_fusion_paperclip_{ranking}_{query_name}_"
+                        "europepmc_raw_no_synonyms"
+                    ),
+                    label=(
+                        f"Fusion: Paperclip {ranking} {query_label} + "
+                        "Europe PMC raw without synonyms"
+                    ),
+                    query_strategy=query_strategy,
+                    arguments=tuple(arguments),
+                )
             )
-        )
 
     return tuple(configs)
 
@@ -98,7 +102,7 @@ def _query_cache(config: FusionTest, args: argparse.Namespace) -> str | None:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Run the focused three-configuration retrieval-fusion sweep."
+        description="Run the focused six-configuration retrieval-fusion sweep."
     )
     parser.add_argument("--benchmark", default="benchmark/provideq_benchmark.json")
     parser.add_argument("--num-questions", type=int, default=90)
@@ -127,7 +131,7 @@ def main() -> int:
     parser.add_argument(
         "--list-configs",
         action="store_true",
-        help="Print the three fusion tests and exit without retrieval requests.",
+        help="Print the six fusion tests and exit without retrieval requests.",
     )
     args = parser.parse_args()
 
@@ -184,7 +188,7 @@ def main() -> int:
             print(f"Stopped: {config.label} failed with exit code {result.returncode}")
             return result.returncode
 
-    print("\nThree-test fusion sweep completed.")
+    print("\nSix-test fusion sweep completed.")
     summary_command = [
         sys.executable,
         "-m",
