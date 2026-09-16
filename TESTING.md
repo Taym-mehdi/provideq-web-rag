@@ -133,21 +133,22 @@ python -m evaluation.run_fusion_sweep --list-configs
 Run a five-question smoke test first:
 
 ~~~cmd
-python -m evaluation.run_fusion_sweep --num-questions 5 --seed 42 --output-dir outputs\retrieval_fusion_pilot --no-resume
+python -m evaluation.run_fusion_sweep --num-questions 5 --seed 42 --output-dir outputs\retrieval_fusion_90 --no-resume
 ~~~
 
 If all three folders contain five successful rows with no unexplained warning,
 run the fixed 90-question comparison:
 
 ~~~cmd
-python -m evaluation.run_fusion_sweep --num-questions 90 --seed 42 --output-dir outputs\retrieval_fusion_90 --no-resume
+python -m evaluation.run_fusion_sweep --num-questions 90 --seed 42 --output-dir outputs\retrieval_fusion_90
 ~~~
 
 The sweep reuses the approved HyDE and LLM-expansion query caches from the v6
 90-question run. This keeps query preparation identical and avoids new LLM
 generation. Results are written to three clearly numbered folders plus
-`summary.csv`. If retrieval is interrupted, run the same command without
-`--no-resume`; use `--retry-errors` only for rows affected by transient service
+`summary.csv`. The 90-question command resumes the five clean pilot rows and
+reuses the Europe PMC response cache. If retrieval is interrupted, run the same
+command again; use `--retry-errors` only for rows affected by transient service
 or connection errors.
 
 Do not change source weights or RRF constants during this comparison. Select a
