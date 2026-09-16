@@ -105,7 +105,55 @@ If an interrupted run used the same settings, omit `--no-resume` to continue
 from its saved rows. Do not compare results created with different question
 counts, seeds, retrieval limits, prompts, or models.
 
-## 5. Final 20-chunk evaluation
+## 5. Focused retrieval-fusion tests
+
+The completed 15-test benchmark identified Paperclip vector as the strongest
+Paperclip ranking and raw Europe PMC without synonyms as the most useful
+independent lexical source. The focused sweep therefore changes only the query
+preparation used inside Paperclip:
+
+| Test | Paperclip side | Europe PMC side | Final fusion |
+| --- | --- | --- | --- |
+| 01 | Vector, raw | Multi-query, raw, no synonyms | Equal-weight RRF |
+| 02 | Vector, raw + anchored HyDE | Multi-query, raw, no synonyms | Equal-weight RRF |
+| 03 | Vector, raw + anchored LLM expansion | Multi-query, raw, no synonyms | Equal-weight RRF |
+
+Each source contributes up to 30 candidates. Duplicate papers are merged by
+identifier, equal-weight RRF uses `k=60`, and only the best 20 fused papers are
+evaluated. Europe PMC always receives the raw question; HyDE and LLM expansion
+are anchored to the raw Paperclip result with the previously tested `2:1`
+raw-to-reformulated weighting.
+
+Review the exact configurations without making requests:
+
+~~~cmd
+python -m evaluation.run_fusion_sweep --list-configs
+~~~
+
+Run a five-question smoke test first:
+
+~~~cmd
+python -m evaluation.run_fusion_sweep --num-questions 5 --seed 42 --output-dir outputs\retrieval_fusion_pilot --no-resume
+~~~
+
+If all three folders contain five successful rows with no unexplained warning,
+run the fixed 90-question comparison:
+
+~~~cmd
+python -m evaluation.run_fusion_sweep --num-questions 90 --seed 42 --output-dir outputs\retrieval_fusion_90 --no-resume
+~~~
+
+The sweep reuses the approved HyDE and LLM-expansion query caches from the v6
+90-question run. This keeps query preparation identical and avoids new LLM
+generation. Results are written to three clearly numbered folders plus
+`summary.csv`. If retrieval is interrupted, run the same command without
+`--no-resume`; use `--retry-errors` only for rows affected by transient service
+or connection errors.
+
+Do not change source weights or RRF constants during this comparison. Select a
+winner using Recall@20 first, then Recall@10, MRR@10, and paper-by-paper review.
+
+## 6. Final 20-chunk evaluation
 
 Evaluate the unchanged default pipeline first on one known question, then five,
 then all 90:
