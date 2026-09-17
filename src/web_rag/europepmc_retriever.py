@@ -323,7 +323,10 @@ def _normalize_item(item: dict[str, Any], rank: int, query_variant: str) -> Pape
             "europepmc_source": source_code,
             "europepmc_id": clean_text(item.get("id", "") or item.get("extId", "")),
             "in_epmc": in_epmc,
-            "has_full_text": in_epmc,
+            # ``inEPMC`` means full text is available from Europe PMC; this
+            # search endpoint still returns only metadata and an abstract.
+            "full_text_available": in_epmc,
+            "has_full_text": False,
             "query_variant": query_variant,
             "raw": item,
         },

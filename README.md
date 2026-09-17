@@ -9,10 +9,14 @@ The no-argument defaults represent the best fixed pipeline to test first:
 
 | Stage | Default |
 |---|---|
-| Query | Raw question |
-| Paper retrieval | Paperclip hybrid, full corpus |
+| Query | Anchored LLM expansion |
+| Paper retrieval | Paperclip vector + raw Europe PMC fusion |
+| Paperclip query fusion | Raw/expanded weighted RRF, 2:1 |
+| Europe PMC | Raw multi-query, synonyms off |
+| Source fusion | Equal-weight RRF (`k=60`) |
+| Candidate pool | 30 from each source |
 | Paper retrieval limit | 20 papers |
-| Article text | Full text requested explicitly |
+| Article text | Full text loaded after final paper ranking |
 | Chunking | Section-preserving, tokenizer-aware |
 | Chunk size | Maximum 512 MedCPT tokens |
 | Overlap | 20%, using at most five complete trailing sentences |
@@ -26,16 +30,17 @@ content are skipped. Repeated findings from an abstract and the body of the same
 paper are removed before the final selection.
 
 This adapts Aryan's Docling HybridChunker behavior to the plain article text
-returned by Paperclip. It deliberately does not add Docling as another parsing
-layer because Paperclip has already extracted the text.
+returned by Paperclip and the abstracts retained for any Europe PMC-only hits.
+It deliberately does not add Docling as another parsing layer because the
+retrievers already return extracted text.
 
 ## Solr compatibility
 
 Aryan uses Solr to store and retrieve candidates from his persistent local
-corpus. Web RAG has no persistent corpus: Paperclip already performs its
-first-stage hybrid retrieval. Therefore Solr is not duplicated here.
+corpus. Web RAG has no persistent corpus: Paperclip and Europe PMC perform
+first-stage retrieval directly. Therefore Solr is not duplicated here.
 
-The compatible hand-off point is the output of run_pipeline: up to 20
+The compatible hand-off point is the output of `run_pipeline`: up to 20
 MedCPT-reranked chunks with source, paper rank, rerank rank, section, sentence
 range, token count, full-text status, and score metadata. Aryan's agent can
 consume these records directly.
@@ -64,10 +69,12 @@ Paperclip 0.7.49 was installed in the active environment:
 python -c "from importlib.metadata import version; v=version('gxl-paperclip'); print(v); assert v == '0.7.49'"
 ~~~
 
-Add your own API key to `.env` before testing HyDE or LLM expansion. The raw
-default pipeline does not call the LLM. The first chunking/reranking run
-downloads ncbi/MedCPT-Cross-Encoder from Hugging Face. The semantic evaluator
-separately downloads BAAI/bge-m3.
+Add your own API key to `.env` before running the default LLM-expansion
+pipeline. The original question remains unchanged at the start of the expanded
+query. Paperclip receives both the raw and expanded versions; Europe PMC
+receives only the raw question. The first chunking/reranking run downloads
+ncbi/MedCPT-Cross-Encoder from Hugging Face. The semantic evaluator separately
+downloads BAAI/bge-m3.
 
 ## Verify the active defaults
 
@@ -77,14 +84,26 @@ but settings from an older run can silently change the smoke test. Check the
 effective values before testing:
 
 ~~~cmd
-python -c "from web_rag.config import get_settings; s=get_settings(); print('retrieval_limit:',s.retrieval_limit); print('reranker:',s.reranker); print('top_k:',s.top_k); print('max_chunks_per_paper:',s.max_chunks_per_paper)"
+python -c "from web_rag.config import get_settings; s=get_settings(); print('retrieval_system:',s.retrieval_system); print('query_strategy:',s.query_strategy); print('paperclip_ranking:',s.paperclip_ranking); print('retrieval_limit:',s.retrieval_limit); print('reranker:',s.reranker); print('top_k:',s.top_k)"
 ~~~
 
-The fixed default should print `20`, `medcpt`, `20`, and `4`. If it does not,
-remove the old lines from `.env` or set them to:
+The fixed default should print `fusion`, `llmexpand`, `vector`, `20`, `medcpt`,
+and `20`. If it does not, remove old overriding lines from `.env` or copy the
+retrieval block from `.env.example`. The essential values are:
 
 ~~~dotenv
+WEB_RAG_RETRIEVAL_SYSTEM=fusion
+WEB_RAG_QUERY_STRATEGY=llmexpand
 WEB_RAG_RETRIEVAL_LIMIT=20
+WEB_RAG_PAPERCLIP_RANKING=vector
+WEB_RAG_PAPERCLIP_CANDIDATE_LIMIT=30
+WEB_RAG_PAPERCLIP_QUERY_FUSION=true
+WEB_RAG_QUERY_FUSION_RRF_K=10
+WEB_RAG_REFORMULATED_QUERY_WEIGHT=0.5
+WEB_RAG_EUROPEPMC_MODE=multi
+WEB_RAG_EUROPEPMC_SYNONYM=false
+WEB_RAG_EUROPEPMC_CANDIDATE_LIMIT=30
+WEB_RAG_FUSION_RRF_K=60
 WEB_RAG_RERANKER=medcpt
 WEB_RAG_TOP_K=20
 WEB_RAG_MAX_CHUNKS_PER_PAPER=4
@@ -183,9 +202,10 @@ for chunk in result.records:
     )
 ~~~
 
-The stable integration boundary is run_pipeline(question). Raw queries, a
-20-paper Paperclip hybrid retrieval limit, token-aware chunking, MedCPT
-cross-encoder reranking, and top-20 evidence selection are all defaults.
+The stable integration boundary is `run_pipeline(question)`. Anchored LLM
+expansion, Paperclip vector/Europe PMC fusion, a 20-paper final retrieval limit,
+token-aware chunking, MedCPT cross-encoder reranking, and top-20 evidence
+selection are all defaults.
 
 ## Later retrieval experiments
 
@@ -193,6 +213,6 @@ The document-retrieval sweep compares exactly 15 configurations: raw, anchored
 HyDE, and anchored LLM expansion across Paperclip BM25, vector, and hybrid, plus
 Europe PMC multi-query retrieval with and without synonyms. Each configuration
 gets a clearly numbered folder and `results.csv`; the sweep also writes a shared
-`summary.csv`. These tests stop before chunking and reranking, so they do not
-alter the fixed default pipeline. Follow [TESTING.md](TESTING.md) for the pilot
-and full-benchmark commands.
+`summary.csv`. These tests stop before chunking and reranking. The selected
+fusion winner is now the fixed default pipeline. Follow [TESTING.md](TESTING.md)
+for the pilot and full-benchmark commands.

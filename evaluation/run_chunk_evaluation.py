@@ -198,8 +198,25 @@ def main() -> int:
     pipeline_settings = Settings(medcpt_device=args.device)
     configuration = {
         "pipeline": "default",
+        "retrieval_system": pipeline_settings.retrieval_system,
         "query_strategy": pipeline_settings.query_strategy,
         "paperclip_ranking": pipeline_settings.paperclip_ranking,
+        "paperclip_candidate_limit": (
+            pipeline_settings.paperclip_candidate_limit
+        ),
+        "paperclip_query_fusion": (
+            pipeline_settings.paperclip_query_fusion
+        ),
+        "query_fusion_rrf_k": pipeline_settings.query_fusion_rrf_k,
+        "reformulated_query_weight": (
+            pipeline_settings.reformulated_query_weight
+        ),
+        "europepmc_mode": pipeline_settings.europepmc_mode,
+        "europepmc_synonym": pipeline_settings.europepmc_synonym,
+        "europepmc_candidate_limit": (
+            pipeline_settings.europepmc_candidate_limit
+        ),
+        "fusion_rrf_k": pipeline_settings.fusion_rrf_k,
         "retrieval_limit": pipeline_settings.retrieval_limit,
         "chunking": pipeline_settings.chunking_method,
         "chunk_max_tokens": pipeline_settings.chunk_max_tokens,

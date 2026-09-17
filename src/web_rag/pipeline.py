@@ -8,10 +8,15 @@ from typing import Any, TypeVar
 from .chunking import chunk_papers
 from .config import Settings, get_settings, validate_settings
 from .context_builder import build_evidence_pack
+from .document_retrieval import retrieve_documents
 from .evidence_selection import select_evidence
 from .models import EvidencePack, PipelineInfo
-from .paperclip_retriever import retrieve_papers
-from .query_reformulation import make_llm_generator, reformulate_query
+from .query_reformulation import (
+    QueryGenerationError,
+    build_raw_query,
+    make_llm_generator,
+    reformulate_query,
+)
 from .reranking import rerank_chunks
 
 
@@ -25,6 +30,7 @@ def _or_default(value: T | None, default: T) -> T:
 def run_pipeline(
     question: str,
     *,
+    retrieval_system: str | None = None,
     retrieval_limit: int | None = None,
     query_strategy: str | None = None,
     llm_provider: str | None = None,
@@ -50,6 +56,10 @@ def run_pipeline(
     expansion_generator: Callable[[str], str] | None = None,
     paperclip_source: str | None = None,
     paperclip_ranking: str | None = None,
+    paperclip_candidate_limit: int | None = None,
+    paperclip_query_fusion: bool | None = None,
+    query_fusion_rrf_k: int | None = None,
+    reformulated_query_weight: float | None = None,
     paperclip_max_full_text_lines: int | None = None,
     paperclip_timeout: float | None = None,
     paperclip_mode: str | None = None,
@@ -60,6 +70,13 @@ def run_pipeline(
     paperclip_article_type: str | None = None,
     paperclip_author: str | None = None,
     paperclip_full_corpus: bool | None = None,
+    europepmc_mode: str | None = None,
+    europepmc_synonym: bool | None = None,
+    europepmc_use_reformulated_query: bool | None = None,
+    europepmc_candidate_limit: int | None = None,
+    europepmc_timeout: float | None = None,
+    europepmc_cache_dir: str | None = None,
+    fusion_rrf_k: int | None = None,
     chunking_method: str | None = None,
     chunk_tokenizer_model: str | None = None,
     chunk_max_tokens: int | None = None,
@@ -88,6 +105,10 @@ def run_pipeline(
 
     effective = replace(
         base,
+        retrieval_system=_or_default(
+            retrieval_system,
+            base.retrieval_system,
+        ),
         retrieval_limit=_or_default(retrieval_limit, base.retrieval_limit),
         query_strategy=_or_default(query_strategy, base.query_strategy),
         llm_provider=_or_default(llm_provider, base.llm_provider),
@@ -161,6 +182,22 @@ def run_pipeline(
             paperclip_ranking,
             base.paperclip_ranking,
         ),
+        paperclip_candidate_limit=_or_default(
+            paperclip_candidate_limit,
+            base.paperclip_candidate_limit,
+        ),
+        paperclip_query_fusion=_or_default(
+            paperclip_query_fusion,
+            base.paperclip_query_fusion,
+        ),
+        query_fusion_rrf_k=_or_default(
+            query_fusion_rrf_k,
+            base.query_fusion_rrf_k,
+        ),
+        reformulated_query_weight=_or_default(
+            reformulated_query_weight,
+            base.reformulated_query_weight,
+        ),
         paperclip_max_full_text_lines=_or_default(
             paperclip_max_full_text_lines,
             base.paperclip_max_full_text_lines,
@@ -172,6 +209,34 @@ def run_pipeline(
         paperclip_full_corpus=_or_default(
             paperclip_full_corpus,
             base.paperclip_full_corpus,
+        ),
+        europepmc_mode=_or_default(
+            europepmc_mode,
+            base.europepmc_mode,
+        ),
+        europepmc_synonym=_or_default(
+            europepmc_synonym,
+            base.europepmc_synonym,
+        ),
+        europepmc_use_reformulated_query=_or_default(
+            europepmc_use_reformulated_query,
+            base.europepmc_use_reformulated_query,
+        ),
+        europepmc_candidate_limit=_or_default(
+            europepmc_candidate_limit,
+            base.europepmc_candidate_limit,
+        ),
+        europepmc_timeout=_or_default(
+            europepmc_timeout,
+            base.europepmc_timeout,
+        ),
+        europepmc_cache_dir=_or_default(
+            europepmc_cache_dir,
+            base.europepmc_cache_dir,
+        ),
+        fusion_rrf_k=_or_default(
+            fusion_rrf_k,
+            base.fusion_rrf_k,
         ),
         chunking_method=_or_default(
             chunking_method,
@@ -238,16 +303,19 @@ def run_pipeline(
     if effective.query_strategy in {"hyde", "llmexpand"}:
         provider = effective.llm_provider.strip().casefold()
         resolved_api_key = llm_api_key
-        if provider == "openai" and not resolved_api_key:
-            resolved_api_key = os.getenv(effective.llm_api_key_env, "")
-            if not resolved_api_key:
-                raise ValueError(
-                    f"Environment variable {effective.llm_api_key_env} "
-                    "is not set."
-                )
 
         if effective.query_strategy == "hyde":
             if resolved_hyde_generator is None:
+                if provider == "openai" and not resolved_api_key:
+                    resolved_api_key = os.getenv(
+                        effective.llm_api_key_env,
+                        "",
+                    )
+                    if not resolved_api_key:
+                        raise ValueError(
+                            "Environment variable "
+                            f"{effective.llm_api_key_env} is not set."
+                        )
                 resolved_hyde_generator = make_llm_generator(
                     provider,
                     model=effective.hyde_model,
@@ -260,6 +328,16 @@ def run_pipeline(
                     json_output=False,
                 )
         elif resolved_expansion_generator is None:
+            if provider == "openai" and not resolved_api_key:
+                resolved_api_key = os.getenv(
+                    effective.llm_api_key_env,
+                    "",
+                )
+                if not resolved_api_key:
+                    raise ValueError(
+                        "Environment variable "
+                        f"{effective.llm_api_key_env} is not set."
+                    )
             resolved_expansion_generator = make_llm_generator(
                 provider,
                 model=effective.expansion_model,
@@ -272,44 +350,49 @@ def run_pipeline(
                 json_output=True,
             )
 
-    query = reformulate_query(
-        question,
-        effective.query_strategy,
-        hyde_model=effective.hyde_model,
-        hyde_base_url=effective.hyde_base_url,
-        hyde_temperature=effective.hyde_temperature,
-        hyde_max_tokens=effective.hyde_max_tokens,
-        hyde_seed=effective.hyde_seed,
-        hyde_timeout=effective.hyde_timeout,
-        hyde_generator=resolved_hyde_generator,
-        expansion_model=effective.expansion_model,
-        expansion_base_url=effective.expansion_base_url,
-        expansion_temperature=effective.expansion_temperature,
-        expansion_max_tokens=effective.expansion_max_tokens,
-        expansion_seed=effective.expansion_seed,
-        expansion_timeout=effective.expansion_timeout,
-        expansion_max_terms=effective.expansion_max_terms,
-        expansion_max_query_chars=effective.expansion_max_query_chars,
-        expansion_generator=resolved_expansion_generator,
-    )
+    query_warnings: list[str] = []
+    try:
+        query = reformulate_query(
+            question,
+            effective.query_strategy,
+            hyde_model=effective.hyde_model,
+            hyde_base_url=effective.hyde_base_url,
+            hyde_temperature=effective.hyde_temperature,
+            hyde_max_tokens=effective.hyde_max_tokens,
+            hyde_seed=effective.hyde_seed,
+            hyde_timeout=effective.hyde_timeout,
+            hyde_generator=resolved_hyde_generator,
+            expansion_model=effective.expansion_model,
+            expansion_base_url=effective.expansion_base_url,
+            expansion_temperature=effective.expansion_temperature,
+            expansion_max_tokens=effective.expansion_max_tokens,
+            expansion_seed=effective.expansion_seed,
+            expansion_timeout=effective.expansion_timeout,
+            expansion_max_terms=effective.expansion_max_terms,
+            expansion_max_query_chars=effective.expansion_max_query_chars,
+            expansion_generator=resolved_expansion_generator,
+        )
+    except QueryGenerationError as exc:
+        if not effective.paperclip_query_fusion:
+            raise
+        query = build_raw_query(question)
+        query_warnings.append(
+            "query reformulation failed; used raw query: " + str(exc)
+        )
 
-    retrieval = retrieve_papers(
-        query.search_query,
-        limit=effective.retrieval_limit,
-        source=effective.paperclip_source,
-        ranking=effective.paperclip_ranking,
-        max_full_text_lines=effective.paperclip_max_full_text_lines,
-        mode=paperclip_mode,
-        since=paperclip_since,
-        sort=paperclip_sort,
-        year=paperclip_year,
-        journal=paperclip_journal,
-        article_type=paperclip_article_type,
-        author=paperclip_author,
-        full_corpus=effective.paperclip_full_corpus,
+    retrieval = retrieve_documents(
+        question,
+        query,
+        settings=effective,
+        paperclip_mode=paperclip_mode,
+        paperclip_since=paperclip_since,
+        paperclip_sort=paperclip_sort,
+        paperclip_year=paperclip_year,
+        paperclip_journal=paperclip_journal,
+        paperclip_article_type=paperclip_article_type,
+        paperclip_author=paperclip_author,
+        paperclip_client=paperclip_client,
         load_full_text=True,
-        timeout=effective.paperclip_timeout,
-        client=paperclip_client,
     )
 
     chunks = chunk_papers(
@@ -330,10 +413,10 @@ def run_pipeline(
     )
 
     info = PipelineInfo(
-        retrieval_system="paperclip",
+        retrieval_system=effective.retrieval_system,
         paperclip_source=effective.paperclip_source,
         paperclip_ranking=effective.paperclip_ranking,
-        paperclip_result_id=retrieval.result_id,
+        paperclip_result_id=retrieval.paperclip_result_id,
         retrieval_limit=effective.retrieval_limit,
         retrieved_papers_count=len(retrieval.papers),
         full_text_papers_count=sum(
@@ -347,10 +430,37 @@ def run_pipeline(
         returned_evidence_count=len(selected),
         parameters={
             "query_strategy": effective.query_strategy,
+            "effective_query_strategy": query.strategy,
+            "warnings": [*query_warnings, *retrieval.warnings],
+            "paperclip_candidate_limit": (
+                effective.paperclip_candidate_limit
+            ),
+            "paperclip_query_fusion": (
+                effective.paperclip_query_fusion
+            ),
+            "query_fusion_rrf_k": effective.query_fusion_rrf_k,
+            "reformulated_query_weight": (
+                effective.reformulated_query_weight
+            ),
             "paperclip_full_corpus": effective.paperclip_full_corpus,
             "paperclip_max_full_text_lines": (
                 effective.paperclip_max_full_text_lines
             ),
+            "paperclip_query": retrieval.paperclip_query,
+            "europepmc_query": retrieval.europepmc_query,
+            "europepmc_query_variants": list(
+                retrieval.europepmc_query_variants
+            ),
+            "europepmc_mode": effective.europepmc_mode,
+            "europepmc_synonym": effective.europepmc_synonym,
+            "europepmc_use_reformulated_query": (
+                effective.europepmc_use_reformulated_query
+            ),
+            "europepmc_candidate_limit": (
+                effective.europepmc_candidate_limit
+            ),
+            "fusion_rrf_k": effective.fusion_rrf_k,
+            "retrieval_source_counts": retrieval.source_counts or {},
             "chunk_tokenizer_model": effective.chunk_tokenizer_model,
             "chunk_max_tokens": effective.chunk_max_tokens,
             "chunk_overlap_fraction": effective.chunk_overlap_fraction,

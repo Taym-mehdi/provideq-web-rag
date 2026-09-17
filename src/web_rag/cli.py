@@ -5,10 +5,12 @@ from pathlib import Path
 
 from .config import (
     CHUNKING_METHODS,
+    EUROPEPMC_MODES,
     LLM_PROVIDERS,
     PAPERCLIP_MODES,
     PAPERCLIP_RANKINGS,
     QUERY_STRATEGIES,
+    RETRIEVAL_SYSTEMS,
     RERANKERS,
     get_settings,
 )
@@ -38,6 +40,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     retrieval = parser.add_argument_group("Paper retrieval")
     retrieval.add_argument(
+        "--retrieval-system",
+        choices=RETRIEVAL_SYSTEMS,
+        default=settings.retrieval_system,
+    )
+    retrieval.add_argument(
         "--limit",
         "--retrieval-limit",
         dest="retrieval_limit",
@@ -59,6 +66,26 @@ def build_parser() -> argparse.ArgumentParser:
         "--paperclip-ranking",
         choices=PAPERCLIP_RANKINGS,
         default=settings.paperclip_ranking,
+    )
+    retrieval.add_argument(
+        "--paperclip-candidate-limit",
+        type=int,
+        default=settings.paperclip_candidate_limit,
+    )
+    retrieval.add_argument(
+        "--paperclip-query-fusion",
+        action=argparse.BooleanOptionalAction,
+        default=settings.paperclip_query_fusion,
+    )
+    retrieval.add_argument(
+        "--query-fusion-rrf-k",
+        type=int,
+        default=settings.query_fusion_rrf_k,
+    )
+    retrieval.add_argument(
+        "--reformulated-query-weight",
+        type=float,
+        default=settings.reformulated_query_weight,
     )
     retrieval.add_argument(
         "--paperclip-max-lines",
@@ -84,6 +111,40 @@ def build_parser() -> argparse.ArgumentParser:
         "--paperclip-full-corpus",
         action=argparse.BooleanOptionalAction,
         default=settings.paperclip_full_corpus,
+    )
+    retrieval.add_argument(
+        "--europepmc-mode",
+        choices=EUROPEPMC_MODES,
+        default=settings.europepmc_mode,
+    )
+    retrieval.add_argument(
+        "--europepmc-synonym",
+        action=argparse.BooleanOptionalAction,
+        default=settings.europepmc_synonym,
+    )
+    retrieval.add_argument(
+        "--europepmc-use-reformulated-query",
+        action=argparse.BooleanOptionalAction,
+        default=settings.europepmc_use_reformulated_query,
+    )
+    retrieval.add_argument(
+        "--europepmc-candidate-limit",
+        type=int,
+        default=settings.europepmc_candidate_limit,
+    )
+    retrieval.add_argument(
+        "--europepmc-timeout",
+        type=float,
+        default=settings.europepmc_timeout,
+    )
+    retrieval.add_argument(
+        "--europepmc-cache-dir",
+        default=settings.europepmc_cache_dir,
+    )
+    retrieval.add_argument(
+        "--fusion-rrf-k",
+        type=int,
+        default=settings.fusion_rrf_k,
     )
 
     generation = parser.add_argument_group(
@@ -235,6 +296,7 @@ def main() -> None:
     try:
         evidence = run_pipeline(
             question,
+            retrieval_system=args.retrieval_system,
             retrieval_limit=args.retrieval_limit,
             query_strategy=args.query_strategy,
             llm_provider=args.llm_provider,
@@ -246,6 +308,12 @@ def main() -> None:
             expansion_max_terms=args.expansion_max_terms,
             paperclip_source=args.paperclip_source,
             paperclip_ranking=args.paperclip_ranking,
+            paperclip_candidate_limit=args.paperclip_candidate_limit,
+            paperclip_query_fusion=args.paperclip_query_fusion,
+            query_fusion_rrf_k=args.query_fusion_rrf_k,
+            reformulated_query_weight=(
+                args.reformulated_query_weight
+            ),
             paperclip_max_full_text_lines=args.paperclip_max_lines,
             paperclip_timeout=args.paperclip_timeout,
             paperclip_mode=args.paperclip_mode,
@@ -256,6 +324,15 @@ def main() -> None:
             paperclip_article_type=args.paperclip_article_type,
             paperclip_author=args.paperclip_author,
             paperclip_full_corpus=args.paperclip_full_corpus,
+            europepmc_mode=args.europepmc_mode,
+            europepmc_synonym=args.europepmc_synonym,
+            europepmc_use_reformulated_query=(
+                args.europepmc_use_reformulated_query
+            ),
+            europepmc_candidate_limit=args.europepmc_candidate_limit,
+            europepmc_timeout=args.europepmc_timeout,
+            europepmc_cache_dir=args.europepmc_cache_dir,
+            fusion_rrf_k=args.fusion_rrf_k,
             chunking_method=args.chunking_method,
             chunk_tokenizer_model=args.chunk_tokenizer_model,
             chunk_max_tokens=args.chunk_max_tokens,

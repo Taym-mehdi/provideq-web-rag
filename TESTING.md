@@ -9,10 +9,10 @@ are intentionally ignored by Git.
 
 ~~~cmd
 python -m unittest discover -s tests -v
-python -c "from web_rag.config import get_settings; s=get_settings(); print(s.query_strategy, s.paperclip_ranking, s.retrieval_limit, s.reranker, s.top_k, s.max_chunks_per_paper)"
+python -c "from web_rag.config import get_settings; s=get_settings(); print(s.retrieval_system, s.query_strategy, s.paperclip_ranking, s.retrieval_limit, s.reranker, s.top_k, s.max_chunks_per_paper)"
 ~~~
 
-The fixed baseline is `raw hybrid 20 medcpt 20 4`.
+The selected default is `fusion llmexpand vector 20 medcpt 20 4`.
 
 Run one end-to-end request before any benchmark sweep:
 
@@ -154,12 +154,13 @@ reuses the Europe PMC response cache. If retrieval is interrupted, run the same
 command again; use `--retry-errors` only for rows affected by transient service
 or connection errors.
 
-Do not change source weights or RRF constants during this comparison. Select a
-winner using Recall@20 first, then Recall@10, MRR@10, and paper-by-paper review.
+Do not change source weights or RRF constants during this comparison. The
+selected winner is test 03: Paperclip vector raw/anchored-LLM-expansion fusion
+plus raw Europe PMC without synonyms. It is now the production default.
 
 ## 6. Final 20-chunk evaluation
 
-Evaluate the unchanged default pipeline first on one known question, then five,
+Evaluate the selected default pipeline first on one known question, then five,
 then all 90:
 
 ~~~cmd

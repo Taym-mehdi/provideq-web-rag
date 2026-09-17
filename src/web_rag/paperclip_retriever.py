@@ -360,6 +360,97 @@ def _is_duplicate_paper(
             seen[key_type].add(value)
     return False
 
+
+def load_paper_full_texts(
+    papers: list[Paper],
+    *,
+    max_full_text_lines: int = 5000,
+    client: Any | None = None,
+) -> list[Paper]:
+    """Load Paperclip text for already-ranked papers without rerunning search.
+
+    Retrieval fusion is performed on lightweight metadata first. Only the final
+    papers are hydrated, which preserves the tested ranking while avoiding full-
+    text downloads for every raw and expanded candidate.
+    """
+    if max_full_text_lines <= 0:
+        raise ValueError("max_full_text_lines must be greater than 0")
+    if not papers:
+        return papers
+
+    active_client = client or create_client()
+    for paper in papers:
+        if paper.metadata.get("has_full_text") and clean_text(paper.text):
+            continue
+
+        candidates = (
+            paper.metadata.get("pmcid", ""),
+            paper.paper_id,
+        )
+        paperclip_id = ""
+        for value in candidates:
+            match = _PAPER_ID_PATTERN.search(str(value or ""))
+            if match:
+                paperclip_id = match.group(0)
+                break
+        if not paperclip_id:
+            paper.metadata["has_full_text"] = False
+            continue
+
+        full_text = _read_full_text(
+            active_client,
+            paperclip_id,
+            max_full_text_lines,
+        )
+        if not full_text:
+            paper.metadata["has_full_text"] = False
+            continue
+
+        file_metadata = _read_metadata(active_client, paperclip_id)
+        paper.text = full_text
+        paper.metadata["paperclip_file"] = file_metadata
+        paper.metadata["has_full_text"] = True
+        paper.metadata["full_text_source"] = "paperclip"
+
+        search_hit = _to_mapping(paper.metadata.get("search_hit", {})) or {}
+        combined = {**search_hit, **file_metadata}
+        if not paper.abstract:
+            paper.abstract = clean_text(
+                str(
+                    _find_value(
+                        combined,
+                        ("abstract", "summary", "snippet", "description"),
+                    )
+                    or ""
+                )
+            )
+        if not paper.doi:
+            paper.doi = _doi(combined, full_text)
+        if not paper.year:
+            paper.year = _year(combined)
+        if not paper.authors:
+            paper.authors = _authors(
+                _find_value(
+                    combined,
+                    ("authors", "author", "author_string", "creator"),
+                )
+            )
+        if not paper.journal:
+            paper.journal = clean_text(
+                str(
+                    _find_value(
+                        combined,
+                        ("journal", "journal_title", "venue"),
+                    )
+                    or ""
+                )
+            )
+        if not paper.url:
+            paper.url = _paper_url(combined, paperclip_id)
+
+    return papers
+
+
 def retrieve_papers(
     query: str,
     *,

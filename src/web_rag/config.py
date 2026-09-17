@@ -33,6 +33,8 @@ PAPERCLIP_ACADEMIC_SOURCES = (
 )
 PAPERCLIP_MODES = ("any", "all", "50%", "75%", "phrase")
 QUERY_STRATEGIES = ("raw", "hyde", "llmexpand")
+RETRIEVAL_SYSTEMS = ("paperclip", "europepmc", "fusion")
+EUROPEPMC_MODES = ("direct", "multi")
 LLM_PROVIDERS = ("ollama", "openai")
 CHUNKING_METHODS = ("token_aware",)
 RERANKERS = ("medcpt", "lexical", "hybrid")
@@ -42,38 +44,55 @@ DEFAULT_MEDCPT_MODEL = "ncbi/MedCPT-Cross-Encoder"
 
 @dataclass(frozen=True)
 class Settings:
-    # Best current document-retrieval setting from the completed comparison.
+    # Best current document-retrieval setting from the completed 90-question
+    # comparison: Paperclip vector raw/LLM-expansion fusion plus raw Europe PMC.
+    retrieval_system: str = "fusion"
     retrieval_limit: int = 20
-    query_strategy: str = "raw"
+    query_strategy: str = "llmexpand"
 
-    # Optional HyDE and LLM-expansion experiments.
+    # Query-generation settings. LLM expansion is the selected default; HyDE
+    # remains available as an experiment.
     llm_provider: str = "openai"
-    llm_model: str = "agents-a1:35b-a3b"
-    llm_base_url: str = "https://interweb.l3s.uni-hannover.de"
-    llm_api_key_env: str = "INTERWEB_APIKEY"
+    llm_model: str = "qwen3.6:35b-a3b-bf16"
+    llm_base_url: str = "https://inference.kbs.uni-hannover.de/v1"
+    llm_api_key_env: str = "KBS_INFERENCE_APIKEY"
 
-    hyde_model: str = "agents-a1:35b-a3b"
-    hyde_base_url: str = "https://interweb.l3s.uni-hannover.de"
+    hyde_model: str = "qwen3.6:35b-a3b-bf16"
+    hyde_base_url: str = "https://inference.kbs.uni-hannover.de/v1"
     hyde_temperature: float = 0.0
-    hyde_max_tokens: int = 100
+    hyde_max_tokens: int = 180
     hyde_seed: int = 42
     hyde_timeout: float = 300.0
 
-    expansion_model: str = "agents-a1:35b-a3b"
-    expansion_base_url: str = "https://interweb.l3s.uni-hannover.de"
+    expansion_model: str = "qwen3.6:35b-a3b-bf16"
+    expansion_base_url: str = "https://inference.kbs.uni-hannover.de/v1"
     expansion_temperature: float = 0.0
-    expansion_max_tokens: int = 120
+    expansion_max_tokens: int = 160
     expansion_seed: int = 42
     expansion_timeout: float = 300.0
-    expansion_max_terms: int = 4
-    expansion_max_query_chars: int = 400
+    expansion_max_terms: int = 6
+    expansion_max_query_chars: int = 600
 
     # Paperclip performs first-stage Web retrieval.
     paperclip_source: str = "pmc,biorxiv,medrxiv,arxiv,abstracts_only"
-    paperclip_ranking: str = "hybrid"
+    paperclip_ranking: str = "vector"
+    paperclip_candidate_limit: int = 30
+    paperclip_query_fusion: bool = True
+    query_fusion_rrf_k: int = 10
+    reformulated_query_weight: float = 0.5
     paperclip_max_full_text_lines: int = 5000
     paperclip_timeout: float = 120.0
     paperclip_full_corpus: bool = True
+
+    # Europe PMC stays on the raw question and performs its own lexical
+    # multi-query relaxation. The two source rankings are combined with RRF.
+    europepmc_mode: str = "multi"
+    europepmc_synonym: bool = False
+    europepmc_use_reformulated_query: bool = False
+    europepmc_candidate_limit: int = 30
+    europepmc_timeout: float = 45.0
+    europepmc_cache_dir: str = "outputs/europepmc_cache"
+    fusion_rrf_k: int = 60
 
     # Mirrors Aryan's local token-aware chunking settings for plain Paperclip text.
     chunking_method: str = "token_aware"
@@ -134,6 +153,10 @@ def get_settings() -> Settings:
     )
 
     return Settings(
+        retrieval_system=os.getenv(
+            "WEB_RAG_RETRIEVAL_SYSTEM",
+            defaults.retrieval_system,
+        ),
         retrieval_limit=_env_int(
             "WEB_RAG_RETRIEVAL_LIMIT",
             defaults.retrieval_limit,
@@ -198,6 +221,22 @@ def get_settings() -> Settings:
             "WEB_RAG_PAPERCLIP_RANKING",
             defaults.paperclip_ranking,
         ),
+        paperclip_candidate_limit=_env_int(
+            "WEB_RAG_PAPERCLIP_CANDIDATE_LIMIT",
+            defaults.paperclip_candidate_limit,
+        ),
+        paperclip_query_fusion=_env_bool(
+            "WEB_RAG_PAPERCLIP_QUERY_FUSION",
+            defaults.paperclip_query_fusion,
+        ),
+        query_fusion_rrf_k=_env_int(
+            "WEB_RAG_QUERY_FUSION_RRF_K",
+            defaults.query_fusion_rrf_k,
+        ),
+        reformulated_query_weight=_env_float(
+            "WEB_RAG_REFORMULATED_QUERY_WEIGHT",
+            defaults.reformulated_query_weight,
+        ),
         paperclip_max_full_text_lines=_env_int(
             "WEB_RAG_PAPERCLIP_MAX_LINES",
             defaults.paperclip_max_full_text_lines,
@@ -209,6 +248,34 @@ def get_settings() -> Settings:
         paperclip_full_corpus=_env_bool(
             "WEB_RAG_PAPERCLIP_FULL_CORPUS",
             defaults.paperclip_full_corpus,
+        ),
+        europepmc_mode=os.getenv(
+            "WEB_RAG_EUROPEPMC_MODE",
+            defaults.europepmc_mode,
+        ),
+        europepmc_synonym=_env_bool(
+            "WEB_RAG_EUROPEPMC_SYNONYM",
+            defaults.europepmc_synonym,
+        ),
+        europepmc_use_reformulated_query=_env_bool(
+            "WEB_RAG_EUROPEPMC_USE_REFORMULATED_QUERY",
+            defaults.europepmc_use_reformulated_query,
+        ),
+        europepmc_candidate_limit=_env_int(
+            "WEB_RAG_EUROPEPMC_CANDIDATE_LIMIT",
+            defaults.europepmc_candidate_limit,
+        ),
+        europepmc_timeout=_env_float(
+            "WEB_RAG_EUROPEPMC_TIMEOUT",
+            defaults.europepmc_timeout,
+        ),
+        europepmc_cache_dir=os.getenv(
+            "WEB_RAG_EUROPEPMC_CACHE_DIR",
+            defaults.europepmc_cache_dir,
+        ),
+        fusion_rrf_k=_env_int(
+            "WEB_RAG_FUSION_RRF_K",
+            defaults.fusion_rrf_k,
         ),
         chunking_method=os.getenv(
             "WEB_RAG_CHUNKING_METHOD",
@@ -294,6 +361,11 @@ def validate_paperclip_source(value: str) -> None:
 
 
 def validate_settings(settings: Settings) -> None:
+    if settings.retrieval_system not in RETRIEVAL_SYSTEMS:
+        raise ValueError(
+            "retrieval_system must be one of: "
+            f"{', '.join(RETRIEVAL_SYSTEMS)}"
+        )
     validate_paperclip_source(settings.paperclip_source)
     if settings.paperclip_ranking not in PAPERCLIP_RANKINGS:
         raise ValueError(
@@ -321,6 +393,29 @@ def validate_settings(settings: Settings) -> None:
         raise ValueError("paperclip_max_full_text_lines must be greater than 0")
     if settings.paperclip_timeout <= 0:
         raise ValueError("paperclip_timeout must be greater than 0")
+    for name, value in (
+        ("paperclip_candidate_limit", settings.paperclip_candidate_limit),
+        ("europepmc_candidate_limit", settings.europepmc_candidate_limit),
+    ):
+        if value <= 0:
+            raise ValueError(f"{name} must be greater than 0")
+        if (
+            settings.retrieval_system == "fusion"
+            and value < settings.retrieval_limit
+        ):
+            raise ValueError(f"{name} must be >= retrieval_limit for fusion")
+    if settings.query_fusion_rrf_k <= 0:
+        raise ValueError("query_fusion_rrf_k must be greater than 0")
+    if settings.reformulated_query_weight <= 0:
+        raise ValueError("reformulated_query_weight must be greater than 0")
+    if settings.europepmc_mode not in EUROPEPMC_MODES:
+        raise ValueError(
+            f"europepmc_mode must be one of: {', '.join(EUROPEPMC_MODES)}"
+        )
+    if settings.europepmc_timeout <= 0:
+        raise ValueError("europepmc_timeout must be greater than 0")
+    if settings.fusion_rrf_k <= 0:
+        raise ValueError("fusion_rrf_k must be greater than 0")
     if not settings.chunk_tokenizer_model.strip():
         raise ValueError("chunk_tokenizer_model must not be empty")
     if settings.chunk_max_tokens < 64:
