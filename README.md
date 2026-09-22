@@ -146,7 +146,14 @@ The tests do not download models or contact Paperclip:
 python -m unittest discover -s tests -v
 ~~~
 
-## Evaluate the final chunks
+## Evaluate the final chunks against gold nuggets
+
+The default evaluator uses
+`benchmark\provideq_benchmark_nuggets_v2.1.0.json`. Each gold nugget is
+matched independently against the returned chunks. The best match for each
+nugget is retained, and the question score is the mean of those per-nugget
+best scores. Unrelated chunks therefore do not lower the score when the
+required evidence is present elsewhere in the returned set.
 
 Start with one known benchmark question:
 
@@ -169,13 +176,17 @@ python -m evaluation.run_chunk_evaluation --num-questions 90 --no-resume
 The evaluator saves incrementally to:
 
 ~~~text
-outputs\default_chunk_evaluation\results.json
-outputs\default_chunk_evaluation\summary.json
+outputs\nugget_chunk_evaluation\results.json
+outputs\nugget_chunk_evaluation\summary.json
 ~~~
 
-results.json contains all 20 chunks and their metadata for each question,
-together with the best lexical and semantic match scores and ranks. This file
-can be used for the later LLM-as-a-judge review.
+results.json contains all 20 chunks and their metadata, the score of every
+gold nugget, and the rank of that nugget's best lexical and semantic chunk.
+Scores are reported at ranks 1, 3, 5, 10, and 20; rank 20 is the primary
+result because the agent receives all 20 chunks. Lexical scoring uses the mean
+of ROUGE-1 recall and ROUGE-L recall. Semantic scoring uses BGE-M3 cosine
+similarity. summary.json macro-averages the question-level nugget scores so
+every benchmark question has equal weight.
 
 If GPU auto-detection causes a problem, add:
 

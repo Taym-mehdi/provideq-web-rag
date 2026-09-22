@@ -38,6 +38,12 @@ def _f1(overlap: int, reference_size: int, candidate_size: int) -> float:
     return 2 * precision * recall / (precision + recall)
 
 
+def _recall(overlap: int, reference_size: int) -> float:
+    if overlap == 0 or reference_size == 0:
+        return 0.0
+    return overlap / reference_size
+
+
 def rouge_1_f1(reference: str, candidate: str) -> float:
     reference_tokens = _tokens(reference)
     candidate_tokens = _tokens(candidate)
@@ -52,8 +58,34 @@ def rouge_l_f1(reference: str, candidate: str) -> float:
     return _f1(overlap, len(reference_tokens), len(candidate_tokens))
 
 
+def rouge_1_recall(reference: str, candidate: str) -> float:
+    """Return unigram recall with the nugget as the reference text."""
+    reference_tokens = _tokens(reference)
+    candidate_tokens = _tokens(candidate)
+    overlap = sum(
+        (Counter(reference_tokens) & Counter(candidate_tokens)).values()
+    )
+    return _recall(overlap, len(reference_tokens))
+
+
+def rouge_l_recall(reference: str, candidate: str) -> float:
+    """Return LCS recall with the nugget as the reference text."""
+    reference_tokens = _tokens(reference)
+    candidate_tokens = _tokens(candidate)
+    overlap = _lcs_length(reference_tokens, candidate_tokens)
+    return _recall(overlap, len(reference_tokens))
+
+
 def _pair_score(reference: str, candidate: str) -> float:
     return (rouge_1_f1(reference, candidate) + rouge_l_f1(reference, candidate)) / 2
+
+
+def _nugget_pair_score(nugget: str, candidate: str) -> float:
+    """Score whether a candidate contains the lexical content of a nugget."""
+    return (
+        rouge_1_recall(nugget, candidate)
+        + rouge_l_recall(nugget, candidate)
+    ) / 2
 
 
 def evaluate_lexical(
@@ -78,3 +110,46 @@ def evaluate_lexical(
                 best_evidence = evidence
 
     return max(best_score, 0.0), best_evidence
+
+
+def evaluate_nuggets_lexical_at_cutoffs(
+    nugget_texts: list[str],
+    evidence_texts: list[str],
+    *,
+    cutoffs: tuple[int, ...],
+) -> list[dict[int, tuple[float, str]]]:
+    """Find the best lexical chunk match for every nugget at each cutoff.
+
+    Recall is used rather than F1 because evidence chunks are intentionally
+    much longer than the short gold nuggets. Extra text in a chunk therefore
+    does not lower a nugget's lexical coverage score.
+    """
+    if any(cutoff <= 0 for cutoff in cutoffs):
+        raise ValueError("cutoffs must contain only positive integers")
+
+    unique_cutoffs = tuple(dict.fromkeys(cutoffs))
+    if not evidence_texts:
+        return [
+            {cutoff: (0.0, "") for cutoff in unique_cutoffs}
+            for _ in nugget_texts
+        ]
+
+    results: list[dict[int, tuple[float, str]]] = []
+    for nugget in nugget_texts:
+        evidence_scores = [
+            _nugget_pair_score(nugget, evidence)
+            for evidence in evidence_texts
+        ]
+        nugget_results: dict[int, tuple[float, str]] = {}
+        for cutoff in unique_cutoffs:
+            limit = min(cutoff, len(evidence_texts))
+            best_index = max(
+                range(limit),
+                key=evidence_scores.__getitem__,
+            )
+            nugget_results[cutoff] = (
+                evidence_scores[best_index],
+                evidence_texts[best_index],
+            )
+        results.append(nugget_results)
+    return results

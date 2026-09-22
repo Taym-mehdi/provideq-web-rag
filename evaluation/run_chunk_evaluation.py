@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 from pathlib import Path
 import random
@@ -11,20 +12,40 @@ from web_rag import run_pipeline
 from web_rag.config import Settings
 from web_rag.serializer import to_serializable
 
-from .lexical_evaluation import evaluate_lexical
+from .lexical_evaluation import evaluate_nuggets_lexical_at_cutoffs
 from .semantic_evaluation import DEFAULT_MODEL, SemanticEvaluator
 
 
-DEFAULT_BENCHMARK = Path("benchmark/provideq_benchmark.json")
-DEFAULT_OUTPUT = Path("outputs/default_chunk_evaluation/results.json")
+DEFAULT_BENCHMARK = Path(
+    "benchmark/provideq_benchmark_nuggets_v2.1.0.json"
+)
+DEFAULT_OUTPUT = Path("outputs/nugget_chunk_evaluation/results.json")
+EVALUATION_CUTOFFS = (1, 3, 5, 10, 20)
 
 
-def _load_examples(path: Path) -> list[dict[str, Any]]:
+def _load_benchmark(
+    path: Path,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     examples = payload.get("examples") if isinstance(payload, dict) else payload
     if not isinstance(examples, list):
         raise ValueError("Benchmark must contain an 'examples' list")
-    return [item for item in examples if isinstance(item, dict)]
+    metadata = {
+        "benchmark_file": path.name,
+        "benchmark_version": (
+            payload.get("version") if isinstance(payload, dict) else None
+        ),
+        "benchmark_schema_version": (
+            payload.get("schema_version")
+            if isinstance(payload, dict)
+            else None
+        ),
+        "benchmark_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+    }
+    return (
+        [item for item in examples if isinstance(item, dict)],
+        metadata,
+    )
 
 
 def _select_examples(
@@ -60,21 +81,30 @@ def _select_examples(
     return sorted(selected, key=lambda item: str(item.get("id", "")))
 
 
-def _gold_answers(example: dict[str, Any]) -> list[str]:
-    answers = [
-        str(value).strip()
-        for value in example.get("gold_answers", [])
-        if str(value).strip()
-    ]
-    for document in example.get("gold_documents", []):
-        if not isinstance(document, dict):
-            continue
-        answers.extend(
-            str(value).strip()
-            for value in document.get("gold_answers", [])
-            if str(value).strip()
-        )
-    return list(dict.fromkeys(answers))
+def _gold_nuggets(example: dict[str, Any]) -> list[dict[str, str]]:
+    question_id = str(example.get("id", "<unknown>"))
+    raw_nuggets = example.get("nuggets")
+    if not isinstance(raw_nuggets, list) or not raw_nuggets:
+        raise ValueError(f"{question_id} has no gold nuggets")
+
+    nuggets: list[dict[str, str]] = []
+    seen_ids: set[str] = set()
+    for raw_nugget in raw_nuggets:
+        if not isinstance(raw_nugget, dict):
+            raise ValueError(f"{question_id} contains an invalid nugget")
+        nugget_id = str(raw_nugget.get("id", "")).strip()
+        text = str(raw_nugget.get("text", "")).strip()
+        if not nugget_id or not text:
+            raise ValueError(
+                f"{question_id} contains a nugget without an id or text"
+            )
+        if nugget_id in seen_ids:
+            raise ValueError(
+                f"{question_id} contains duplicate nugget id {nugget_id}"
+            )
+        seen_ids.add(nugget_id)
+        nuggets.append({"id": nugget_id, "text": text})
+    return nuggets
 
 
 def _best_rank(evidence_texts: list[str], best_text: str) -> int | None:
@@ -82,6 +112,21 @@ def _best_rank(evidence_texts: list[str], best_text: str) -> int | None:
         return evidence_texts.index(best_text) + 1
     except ValueError:
         return None
+
+
+def _mean_nugget_scores_at_cutoffs(
+    nugget_results: list[dict[str, Any]],
+    field: str,
+) -> dict[str, float | None]:
+    aggregated: dict[str, float | None] = {}
+    for cutoff in EVALUATION_CUTOFFS:
+        values = [
+            float(result[field][str(cutoff)])
+            for result in nugget_results
+            if result.get(field, {}).get(str(cutoff)) is not None
+        ]
+        aggregated[str(cutoff)] = mean(values) if values else None
+    return aggregated
 
 
 def _write_results(
@@ -130,22 +175,31 @@ def _load_existing(
 
 def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
     successful = [row for row in rows if row.get("status") == "success"]
-    lexical = [
-        float(row["lexical_score"])
-        for row in successful
-        if row.get("lexical_score") is not None
-    ]
-    semantic = [
-        float(row["semantic_score"])
-        for row in successful
-        if row.get("semantic_score") is not None
-    ]
+
+    def means_at_k(field: str) -> dict[str, float | None]:
+        result: dict[str, float | None] = {}
+        for cutoff in EVALUATION_CUTOFFS:
+            values = [
+                float(row[field][str(cutoff)])
+                for row in successful
+                if row.get(field, {}).get(str(cutoff)) is not None
+            ]
+            result[str(cutoff)] = mean(values) if values else None
+        return result
+
+    lexical_at_k = means_at_k("lexical_nugget_score_at_k")
+    semantic_at_k = means_at_k("semantic_nugget_score_at_k")
     return {
         "questions": len(rows),
         "successful": len(successful),
         "errors": len(rows) - len(successful),
-        "mean_lexical_score": mean(lexical) if lexical else None,
-        "mean_semantic_score": mean(semantic) if semantic else None,
+        "total_gold_nuggets": sum(
+            int(row.get("nugget_count", 0)) for row in successful
+        ),
+        "mean_lexical_nugget_score_at_k": lexical_at_k,
+        "mean_semantic_nugget_score_at_k": semantic_at_k,
+        "mean_lexical_nugget_score": lexical_at_k["20"],
+        "mean_semantic_nugget_score": semantic_at_k["20"],
         "questions_returning_20_chunks": sum(
             int(row.get("returned_chunks", 0)) == 20
             for row in successful
@@ -156,8 +210,8 @@ def _summary(rows: list[dict[str, Any]]) -> dict[str, Any]:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Evaluate the default final 20 Web RAG chunks with lexical "
-            "and semantic matching."
+            "Evaluate gold nuggets against the default final 20 Web RAG "
+            "chunks with lexical and semantic matching."
         )
     )
     parser.add_argument("--benchmark", type=Path, default=DEFAULT_BENCHMARK)
@@ -189,14 +243,25 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = build_parser().parse_args()
+    benchmark_examples, benchmark_metadata = _load_benchmark(args.benchmark)
     examples = _select_examples(
-        _load_examples(args.benchmark),
+        benchmark_examples,
         question_ids=args.question_id,
         number=args.num_questions,
         seed=args.seed,
     )
+    for example in examples:
+        _gold_nuggets(example)
+
     pipeline_settings = Settings(medcpt_device=args.device)
     configuration = {
+        "evaluation_schema_version": 3,
+        "evaluation_cutoffs": list(EVALUATION_CUTOFFS),
+        "evaluation_unit": "gold_nugget",
+        "nugget_aggregation": "mean_of_per_nugget_best_chunk_scores",
+        "lexical_metric": "mean_rouge_1_recall_and_rouge_l_recall",
+        "semantic_metric": "max_cosine_similarity_per_nugget",
+        **benchmark_metadata,
         "pipeline": "default",
         "retrieval_system": pipeline_settings.retrieval_system,
         "query_strategy": pipeline_settings.query_strategy,
@@ -223,8 +288,19 @@ def main() -> int:
         "chunk_overlap_fraction": (
             pipeline_settings.chunk_overlap_fraction
         ),
-        "reranker": pipeline_settings.medcpt_model,
+        "chunk_max_overlap_sentences": (
+            pipeline_settings.chunk_max_overlap_sentences
+        ),
+        "min_chunk_words": pipeline_settings.min_chunk_words,
+        "reranker": pipeline_settings.reranker,
+        "reranker_model": pipeline_settings.medcpt_model,
         "top_k": pipeline_settings.top_k,
+        "max_chunks_per_paper": (
+            pipeline_settings.max_chunks_per_paper
+        ),
+        "near_duplicate_threshold": (
+            pipeline_settings.near_duplicate_threshold
+        ),
         "semantic_enabled": bool(args.semantic),
         "semantic_model": args.semantic_model if args.semantic else None,
         "device": args.device,
@@ -271,6 +347,8 @@ def main() -> int:
             continue
 
         print(f"[{position}/{len(examples)}] {question_id}")
+        gold_nuggets = _gold_nuggets(example)
+        nugget_texts = [nugget["text"] for nugget in gold_nuggets]
         try:
             pack = run_pipeline(
                 str(example["question"]),
@@ -279,20 +357,70 @@ def main() -> int:
             evidence_texts = [
                 record.evidence_text for record in pack.records
             ]
-            answers = _gold_answers(example)
-            lexical_score, lexical_text = evaluate_lexical(
-                answers,
+            lexical_results = evaluate_nuggets_lexical_at_cutoffs(
+                nugget_texts,
                 evidence_texts,
-                answerable=True,
+                cutoffs=EVALUATION_CUTOFFS,
             )
             if semantic_evaluator is not None:
-                semantic_score, semantic_text = semantic_evaluator.score(
-                    answers,
-                    evidence_texts,
-                    answerable=True,
+                semantic_results = (
+                    semantic_evaluator.score_nuggets_at_cutoffs(
+                        nugget_texts,
+                        evidence_texts,
+                        cutoffs=EVALUATION_CUTOFFS,
+                    )
                 )
             else:
-                semantic_score, semantic_text = None, ""
+                semantic_results = [
+                    {
+                        cutoff: (None, "")
+                        for cutoff in EVALUATION_CUTOFFS
+                    }
+                    for _ in gold_nuggets
+                ]
+
+            nugget_results: list[dict[str, Any]] = []
+            for nugget, lexical, semantic in zip(
+                gold_nuggets,
+                lexical_results,
+                semantic_results,
+                strict=True,
+            ):
+                lexical_score, lexical_text = lexical[20]
+                semantic_score, semantic_text = semantic[20]
+                nugget_results.append(
+                    {
+                        "nugget_id": nugget["id"],
+                        "nugget_text": nugget["text"],
+                        "lexical_score_at_k": {
+                            str(cutoff): lexical[cutoff][0]
+                            for cutoff in EVALUATION_CUTOFFS
+                        },
+                        "lexical_score": lexical_score,
+                        "lexical_best_chunk_rank": _best_rank(
+                            evidence_texts,
+                            lexical_text,
+                        ),
+                        "semantic_score_at_k": {
+                            str(cutoff): semantic[cutoff][0]
+                            for cutoff in EVALUATION_CUTOFFS
+                        },
+                        "semantic_score": semantic_score,
+                        "semantic_best_chunk_rank": _best_rank(
+                            evidence_texts,
+                            semantic_text,
+                        ),
+                    }
+                )
+
+            lexical_at_k = _mean_nugget_scores_at_cutoffs(
+                nugget_results,
+                "lexical_score_at_k",
+            )
+            semantic_at_k = _mean_nugget_scores_at_cutoffs(
+                nugget_results,
+                "semantic_score_at_k",
+            )
 
             row = {
                 "question_id": question_id,
@@ -301,16 +429,12 @@ def main() -> int:
                 "status": "success",
                 "error": "",
                 "returned_chunks": len(pack.records),
-                "lexical_score": lexical_score,
-                "lexical_best_chunk_rank": _best_rank(
-                    evidence_texts,
-                    lexical_text,
-                ),
-                "semantic_score": semantic_score,
-                "semantic_best_chunk_rank": _best_rank(
-                    evidence_texts,
-                    semantic_text,
-                ),
+                "nugget_count": len(gold_nuggets),
+                "lexical_nugget_score_at_k": lexical_at_k,
+                "lexical_nugget_score": lexical_at_k["20"],
+                "semantic_nugget_score_at_k": semantic_at_k,
+                "semantic_nugget_score": semantic_at_k["20"],
+                "nugget_results": nugget_results,
                 "pipeline": to_serializable(pack.pipeline),
                 "retrieved_papers": to_serializable(
                     pack.retrieved_papers
@@ -325,8 +449,12 @@ def main() -> int:
                 "status": "error",
                 "error": str(exc),
                 "returned_chunks": 0,
-                "lexical_score": None,
-                "semantic_score": None,
+                "nugget_count": len(gold_nuggets),
+                "lexical_nugget_score_at_k": {},
+                "lexical_nugget_score": None,
+                "semantic_nugget_score_at_k": {},
+                "semantic_nugget_score": None,
+                "nugget_results": [],
                 "chunks": [],
             }
             print(f"  ERROR: {exc}")

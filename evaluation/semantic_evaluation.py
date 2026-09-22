@@ -67,5 +67,67 @@ class SemanticEvaluator:
         similarities = np.clip(answer_vectors @ evidence_vectors.T, 0.0, 1.0)
 
         best_flat_index = int(np.argmax(similarities))
-        _, evidence_index = np.unravel_index(best_flat_index, similarities.shape)
-        return float(similarities.flat[best_flat_index]), evidence_texts[int(evidence_index)]
+        _, evidence_index = np.unravel_index(
+            best_flat_index,
+            similarities.shape,
+        )
+        return (
+            float(similarities.flat[best_flat_index]),
+            evidence_texts[int(evidence_index)],
+        )
+
+    def score_nuggets_at_cutoffs(
+        self,
+        nugget_texts: list[str],
+        evidence_texts: list[str],
+        *,
+        cutoffs: tuple[int, ...],
+    ) -> list[dict[int, tuple[float, str]]]:
+        """Find the best semantic chunk match for every nugget.
+
+        Nuggets and chunks are embedded together in one model call per
+        question. The returned list stays aligned with ``nugget_texts``.
+        """
+        if any(cutoff <= 0 for cutoff in cutoffs):
+            raise ValueError("cutoffs must contain only positive integers")
+
+        unique_cutoffs = tuple(dict.fromkeys(cutoffs))
+        if not evidence_texts:
+            return [
+                {cutoff: (0.0, "") for cutoff in unique_cutoffs}
+                for _ in nugget_texts
+            ]
+        if not nugget_texts:
+            return []
+
+        texts = nugget_texts + evidence_texts
+        vectors = self.model.encode(
+            texts,
+            batch_size=self.batch_size,
+            convert_to_numpy=True,
+            normalize_embeddings=True,
+            show_progress_bar=False,
+        )
+        vectors = np.asarray(vectors, dtype=np.float32)
+
+        nugget_vectors = vectors[: len(nugget_texts)]
+        evidence_vectors = vectors[len(nugget_texts) :]
+        similarities = np.clip(
+            nugget_vectors @ evidence_vectors.T,
+            0.0,
+            1.0,
+        )
+
+        results: list[dict[int, tuple[float, str]]] = []
+        for nugget_index in range(len(nugget_texts)):
+            nugget_results: dict[int, tuple[float, str]] = {}
+            for cutoff in unique_cutoffs:
+                limit = min(cutoff, len(evidence_texts))
+                prefix = similarities[nugget_index, :limit]
+                evidence_index = int(np.argmax(prefix))
+                nugget_results[cutoff] = (
+                    float(prefix[evidence_index]),
+                    evidence_texts[evidence_index],
+                )
+            results.append(nugget_results)
+        return results
