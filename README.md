@@ -184,8 +184,9 @@ results.json contains all 20 chunks and their metadata, the score of every
 gold nugget, and the rank of that nugget's best lexical and semantic chunk.
 Scores are reported at ranks 1, 3, 5, 10, and 20; rank 20 is the primary
 result because the agent receives all 20 chunks. Lexical scoring uses the mean
-of ROUGE-1 recall and ROUGE-L recall. Semantic scoring uses BGE-M3 cosine
-similarity. summary.json macro-averages the question-level nugget scores so
+of ROUGE-1 recall and ROUGE-L recall. Semantic scoring uses cosine similarity
+between normalized BGE-M3 `[CLS]` embeddings loaded directly with
+Transformers. summary.json macro-averages the question-level nugget scores so
 every benchmark question has equal weight.
 
 If GPU auto-detection causes a problem, add:

@@ -6,8 +6,104 @@ from typing import Any
 
 import numpy as np
 
+from web_rag.medcpt_reranker import resolve_device
+
 
 DEFAULT_MODEL = "BAAI/bge-m3"
+DEFAULT_MAX_LENGTH = 8192
+
+
+class _TransformersCLSEncoder:
+    """Minimal BGE-compatible encoder without scikit-learn or SciPy."""
+
+    def __init__(
+        self,
+        model_name: str,
+        device: str,
+        *,
+        max_length: int = DEFAULT_MAX_LENGTH,
+    ) -> None:
+        try:
+            import torch
+            from transformers import AutoModel, AutoTokenizer
+        except ImportError as exc:
+            raise RuntimeError(
+                "Semantic evaluation requires torch and transformers."
+            ) from exc
+
+        self._torch = torch
+        self._device = resolve_device(device)
+        self._tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self._model = (
+            AutoModel.from_pretrained(model_name)
+            .to(self._device)
+            .eval()
+        )
+
+        limits = [max_length]
+        tokenizer_limit = getattr(
+            self._tokenizer,
+            "model_max_length",
+            None,
+        )
+        model_limit = getattr(
+            self._model.config,
+            "max_position_embeddings",
+            None,
+        )
+        for limit in (tokenizer_limit, model_limit):
+            if isinstance(limit, int) and 0 < limit < 1_000_000:
+                limits.append(limit)
+        self._max_length = min(limits)
+
+    def encode(
+        self,
+        texts: list[str],
+        *,
+        batch_size: int,
+        convert_to_numpy: bool,
+        normalize_embeddings: bool,
+        show_progress_bar: bool,
+    ) -> np.ndarray:
+        """Encode texts using the model's first-token (CLS) representation."""
+        del show_progress_bar
+        if not convert_to_numpy:
+            raise ValueError("The semantic evaluator requires NumPy output")
+        if not texts:
+            hidden_size = int(
+                getattr(self._model.config, "hidden_size", 0)
+            )
+            return np.empty((0, hidden_size), dtype=np.float32)
+
+        batches: list[np.ndarray] = []
+        for start in range(0, len(texts), batch_size):
+            encoded = self._tokenizer(
+                texts[start : start + batch_size],
+                padding=True,
+                truncation=True,
+                max_length=self._max_length,
+                return_tensors="pt",
+            )
+            encoded = {
+                name: tensor.to(self._device)
+                for name, tensor in encoded.items()
+            }
+            with self._torch.inference_mode():
+                outputs = self._model(**encoded)
+                embeddings = outputs.last_hidden_state[:, 0]
+                if normalize_embeddings:
+                    embeddings = self._torch.nn.functional.normalize(
+                        embeddings,
+                        p=2,
+                        dim=1,
+                    )
+            batches.append(
+                embeddings.detach().cpu().numpy().astype(
+                    np.float32,
+                    copy=False,
+                )
+            )
+        return np.concatenate(batches, axis=0)
 
 
 class SemanticEvaluator:
@@ -28,16 +124,7 @@ class SemanticEvaluator:
 
     @staticmethod
     def _load_model(model_name: str, device: str) -> Any:
-        try:
-            from sentence_transformers import SentenceTransformer
-        except ImportError as exc:
-            raise ImportError(
-                "Semantic evaluation requires sentence-transformers."
-            ) from exc
-
-        if device == "auto":
-            return SentenceTransformer(model_name)
-        return SentenceTransformer(model_name, device=device)
+        return _TransformersCLSEncoder(model_name, device)
 
     def score(
         self,

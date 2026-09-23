@@ -80,6 +80,17 @@ class _FakePack:
 
 
 class ChunkEvaluationMetricTests(unittest.TestCase):
+    def test_default_semantic_loader_uses_transformers_backend(self) -> None:
+        sentinel = object()
+        with patch(
+            "evaluation.semantic_evaluation._TransformersCLSEncoder",
+            return_value=sentinel,
+        ) as encoder:
+            loaded = SemanticEvaluator._load_model("BAAI/bge-m3", "auto")
+
+        self.assertIs(loaded, sentinel)
+        encoder.assert_called_once_with("BAAI/bge-m3", "auto")
+
     def test_default_benchmark_contains_all_reviewed_nuggets(self) -> None:
         examples, metadata = _load_benchmark(DEFAULT_BENCHMARK)
 
@@ -262,6 +273,14 @@ class ChunkEvaluationMetricTests(unittest.TestCase):
         self.assertEqual(
             payload["configuration"]["evaluation_unit"],
             "gold_nugget",
+        )
+        self.assertEqual(
+            payload["configuration"]["semantic_backend"],
+            "transformers_cls_pooling",
+        )
+        self.assertEqual(
+            payload["configuration"]["semantic_max_length"],
+            8192,
         )
         self.assertEqual(row["nugget_count"], 2)
         self.assertEqual(len(row["nugget_results"]), 2)

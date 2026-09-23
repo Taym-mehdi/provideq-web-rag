@@ -6,7 +6,7 @@ python-dotenv>=1.0
 
 # Evaluation
 numpy>=1.26
-sentence-transformers>=3.0
+# BGE-M3 semantic embeddings use the runtime torch/transformers packages.
 
 # Paperclip 0.7.49 is installed and authenticated separately.
 # The project loads gxl_paperclip from the active environment or ~/.paperclip/lib.

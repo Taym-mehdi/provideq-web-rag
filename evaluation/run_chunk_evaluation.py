@@ -13,7 +13,11 @@ from web_rag.config import Settings
 from web_rag.serializer import to_serializable
 
 from .lexical_evaluation import evaluate_nuggets_lexical_at_cutoffs
-from .semantic_evaluation import DEFAULT_MODEL, SemanticEvaluator
+from .semantic_evaluation import (
+    DEFAULT_MAX_LENGTH,
+    DEFAULT_MODEL,
+    SemanticEvaluator,
+)
 
 
 DEFAULT_BENCHMARK = Path(
@@ -255,7 +259,7 @@ def main() -> int:
 
     pipeline_settings = Settings(medcpt_device=args.device)
     configuration = {
-        "evaluation_schema_version": 3,
+        "evaluation_schema_version": 4,
         "evaluation_cutoffs": list(EVALUATION_CUTOFFS),
         "evaluation_unit": "gold_nugget",
         "nugget_aggregation": "mean_of_per_nugget_best_chunk_scores",
@@ -303,6 +307,12 @@ def main() -> int:
         ),
         "semantic_enabled": bool(args.semantic),
         "semantic_model": args.semantic_model if args.semantic else None,
+        "semantic_backend": (
+            "transformers_cls_pooling" if args.semantic else None
+        ),
+        "semantic_max_length": (
+            DEFAULT_MAX_LENGTH if args.semantic else None
+        ),
         "device": args.device,
     }
     rows_by_id = _load_existing(
