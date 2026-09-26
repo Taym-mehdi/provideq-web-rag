@@ -1,0 +1,3429 @@
+{
+  "schema_version": "1.0.0",
+  "evaluation_name": "ProvideQ Web RAG nugget-aware LLM-as-a-judge evaluation",
+  "created_at_utc": "2026-09-24T09:21:02.847578+00:00",
+  "judge": {
+    "type": "LLM-as-a-judge",
+    "model_family": "OpenAI Codex (GPT-5 family)",
+    "review_mode": "question-by-question review of every returned evidence set",
+    "independent_api_run": false
+  },
+  "source": {
+    "archive": "nugget_chunks_90.zip",
+    "results_member": "results.json",
+    "results_sha256": "187fc5432fe7137339a9ef55921c820c8ff87b5fe9fb96110306b800a82827ee",
+    "run_configuration": {
+      "evaluation_schema_version": 4,
+      "evaluation_cutoffs": [
+        1,
+        3,
+        5,
+        10,
+        20
+      ],
+      "evaluation_unit": "gold_nugget",
+      "nugget_aggregation": "mean_of_per_nugget_best_chunk_scores",
+      "lexical_metric": "mean_rouge_1_recall_and_rouge_l_recall",
+      "semantic_metric": "max_cosine_similarity_per_nugget",
+      "benchmark_file": "provideq_benchmark_nuggets_v2.1.0.json",
+      "benchmark_version": "2.1.0",
+      "benchmark_schema_version": "2.2",
+      "benchmark_sha256": "44853329fe6a50211ae73d90305e61508b31dcaae4e2223c52542feb5c061b5e",
+      "pipeline": "default",
+      "retrieval_system": "fusion",
+      "query_strategy": "llmexpand",
+      "paperclip_ranking": "vector",
+      "paperclip_candidate_limit": 30,
+      "paperclip_query_fusion": true,
+      "query_fusion_rrf_k": 10,
+      "reformulated_query_weight": 0.5,
+      "europepmc_mode": "multi",
+      "europepmc_synonym": false,
+      "europepmc_candidate_limit": 30,
+      "fusion_rrf_k": 60,
+      "retrieval_limit": 20,
+      "chunking": "token_aware",
+      "chunk_max_tokens": 512,
+      "chunk_overlap_fraction": 0.2,
+      "chunk_max_overlap_sentences": 5,
+      "min_chunk_words": 5,
+      "reranker": "medcpt",
+      "reranker_model": "ncbi/MedCPT-Cross-Encoder",
+      "top_k": 20,
+      "max_chunks_per_paper": 4,
+      "near_duplicate_threshold": 0.95,
+      "semantic_enabled": true,
+      "semantic_model": "BAAI/bge-m3",
+      "semantic_backend": "transformers_cls_pooling",
+      "semantic_max_length": 8192,
+      "device": "auto"
+    }
+  },
+  "judging_protocol": {
+    "unit": "question",
+    "evidence_scope": "all 20 returned chunks for the question",
+    "gold_unit": "all benchmark nuggets belonging to the question",
+    "alternative_papers_allowed": true,
+    "entailed_answers_allowed": true,
+    "gold_paper_required": false,
+    "score_definitions": {
+      "1": "All required answer nuggets are supported by at least one returned chunk; exact wording and the gold paper are not required.",
+      "0.5": "The returned set contains useful correct evidence, but one or more required nuggets, values, qualifiers, or conditions are missing.",
+      "0": "The returned set does not contain the answer required by the benchmark.",
+      "-1": "The returned set supports an answer that contradicts the benchmark under the same population, specimen, intervention, and conditions."
+    },
+    "contradiction_safeguard": "Different species, matrices, temperatures, storage durations, or freeze-thaw counts are treated as different conditions, not as contradictions."
+  },
+  "summary": {
+    "questions": 90,
+    "reviewed_chunks": 1800,
+    "score_distribution": [
+      {
+        "score": 1.0,
+        "label": "complete",
+        "count": 79,
+        "percentage": 87.7778
+      },
+      {
+        "score": 0.5,
+        "label": "partial",
+        "count": 8,
+        "percentage": 8.8889
+      },
+      {
+        "score": 0.0,
+        "label": "miss",
+        "count": 3,
+        "percentage": 3.3333
+      },
+      {
+        "score": -1.0,
+        "label": "contradiction",
+        "count": 0,
+        "percentage": 0.0
+      }
+    ],
+    "weighted_score_sum": 83.0,
+    "mean_judge_score": 0.922222,
+    "complete_answer_rate": 87.7778,
+    "at_least_partial_answer_rate": 96.6667,
+    "contradiction_rate": 0.0,
+    "by_category": [
+      {
+        "category": "Biospecimen quality control and SOPs",
+        "questions": 17,
+        "score_counts": {
+          "1": 15,
+          "0.5": 2,
+          "0": 0,
+          "-1": 0
+        },
+        "mean_judge_score": 0.941176
+      },
+      {
+        "category": "Freeze-thaw and frozen storage",
+        "questions": 19,
+        "score_counts": {
+          "1": 13,
+          "0.5": 5,
+          "0": 1,
+          "-1": 0
+        },
+        "mean_judge_score": 0.815789
+      },
+      {
+        "category": "Pre-centrifugation delay and transport",
+        "questions": 25,
+        "score_counts": {
+          "1": 24,
+          "0.5": 1,
+          "0": 0,
+          "-1": 0
+        },
+        "mean_judge_score": 0.98
+      },
+      {
+        "category": "Specimen, tube, and processing effects",
+        "questions": 14,
+        "score_counts": {
+          "1": 13,
+          "0.5": 0,
+          "0": 1,
+          "-1": 0
+        },
+        "mean_judge_score": 0.928571
+      },
+      {
+        "category": "Storage temperature and duration",
+        "questions": 15,
+        "score_counts": {
+          "1": 14,
+          "0.5": 0,
+          "0": 1,
+          "-1": 0
+        },
+        "mean_judge_score": 0.933333
+      }
+    ]
+  },
+  "results": [
+    {
+      "question_id": "Q001",
+      "category": "Storage temperature and duration",
+      "question": "Which group of metabolites stayed stable for at least 24 hours when uncentrifuged serum and plasma were kept either on cool packs or at room temperature?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The returned evidence states that the analyzed sphingolipids remained stable for at least 24 hours in uncentrifuged serum and plasma both on cool packs and at room temperature.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q001_N01",
+          "nugget_text": "All analyzed sphingolipids in uncentrifuged serum and plasma remained stable for at least 24 hours on cool packs.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 1
+          }
+        },
+        {
+          "nugget_id": "Q001_N02",
+          "nugget_text": "All analyzed sphingolipids in uncentrifuged serum and plasma remained stable for at least 24 hours at room temperature.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6944444444444444,
+        "semantic": 0.7149912118911743
+      }
+    },
+    {
+      "question_id": "Q002",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "Do serum isoleucine, tryptophan, and valine concentrations decrease after two freeze-thaw cycles?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The set explicitly reports decreases in isoleucine, tryptophan, and valine after two freeze-thaw cycles. Another chunk discusses increases under three-cycle conditions, which is not a same-condition contradiction.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q002_N01",
+          "nugget_text": "Serum isoleucine decreased after two freeze-thaw cycles.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 5,
+            "semantic": 6
+          }
+        },
+        {
+          "nugget_id": "Q002_N02",
+          "nugget_text": "Serum tryptophan decreased after two freeze-thaw cycles.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 5,
+            "semantic": 6
+          }
+        },
+        {
+          "nugget_id": "Q002_N03",
+          "nugget_text": "Serum valine decreased after two freeze-thaw cycles.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 2,
+            "semantic": 6
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.9523809523809524,
+        "semantic": 0.6448219617207845
+      }
+    },
+    {
+      "question_id": "Q003",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "If serum is left at room temperature before freezing, how are lysophosphatidylcholine and phosphatidylcholine concentrations affected?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The chunks explicitly report increased lysophosphatidylcholines and decreased phosphatidylcholines after room-temperature handling.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q003_N01",
+          "nugget_text": "Room-temperature storage before freezing increased serum lysophosphatidylcholine concentrations.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 11,
+            "semantic": 4
+          }
+        },
+        {
+          "nugget_id": "Q003_N02",
+          "nugget_text": "Room-temperature storage before freezing decreased serum phosphatidylcholine concentrations.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 4
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.5,
+        "semantic": 0.6536997854709625
+      }
+    },
+    {
+      "question_id": "Q004",
+      "category": "Biospecimen quality control and SOPs",
+      "question": "Should serum samples be kept at room temperature before they are stored in a biobank?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The recommendation that room-temperature handling should be strictly avoided is stated directly.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q004_N01",
+          "nugget_text": "Room-temperature handling of serum before biobank storage should be strictly avoided.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 7
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6818181818181819,
+        "semantic": 0.6386767625808716
+      }
+    },
+    {
+      "question_id": "Q005",
+      "category": "Storage temperature and duration",
+      "question": "Does one week at 4°C, −20°C, or −80°C affect a large proportion of serum lipid metabolites?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The required 0-4% change after one week at 4, -20, or -80 degrees Celsius is present.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q005_N01",
+          "nugget_text": "After one week at 4 °C, −20 °C, or −80 °C, only 0–4% of serum lipid metabolites were affected.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 2,
+            "semantic": 6
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.9,
+        "semantic": 0.7561783194541931
+      }
+    },
+    {
+      "question_id": "Q006",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "How strongly does freezing serum before density-based lipoprotein fractionation affect HDL free cholesterol?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "A 37% reduction in HDL free cholesterol is stated directly.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q006_N01",
+          "nugget_text": "Freezing serum before density-based fractionation decreased HDL free cholesterol by 37%.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 3
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.8636363636363636,
+        "semantic": 0.6886129975318909
+      }
+    },
+    {
+      "question_id": "Q007",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "How long can blood be kept on ice before snap-freezing if I want to analyze both the proteome and metabolome?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The evidence supports keeping samples on ice or at 4 degrees Celsius for up to two hours before snap-freezing.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q007_N01",
+          "nugget_text": "Blood can be kept on ice at 4 °C for up to 2 hours before snap-freezing for proteome and metabolome analysis.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6904761904761905,
+        "semantic": 0.73027503490448
+      }
+    },
+    {
+      "question_id": "Q008",
+      "category": "Specimen, tube, and processing effects",
+      "question": "Does centrifuging plasma at 4000 g instead of 2000 g cause significant changes in the measured metabolome or proteome?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "A returned full-text chunk states that centrifugation at 2,000 versus 4,000 x g produced no significant metabolomic or proteomic differences.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q008_N01",
+          "nugget_text": "Centrifuging plasma at 4000 g instead of 2000 g caused no significant metabolome changes.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 10,
+            "semantic": 5
+          }
+        },
+        {
+          "nugget_id": "Q008_N02",
+          "nugget_text": "Centrifuging plasma at 4000 g instead of 2000 g caused no significant proteome changes.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 10,
+            "semantic": 19
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.5714285714285714,
+        "semantic": 0.6666213572025299
+      }
+    },
+    {
+      "question_id": "Q009",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "How sensitive are plasma and serum cytokine measurements to short delays in blood processing?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The required percentage range from -10.8% to 43.5% is explicitly present in the returned evidence.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q009_N01",
+          "nugget_text": "Short blood-processing delays changed plasma and serum cytokine measurements by −10.8% to 43.5%.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 10,
+            "semantic": 11
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6538461538461539,
+        "semantic": 0.7291876077651978
+      }
+    },
+    {
+      "question_id": "Q010",
+      "category": "Biospecimen quality control and SOPs",
+      "question": "How quickly should blood be processed for flow or mass cytometry when measuring sensitive cell populations?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The retrieved discussion recommends avoiding delays beyond five hours for flow- and mass-cytometry measurements.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q010_N01",
+          "nugget_text": "Blood-processing delays longer than 5 hours should be avoided when measuring sensitive cell populations by flow or mass cytometry.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 18
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.47368421052631576,
+        "semantic": 0.690125584602356
+      }
+    },
+    {
+      "question_id": "Q011",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "What storage temperatures and delay durations have been evaluated for EDTA and citrate whole blood before plasma processing?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "EDTA and citrate blood, storage at room temperature or 4 degrees Celsius, and stability for up to 72 hours are all stated.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q011_N01",
+          "nugget_text": "EDTA and citrate whole blood was evaluated at room temperature and 4 °C for delays of up to 72 hours before plasma processing.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.7608695652173914,
+        "semantic": 0.7214857339859009
+      }
+    },
+    {
+      "question_id": "Q012",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "Which plasma markers may remain stable when blood processing is delayed for up to 72 hours?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The evidence reports no significant changes in cytokines, chemokines, cell-free DNA, clotting, and thrombin potential for up to 72 hours.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q012_N01",
+          "nugget_text": "Plasma cytokines showed no significant changes after processing delays of up to 72 hours.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 1
+          }
+        },
+        {
+          "nugget_id": "Q012_N02",
+          "nugget_text": "Plasma chemokines showed no significant changes after processing delays of up to 72 hours.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 1
+          }
+        },
+        {
+          "nugget_id": "Q012_N03",
+          "nugget_text": "Plasma cell-free DNA showed no significant changes after processing delays of up to 72 hours.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 1
+          }
+        },
+        {
+          "nugget_id": "Q012_N04",
+          "nugget_text": "Plasma thrombin formation showed no significant changes after processing delays of up to 72 hours.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 2,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.7952380952380953,
+        "semantic": 0.700220912694931
+      }
+    },
+    {
+      "question_id": "Q013",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "When PBMC isolation is delayed, can whole blood remain at room temperature for 24 hours without affecting PBMC viability and total viable cell numbers?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "A returned study reports no effect on viability or total viable cell numbers after 24 hours at room temperature.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q013_N01",
+          "nugget_text": "A 24-hour room-temperature delay before PBMC isolation did not affect PBMC viability.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 20,
+            "semantic": 6
+          }
+        },
+        {
+          "nugget_id": "Q013_N02",
+          "nugget_text": "A 24-hour room-temperature delay before PBMC isolation did not affect total viable PBMC numbers.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 9,
+            "semantic": 6
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6934523809523809,
+        "semantic": 0.6577522158622742
+      }
+    },
+    {
+      "question_id": "Q014",
+      "category": "Biospecimen quality control and SOPs",
+      "question": "Which serum metabolite ratio can indicate storage at −20°C instead of −80°C, and what cutoff should be used?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The serum glutamate-to-glutamine ratio above 0.20 for distinguishing -20 from -80 degrees Celsius storage is present.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q014_N01",
+          "nugget_text": "A serum glutamate-to-glutamine ratio above 0.20 indicates storage at −20 °C rather than −80 °C.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 3
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6333333333333333,
+        "semantic": 0.7227648496627808
+      }
+    },
+    {
+      "question_id": "Q015",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "After serum is stored for one month at −70°C and thawed once, do biomarker changes remain within their TEa limits?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The chunks state that one month at -70 degrees Celsius and one freeze-thaw cycle remain within total allowable error.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q015_N01",
+          "nugget_text": "After one month at −70 °C and one thaw, biomarker changes remained within their respective TEa limits.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 2,
+            "semantic": 2
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6176470588235294,
+        "semantic": 0.6356397867202759
+      }
+    },
+    {
+      "question_id": "Q016",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "After one freeze-thaw cycle following one month at −70°C, what percentage changes are observed for albumin, total protein, and ferritin?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The percentage changes for albumin, total protein, and ferritin are all present.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q016_N01",
+          "nugget_text": "Albumin changed by 0.87% after one month at −70 °C followed by one freeze-thaw cycle.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 9
+          }
+        },
+        {
+          "nugget_id": "Q016_N02",
+          "nugget_text": "Total protein changed by 1.00% after one month at −70 °C followed by one freeze-thaw cycle.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 5
+          }
+        },
+        {
+          "nugget_id": "Q016_N03",
+          "nugget_text": "Ferritin changed by −0.58% after one month at −70 °C followed by one freeze-thaw cycle.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 3
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6631944444444444,
+        "semantic": 0.6515355507532755
+      }
+    },
+    {
+      "question_id": "Q017",
+      "category": "Storage temperature and duration",
+      "question": "Are targeted urine metabolite profiles stable for 24 hours at 4°C or −20°C before transfer to −80°C storage?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "entailed_or_alternative_source",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The evidence reports changes in only 7 of 63 analytes at higher temperatures and no changes at 4 or -20 degrees Celsius, which entails stability of all 63 under the colder conditions.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q017_N01",
+          "nugget_text": "All 63 investigated urine metabolites remained stable for up to 24 hours at both 4 °C and −20 °C.",
+          "judgment": "supported_with_caveat",
+          "automatic_best_match_ranks": {
+            "lexical": 13,
+            "semantic": 13
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6842105263157895,
+        "semantic": 0.745506763458252
+      }
+    },
+    {
+      "question_id": "Q018",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "What sample-handling practice should I avoid when preparing urine samples for metabolomics?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The evidence directly recommends avoiding or minimizing repeated freeze-thaw cycles.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q018_N01",
+          "nugget_text": "Repeated freeze-thaw cycles should be avoided when preparing urine for metabolomics.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 9,
+            "semantic": 13
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6363636363636364,
+        "semantic": 0.7359418869018555
+      }
+    },
+    {
+      "question_id": "Q019",
+      "category": "Specimen, tube, and processing effects",
+      "question": "Which blood collection tube should I avoid for measuring circulating microRNAs?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Lithium-heparin interference making miRNA detection impossible is explicitly described.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q019_N01",
+          "nugget_text": "Lithium-heparin blood collection tubes are unsuitable for circulating microRNA quantification.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 8,
+            "semantic": 12
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6,
+        "semantic": 0.6557987928390503
+      }
+    },
+    {
+      "question_id": "Q020",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "How did four repeated freeze-thaw cycles affect circulating microRNA concentrations in plasma and serum?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "A reduction in miRNA after four freeze-thaw cycles in both plasma and serum is stated.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q020_N01",
+          "nugget_text": "Four freeze-thaw cycles significantly reduced circulating microRNA concentrations in plasma.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 14,
+            "semantic": 7
+          }
+        },
+        {
+          "nugget_id": "Q020_N02",
+          "nugget_text": "Four freeze-thaw cycles significantly reduced circulating microRNA concentrations in serum.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 14,
+            "semantic": 7
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6499999999999999,
+        "semantic": 0.6889790892601013
+      }
+    },
+    {
+      "question_id": "Q021",
+      "category": "Storage temperature and duration",
+      "question": "How long can CSF samples be kept at 5–8°C without substantially affecting small-molecule metabolites?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The chunks report CSF metabolite stability for up to 72 hours at 5-8 degrees Celsius.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q021_N01",
+          "nugget_text": "CSF small-molecule metabolites remain substantially stable for up to 72 hours at 5–8 °C.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.7333333333333334,
+        "semantic": 0.7784188985824585
+      }
+    },
+    {
+      "question_id": "Q022",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "How many freeze-thaw cycles can CSF small-molecule metabolites tolerate without major changes?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Relative stability across one to three freeze-thaw cycles is explicitly supported.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q022_N01",
+          "nugget_text": "CSF small-molecule metabolites are relatively unaffected by one to three freeze-thaw cycles.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 2,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.8333333333333333,
+        "semantic": 0.7594603896141052
+      }
+    },
+    {
+      "question_id": "Q023",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "How much does extending serum clotting time from 30 to 120 minutes affect metabolite measurements?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The median absolute percentage difference of 9.08% is present.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q023_N01",
+          "nugget_text": "Extending serum clotting time from 30 to 120 minutes produced a median absolute percentage difference of 9.08% in metabolite measurements.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 6
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.675,
+        "semantic": 0.6840893030166626
+      }
+    },
+    {
+      "question_id": "Q024",
+      "category": "Biospecimen quality control and SOPs",
+      "question": "How should I handle serum samples from cases and controls in a metabolomics study to avoid bias?",
+      "judge_score": 0.5,
+      "verdict": "partial",
+      "support_type": "incomplete_support",
+      "fully_answerable_from_returned_set": false,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The set supports consistent handling of cases and controls and explains the risk of handling-related bias, but it does not fully state matched populations plus matched collection, processing, storage, and shipping procedures.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q024_N01",
+          "nugget_text": "Cases and controls should have matched populations and matched collection, processing, storage, and shipping procedures.",
+          "judgment": "partially_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 11,
+            "semantic": 12
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.5333333333333333,
+        "semantic": 0.5236089825630188
+      }
+    },
+    {
+      "question_id": "Q025",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "What happens to serum cytokine levels when blood is placed on ice immediately?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Immediate placement on ice reducing several serum cytokines is clearly reported.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q025_N01",
+          "nugget_text": "Placing blood immediately on ice decreased the serum levels of several cytokines.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 3
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 1.0,
+        "semantic": 0.7087340950965881
+      }
+    },
+    {
+      "question_id": "Q026",
+      "category": "Biospecimen quality control and SOPs",
+      "question": "Is there one best temperature for holding blood when processing is delayed, or does it depend on the analyte?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The evidence states that no single temperature is universally optimal and that handling should be analyte-specific.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q026_N01",
+          "nugget_text": "The optimal temperature for holding blood during a processing delay depends on the analyte.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 3
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.7857142857142857,
+        "semantic": 0.7362593412399292
+      }
+    },
+    {
+      "question_id": "Q027",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "How did reduced and oxidized glutathione concentrations change during a three-hour plasma-preparation delay?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Linear increases in both GSH and GSSG over three hours are directly reported.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q027_N01",
+          "nugget_text": "Reduced glutathione concentrations increased linearly during a three-hour plasma-preparation delay.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 5
+          }
+        },
+        {
+          "nugget_id": "Q027_N02",
+          "nugget_text": "Oxidized glutathione concentrations increased linearly during a three-hour plasma-preparation delay.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 5
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.7,
+        "semantic": 0.7451677322387695
+      }
+    },
+    {
+      "question_id": "Q028",
+      "category": "Biospecimen quality control and SOPs",
+      "question": "Which glutathione measurement can be used to estimate how long plasma preparation took?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "entailed_or_alternative_source",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Reduced GSH is described as a particularly sensitive and reliable indicator of preparation duration, supporting the requested conclusion without repeating the benchmark wording exactly.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q028_N01",
+          "nugget_text": "Reduced glutathione provides an excellent estimate of plasma-preparation duration.",
+          "judgment": "supported_with_caveat",
+          "automatic_best_match_ranks": {
+            "lexical": 9,
+            "semantic": 9
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.4444444444444444,
+        "semantic": 0.7322686910629272
+      }
+    },
+    {
+      "question_id": "Q029",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "Which handling conditions influence inosine and hypoxanthine levels in plasma or serum?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "An alternative returned source explicitly identifies temperature and duration of red-cell contact as the relevant variables.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q029_N01",
+          "nugget_text": "Blood temperature influences inosine and hypoxanthine levels in plasma or serum.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 7,
+            "semantic": 8
+          }
+        },
+        {
+          "nugget_id": "Q029_N02",
+          "nugget_text": "Contact time between plasma or serum and red blood cells influences inosine and hypoxanthine levels.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 10,
+            "semantic": 8
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.8712121212121212,
+        "semantic": 0.7020816206932068
+      }
+    },
+    {
+      "question_id": "Q030",
+      "category": "Biospecimen quality control and SOPs",
+      "question": "Which metabolite can show whether whole blood was kept at room temperature or on ice?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "An alternative source directly supports inosine as a discriminator between room-temperature and ice handling.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q030_N01",
+          "nugget_text": "Inosine levels can indicate whether whole blood was kept at room temperature or on ice.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 8,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.8333333333333334,
+        "semantic": 0.6646914482116699
+      }
+    },
+    {
+      "question_id": "Q031",
+      "category": "Biospecimen quality control and SOPs",
+      "question": "When should SOPs for collecting, processing, storing, and shipping biobank samples be established in a clinical trial?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Establishing and validating the protocol before participant recruitment is stated directly.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q031_N01",
+          "nugget_text": "Biobank sample SOPs should be established prospectively during trial design before main recruitment begins.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 14,
+            "semantic": 11
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6071428571428572,
+        "semantic": 0.701603889465332
+      }
+    },
+    {
+      "question_id": "Q032",
+      "category": "Biospecimen quality control and SOPs",
+      "question": "Which processing details should be recorded when handling serum samples in a biobank?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "A returned guideline requires documentation of time to centrifugation, temperature, centrifugation settings, and handling conditions.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q032_N01",
+          "nugget_text": "Serum-processing time should be recorded.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 10
+          }
+        },
+        {
+          "nugget_id": "Q032_N02",
+          "nugget_text": "Serum-processing temperature should be recorded.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 10
+          }
+        },
+        {
+          "nugget_id": "Q032_N03",
+          "nugget_text": "Specific serum-handling steps should be recorded.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 12,
+            "semantic": 3
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6222222222222222,
+        "semantic": 0.6440923015276591
+      }
+    },
+    {
+      "question_id": "Q033",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "If tissue-specific warm-ischemia data are unavailable, how quickly should tissue be snap-frozen?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "entailed_or_alternative_source",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The evidence reports that most meaningful alterations occur after about 20 minutes, which supports the recommendation to freeze within 20 minutes.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q033_N01",
+          "nugget_text": "When tissue-specific warm-ischemia data are unavailable, tissue should ideally be snap-frozen within 20 minutes.",
+          "judgment": "supported_with_caveat",
+          "automatic_best_match_ranks": {
+            "lexical": 14,
+            "semantic": 3
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.5357142857142857,
+        "semantic": 0.6865661144256592
+      }
+    },
+    {
+      "question_id": "Q034",
+      "category": "Storage temperature and duration",
+      "question": "How long can tissue be stored at −80°C before RNA degradation may become detectable?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "RNA degradation after five years of storage at -80 degrees Celsius is stated.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q034_N01",
+          "nugget_text": "RNA degradation may become detectable at 5 years of tissue storage at −80 °C.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 10,
+            "semantic": 2
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.75,
+        "semantic": 0.7498016357421875
+      }
+    },
+    {
+      "question_id": "Q035",
+      "category": "Biospecimen quality control and SOPs",
+      "question": "Can the serum HG and HI ratios reliably identify samples centrifuged more than one hour after collection?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The hemolysis-related measure with greater than 80% sensitivity and specificity for a delay exceeding one hour is present.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q035_N01",
+          "nugget_text": "The serum HG and HI ratios identified centrifugation delays longer than one hour with over 80% sensitivity and specificity.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 2,
+            "semantic": 16
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.5526315789473684,
+        "semantic": 0.6790940165519714
+      }
+    },
+    {
+      "question_id": "Q036",
+      "category": "Biospecimen quality control and SOPs",
+      "question": "Which eicosanoids can be used to flag a pre-centrifugation delay longer than two hours?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "All six requested eicosanoids and the delay of more than two hours are contained in the evidence.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q036_N01",
+          "nugget_text": "12-HETE can flag a pre-centrifugation delay longer than two hours.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 2,
+            "semantic": 4
+          }
+        },
+        {
+          "nugget_id": "Q036_N02",
+          "nugget_text": "15-(S)-HETE can flag a pre-centrifugation delay longer than two hours.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 2,
+            "semantic": 4
+          }
+        },
+        {
+          "nugget_id": "Q036_N03",
+          "nugget_text": "8-(S)-HETE can flag a pre-centrifugation delay longer than two hours.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 4
+          }
+        },
+        {
+          "nugget_id": "Q036_N04",
+          "nugget_text": "12-oxo-HETE can flag a pre-centrifugation delay longer than two hours.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 2,
+            "semantic": 4
+          }
+        },
+        {
+          "nugget_id": "Q036_N05",
+          "nugget_text": "(±)13-HODE can flag a pre-centrifugation delay longer than two hours.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 2,
+            "semantic": 20
+          }
+        },
+        {
+          "nugget_id": "Q036_N06",
+          "nugget_text": "12-(S)-HEPE can flag a pre-centrifugation delay longer than two hours.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 14
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.5708333333333333,
+        "semantic": 0.5771746138731638
+      }
+    },
+    {
+      "question_id": "Q037",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "For peptide-level mass-spectrometry analysis, how stable are plasma proteins when EDTA blood is kept for up to one week at 4°C or room temperature before plasma isolation?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The retrieved text reports only limited changes in identifications, semitryptic peptides, and methionine oxidation after one week.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q037_N01",
+          "nugget_text": "EDTA blood stored for up to one week at 4 °C or room temperature produced few significant changes in plasma peptide and protein identifications.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 2,
+            "semantic": 6
+          }
+        },
+        {
+          "nugget_id": "Q037_N02",
+          "nugget_text": "EDTA blood stored for up to one week at 4 °C or room temperature produced few significant changes in plasma semitryptic peptides.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 2,
+            "semantic": 10
+          }
+        },
+        {
+          "nugget_id": "Q037_N03",
+          "nugget_text": "EDTA blood stored for up to one week at 4 °C or room temperature produced few significant changes in plasma methionine-oxidized peptides.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 2,
+            "semantic": 6
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.8743686868686869,
+        "semantic": 0.6688968141873678
+      }
+    },
+    {
+      "question_id": "Q038",
+      "category": "Biospecimen quality control and SOPs",
+      "question": "Which biological pathways contained most of the plasma proteins affected by ex-vivo proteolysis during variable processing?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Activation of both coagulation and complement systems is explicitly supported.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q038_N01",
+          "nugget_text": "Most plasma proteins affected by ex-vivo proteolysis belonged to coagulation and complement pathways.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 2,
+            "semantic": 20
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.7307692307692308,
+        "semantic": 0.6286948919296265
+      }
+    },
+    {
+      "question_id": "Q039",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "What room-temperature pre-centrifugation delay intervals were assessed for blood and CSF when studying inflammation-related protein biomarkers?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The returned evidence includes blood measurements at 1, 24, 48, and 72 hours and CSF measurements at 1 and 6 hours.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q039_N01",
+          "nugget_text": "A 1-hour room-temperature pre-centrifugation delay was assessed for blood.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 20,
+            "semantic": 18
+          }
+        },
+        {
+          "nugget_id": "Q039_N02",
+          "nugget_text": "A 24-hour room-temperature pre-centrifugation delay was assessed for blood.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 20,
+            "semantic": 18
+          }
+        },
+        {
+          "nugget_id": "Q039_N03",
+          "nugget_text": "A 48-hour room-temperature pre-centrifugation delay was assessed for blood.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 20,
+            "semantic": 18
+          }
+        },
+        {
+          "nugget_id": "Q039_N04",
+          "nugget_text": "A 72-hour room-temperature pre-centrifugation delay was assessed for blood.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 20,
+            "semantic": 18
+          }
+        },
+        {
+          "nugget_id": "Q039_N05",
+          "nugget_text": "A 1-hour room-temperature pre-centrifugation delay was assessed for CSF.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 20,
+            "semantic": 20
+          }
+        },
+        {
+          "nugget_id": "Q039_N06",
+          "nugget_text": "A 6-hour room-temperature pre-centrifugation delay was assessed for CSF.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 20,
+            "semantic": 3
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6111111111111112,
+        "semantic": 0.665387491385142
+      }
+    },
+    {
+      "question_id": "Q040",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "Which plasma proteins rose by twofold to tenfold after blood processing was delayed for 24 hours at room temperature?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "All five proteins and their two- to tenfold increases after 24 hours at room temperature are present.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q040_N01",
+          "nugget_text": "Plasma Caspase 8 rose twofold to tenfold after a 24-hour room-temperature blood-processing delay.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 6,
+            "semantic": 6
+          }
+        },
+        {
+          "nugget_id": "Q040_N02",
+          "nugget_text": "Plasma interleukin-8 rose twofold to tenfold after a 24-hour room-temperature blood-processing delay.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 17,
+            "semantic": 6
+          }
+        },
+        {
+          "nugget_id": "Q040_N03",
+          "nugget_text": "Plasma interleukin-18 rose twofold to tenfold after a 24-hour room-temperature blood-processing delay.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 17,
+            "semantic": 6
+          }
+        },
+        {
+          "nugget_id": "Q040_N04",
+          "nugget_text": "Plasma Sirtuin 2 rose twofold to tenfold after a 24-hour room-temperature blood-processing delay.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 8,
+            "semantic": 6
+          }
+        },
+        {
+          "nugget_id": "Q040_N05",
+          "nugget_text": "Plasma Sulfotransferase Family 1A Member 1 rose twofold to tenfold after a 24-hour room-temperature blood-processing delay.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 17,
+            "semantic": 6
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.46458333333333335,
+        "semantic": 0.65613294839859
+      }
+    },
+    {
+      "question_id": "Q041",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "Which circulating proteins remained stable in plasma and serum through five freeze-thaw cycles?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "IFN-gamma, IL-8, and VEGFR2 are reported as stable through five cycles.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q041_N01",
+          "nugget_text": "Interferon-γ remained stable in plasma and serum through five freeze-thaw cycles.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 14,
+            "semantic": 2
+          }
+        },
+        {
+          "nugget_id": "Q041_N02",
+          "nugget_text": "Interleukin-8 remained stable in plasma and serum through five freeze-thaw cycles.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 14,
+            "semantic": 2
+          }
+        },
+        {
+          "nugget_id": "Q041_N03",
+          "nugget_text": "VEGF-R2 remained stable in plasma and serum through five freeze-thaw cycles.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 14,
+            "semantic": 2
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.8181818181818182,
+        "semantic": 0.6957702040672302
+      }
+    },
+    {
+      "question_id": "Q042",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "Which circulating proteins changed significantly in both plasma and serum after repeated freeze-thaw cycles?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "MMP-7, TNF-alpha, and VEGF are reported as changing in both plasma and serum.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q042_N01",
+          "nugget_text": "MMP-7 changed significantly in both plasma and serum after repeated freeze-thaw cycles.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 1
+          }
+        },
+        {
+          "nugget_id": "Q042_N02",
+          "nugget_text": "Tumor necrosis factor-α changed significantly in both plasma and serum after repeated freeze-thaw cycles.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 1
+          }
+        },
+        {
+          "nugget_id": "Q042_N03",
+          "nugget_text": "VEGF changed significantly in both plasma and serum after repeated freeze-thaw cycles.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.7619047619047619,
+        "semantic": 0.7332649429639181
+      }
+    },
+    {
+      "question_id": "Q043",
+      "category": "Storage temperature and duration",
+      "question": "At which storage temperatures did serum and citrated-plasma biomarkers remain stable for up to 90 days?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "entailed_or_alternative_source",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The evidence supports stability for 90 days at or below -80 degrees Celsius, covering the requested temperatures. A text-extraction artifact affects the lower-temperature notation but not the conclusion.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q043_N01",
+          "nugget_text": "Serum and citrated-plasma biomarkers remained stable for up to 90 days at −80 °C.",
+          "judgment": "supported_with_caveat",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 1
+          }
+        },
+        {
+          "nugget_id": "Q043_N02",
+          "nugget_text": "Serum and citrated-plasma biomarkers remained stable for up to 90 days below −130 °C.",
+          "judgment": "supported_with_caveat",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6785714285714286,
+        "semantic": 0.7775782942771912
+      }
+    },
+    {
+      "question_id": "Q044",
+      "category": "Storage temperature and duration",
+      "question": "Do brief temperature excursions during frozen storage substantially affect biomarker stability?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "entailed_or_alternative_source",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "An alternative experiment reports little or no signal loss after short cold-shipping exposures and two freeze-thaw cycles, supporting the requested conclusion.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q044_N01",
+          "nugget_text": "Occasional short temperature excursions during frozen storage had minimal effects on biomarker stability.",
+          "judgment": "supported_with_caveat",
+          "automatic_best_match_ranks": {
+            "lexical": 7,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.42307692307692313,
+        "semantic": 0.6391026973724365
+      }
+    },
+    {
+      "question_id": "Q045",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "After four −80°C freeze-thaw cycles, does serum free thyroxine remain within the allowable-bias criterion based on biological variation?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "An increase in serum free T4 beyond allowable bias is explicitly present.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q045_N01",
+          "nugget_text": "After four −80 °C freeze-thaw cycles, serum free thyroxine increased beyond the allowable-bias criterion.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.7142857142857143,
+        "semantic": 0.6527132391929626
+      }
+    },
+    {
+      "question_id": "Q046",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "How well do endocrine analytes tolerate four freeze-thaw cycles?",
+      "judge_score": 0.0,
+      "verdict": "miss",
+      "support_type": "answer_absent",
+      "fully_answerable_from_returned_set": false,
+      "useful_answer_evidence_present": false,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The returned set discusses other endocrine markers and other species but never provides the required result that eight of 17 endocrine analytes remained stable through four cycles.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q046_N01",
+          "nugget_text": "Eight of 17 endocrine analytes remained stable through four freeze-thaw cycles.",
+          "judgment": "not_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 3
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.5909090909090908,
+        "semantic": 0.6316303610801697
+      }
+    },
+    {
+      "question_id": "Q047",
+      "category": "Specimen, tube, and processing effects",
+      "question": "What centrifugation time and force are recommended when preparing serum and plasma for downstream proteomic, metabolomic, and circulating nucleic-acid analyses?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The evidence directly gives serum centrifugation for 10 minutes at 2,000 x g and plasma centrifugation for 20 minutes at 2,000 x g.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q047_N01",
+          "nugget_text": "Serum should be centrifuged for 10 minutes at 2000 g.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 13,
+            "semantic": 4
+          }
+        },
+        {
+          "nugget_id": "Q047_N02",
+          "nugget_text": "Plasma should be centrifuged for 20 minutes at 2000 g.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 4
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.8500000000000001,
+        "semantic": 0.7338674664497375
+      }
+    },
+    {
+      "question_id": "Q048",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "When whole blood is kept at room temperature for two hours before centrifugation, which measurements remain stable: hemoglobin concentration, proteomic measurements, or microparticle counts?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Hemoglobin and proteomic stability together with microparticle instability after two hours are supported.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q048_N01",
+          "nugget_text": "Hemoglobin concentration remained stable after whole blood was held at room temperature for two hours before centrifugation.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 5,
+            "semantic": 3
+          }
+        },
+        {
+          "nugget_id": "Q048_N02",
+          "nugget_text": "Proteomic measurements remained stable after whole blood was held at room temperature for two hours before centrifugation.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 5,
+            "semantic": 3
+          }
+        },
+        {
+          "nugget_id": "Q048_N03",
+          "nugget_text": "Microparticle counts did not remain stable after whole blood was held at room temperature for two hours before centrifugation.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 5,
+            "semantic": 3
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6155830753353974,
+        "semantic": 0.742994507153829
+      }
+    },
+    {
+      "question_id": "Q049",
+      "category": "Storage temperature and duration",
+      "question": "What temperatures have been considered for long-term storage of human fluid, cell, and tissue biospecimens?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The requested storage-temperature range from -20 to -196 degrees Celsius is present.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q049_N01",
+          "nugget_text": "Long-term storage temperatures considered for human fluid, cell, and tissue biospecimens range from −20 °C to −196 °C.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.8611111111111112,
+        "semantic": 0.7977309823036194
+      }
+    },
+    {
+      "question_id": "Q050",
+      "category": "Storage temperature and duration",
+      "question": "Why must collection and storage conditions be considered in addition to processing when assessing biospecimen quality?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Alternative sources explain that collection, transport, processing, and storage all determine specimen quality.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q050_N01",
+          "nugget_text": "Collection, processing, and storage conditions can alter biospecimen molecular composition and consistency, so quality is not determined by processing alone.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 8,
+            "semantic": 12
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.625,
+        "semantic": 0.7325578927993774
+      }
+    },
+    {
+      "question_id": "Q051",
+      "category": "Specimen, tube, and processing effects",
+      "question": "Does a polymeric gel collection tube affect metabolite levels more in serum or plasma?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "entailed_or_alternative_source",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The returned reviews directly support an effect of gel tubes on serum metabolites. The serum-specific conclusion is supported even though the plasma contrast is less explicit.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q051_N01",
+          "nugget_text": "A polymeric gel collection tube altered metabolite levels in serum but not plasma.",
+          "judgment": "supported_with_caveat",
+          "automatic_best_match_ranks": {
+            "lexical": 7,
+            "semantic": 9
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.8076923076923077,
+        "semantic": 0.746687650680542
+      }
+    },
+    {
+      "question_id": "Q052",
+      "category": "Specimen, tube, and processing effects",
+      "question": "Which amino acids were affected when serum was collected in polymeric gel tubes?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Alanine, proline, and threonine are all identified in a returned abstract.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q052_N01",
+          "nugget_text": "Serum alanine was affected by collection in polymeric gel tubes.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 6,
+            "semantic": 2
+          }
+        },
+        {
+          "nugget_id": "Q052_N02",
+          "nugget_text": "Serum proline was affected by collection in polymeric gel tubes.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 6,
+            "semantic": 2
+          }
+        },
+        {
+          "nugget_id": "Q052_N03",
+          "nugget_text": "Serum threonine was affected by collection in polymeric gel tubes.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 6,
+            "semantic": 2
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.75,
+        "semantic": 0.6903347770373026
+      }
+    },
+    {
+      "question_id": "Q053",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "How soon should serum and EDTA plasma be frozen after centrifugation when they will be profiled with antibody arrays?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The instruction to freeze samples on the day of collection is stated directly.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q053_N01",
+          "nugget_text": "Serum and EDTA plasma intended for antibody-array profiling should preferably be frozen on the day of collection.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.7647058823529411,
+        "semantic": 0.6697348952293396
+      }
+    },
+    {
+      "question_id": "Q054",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "How are CALD1 levels affected when plasma remains in standard EDTA tubes for 36 hours after centrifugation?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "A decrease in CALD1 after 36 hours in standard EDTA tubes is present.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q054_N01",
+          "nugget_text": "Plasma CALD1 levels decreased when plasma remained in standard EDTA tubes for 36 hours after centrifugation.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 5
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.625,
+        "semantic": 0.7235731482505798
+      }
+    },
+    {
+      "question_id": "Q055",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "Does pooled EDTA plasma show substantial analyte changes during the first ten freeze-thaw cycles?",
+      "judge_score": 0.5,
+      "verdict": "partial",
+      "support_type": "incomplete_support",
+      "fully_answerable_from_returned_set": false,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The evidence supports generally small changes in EDTA plasma across repeated cycles, but it does not fully reproduce the pooled-plasma first-ten-cycle result together with the free-fatty-acid exception.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q055_N01",
+          "nugget_text": "Pooled EDTA plasma showed little analyte change during the first ten freeze-thaw cycles except for free fatty acids.",
+          "judgment": "partially_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 5,
+            "semantic": 9
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.4722222222222222,
+        "semantic": 0.6585548520088196
+      }
+    },
+    {
+      "question_id": "Q056",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "Which plasma analytes are most sensitive to extensive repeated freeze-thawing?",
+      "judge_score": 0.5,
+      "verdict": "partial",
+      "support_type": "incomplete_support",
+      "fully_answerable_from_returned_set": false,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The set identifies AST as freeze-thaw sensitive and reports decreases in plasma triglycerides, but it omits free fatty acids and the required +32%, +21%, and -19% values. It therefore provides a useful but incomplete answer.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q056_N01",
+          "nugget_text": "Extensive repeated freeze-thawing increased plasma free fatty acids by 32%.",
+          "judgment": "not_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 5,
+            "semantic": 18
+          }
+        },
+        {
+          "nugget_id": "Q056_N02",
+          "nugget_text": "Extensive repeated freeze-thawing increased plasma AST by 21%.",
+          "judgment": "partially_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 10,
+            "semantic": 5
+          }
+        },
+        {
+          "nugget_id": "Q056_N03",
+          "nugget_text": "Extensive repeated freeze-thawing decreased plasma triglycerides by 19%.",
+          "judgment": "partially_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 8,
+            "semantic": 7
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.45,
+        "semantic": 0.6665333112080892
+      }
+    },
+    {
+      "question_id": "Q057",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "Can repeated freeze-thaw cycles cause a clinically relevant increase in plasma renin activity?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "entailed_or_alternative_source",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "A review reports increased renin activity after two or three cycles and attributes it to likely cryoactivation, supporting the requested clinical conclusion.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q057_N01",
+          "nugget_text": "Repeated freeze-thaw cycles caused a significant and clinically relevant increase in plasma renin activity.",
+          "judgment": "supported_with_caveat",
+          "automatic_best_match_ranks": {
+            "lexical": 14,
+            "semantic": 6
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6785714285714286,
+        "semantic": 0.6260449886322021
+      }
+    },
+    {
+      "question_id": "Q058",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "Is there an endocrine measurement that decreases slightly after repeated freeze-thaw cycles?",
+      "judge_score": 0.5,
+      "verdict": "partial",
+      "support_type": "incomplete_support",
+      "fully_answerable_from_returned_set": false,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The set contains ACTH decreases after repeated cycles, but the directly reported experiment is equine and does not establish the benchmark's small human ACTH decrease.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q058_N01",
+          "nugget_text": "Repeated freeze-thaw cycles caused a small decrease in adrenocorticotropic hormone.",
+          "judgment": "partially_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 15
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.7,
+        "semantic": 0.6628426313400269
+      }
+    },
+    {
+      "question_id": "Q059",
+      "category": "Specimen, tube, and processing effects",
+      "question": "How can aliquots be taken from a frozen plasma sample without thawing the original sample?",
+      "judge_score": 0.0,
+      "verdict": "miss",
+      "support_type": "answer_absent",
+      "fully_answerable_from_returned_set": false,
+      "useful_answer_evidence_present": false,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The returned chunks discuss conventional aliquoting and thawing but do not describe automated extraction of aliquots from a frozen parent sample without thawing it.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q059_N01",
+          "nugget_text": "Automated frozen aliquot extraction can remove aliquots from a frozen plasma parent sample without thawing it.",
+          "judgment": "not_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 2,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.59375,
+        "semantic": 0.6388768553733826
+      }
+    },
+    {
+      "question_id": "Q060",
+      "category": "Biospecimen quality control and SOPs",
+      "question": "How reproducible are biochemical measurements in plasma aliquots taken without thawing the parent sample?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The correct frozen-aliquotter study is retrieved and explicitly reports a coefficient of variation below 5.5%.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q060_N01",
+          "nugget_text": "Biochemical measurements from plasma aliquots removed without thawing the parent sample had coefficients of variation below 5.5%.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 8
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.5882352941176471,
+        "semantic": 0.65460205078125
+      }
+    },
+    {
+      "question_id": "Q061",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "What room-temperature delays before centrifugation have been evaluated for NMR metabolite measurements in serum and plasma?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "A returned study explicitly lists room-temperature centrifugation delays of 30 minutes and 1, 2, 4, and 8 hours for serum and plasma NMR measurements.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q061_N01",
+          "nugget_text": "A 30-minute room-temperature delay before centrifugation was evaluated for serum and plasma NMR measurements.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 5,
+            "semantic": 9
+          }
+        },
+        {
+          "nugget_id": "Q061_N02",
+          "nugget_text": "A 1-hour room-temperature delay before centrifugation was evaluated for serum and plasma NMR measurements.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 5,
+            "semantic": 3
+          }
+        },
+        {
+          "nugget_id": "Q061_N03",
+          "nugget_text": "A 2-hour room-temperature delay before centrifugation was evaluated for serum and plasma NMR measurements.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 5,
+            "semantic": 3
+          }
+        },
+        {
+          "nugget_id": "Q061_N04",
+          "nugget_text": "A 4-hour room-temperature delay before centrifugation was evaluated for serum and plasma NMR measurements.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 5,
+            "semantic": 9
+          }
+        },
+        {
+          "nugget_id": "Q061_N05",
+          "nugget_text": "An 8-hour room-temperature delay before centrifugation was evaluated for serum and plasma NMR measurements.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 14,
+            "semantic": 3
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6357142857142857,
+        "semantic": 0.7783213376998901
+      }
+    },
+    {
+      "question_id": "Q062",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "For NMR measurements during delayed centrifugation, how do plasma and serum differ in metabolite stability, and are lipoprotein subfractions affected by matrix type?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The evidence states that plasma is more robust while lipoprotein variations are small and acceptable in both matrices.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q062_N01",
+          "nugget_text": "During delayed centrifugation, plasma metabolites were more stable than serum metabolites in NMR measurements.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 6,
+            "semantic": 3
+          }
+        },
+        {
+          "nugget_id": "Q062_N02",
+          "nugget_text": "During delayed centrifugation, lipoprotein subfractions were equally stable in plasma and serum.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 3
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.7321428571428572,
+        "semantic": 0.7628544867038727
+      }
+    },
+    {
+      "question_id": "Q063",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "How long can serum gel tubes remain at room temperature before triglycerides become unstable if centrifugation is delayed?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Triglyceride instability after eight hours is directly supported.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q063_N01",
+          "nugget_text": "Triglycerides became unstable after serum gel tubes remained at room temperature for 8 hours before centrifugation.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 15,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.59375,
+        "semantic": 0.731072723865509
+      }
+    },
+    {
+      "question_id": "Q064",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "Which serum analytes become unstable after a four-hour delay before centrifugation at room temperature?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "All five analytes affected at four hours are present.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q064_N01",
+          "nugget_text": "Serum calcium became unstable after a four-hour room-temperature delay before centrifugation.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 1
+          }
+        },
+        {
+          "nugget_id": "Q064_N02",
+          "nugget_text": "Serum gamma-glutamyl transferase became unstable after a four-hour room-temperature delay before centrifugation.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 1
+          }
+        },
+        {
+          "nugget_id": "Q064_N03",
+          "nugget_text": "Serum glucose became unstable after a four-hour room-temperature delay before centrifugation.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 1
+          }
+        },
+        {
+          "nugget_id": "Q064_N04",
+          "nugget_text": "Serum inorganic phosphate became unstable after a four-hour room-temperature delay before centrifugation.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 1
+          }
+        },
+        {
+          "nugget_id": "Q064_N05",
+          "nugget_text": "Serum potassium became unstable after a four-hour room-temperature delay before centrifugation.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6924242424242425,
+        "semantic": 0.7175073981285095
+      }
+    },
+    {
+      "question_id": "Q065",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "What happens to proGRP concentrations as the number of freeze-thaw cycles increases?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The chunks report decreasing proGRP concentrations with repeated cycles in both plasma and serum.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q065_N01",
+          "nugget_text": "Plasma proGRP concentrations gradually decreased as freeze-thaw cycles increased.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 3
+          }
+        },
+        {
+          "nugget_id": "Q065_N02",
+          "nugget_text": "Serum proGRP concentrations gradually decreased as freeze-thaw cycles increased.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 3
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.5555555555555556,
+        "semantic": 0.8588157594203949
+      }
+    },
+    {
+      "question_id": "Q066",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "By what percentage does serum proGRP fall after four freeze-thaw cycles?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "A serum change of up to 10.1% after four cycles is explicitly present.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q066_N01",
+          "nugget_text": "Serum proGRP decreased by up to 10.1% after four freeze-thaw cycles.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 5
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.9090909090909091,
+        "semantic": 0.7383904457092285
+      }
+    },
+    {
+      "question_id": "Q067",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "Can blood, serum, and plasma analytes remain stable for 24 hours before centrifugation under different storage conditions?",
+      "judge_score": 0.5,
+      "verdict": "partial",
+      "support_type": "incomplete_support",
+      "fully_answerable_from_returned_set": false,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The set supports stability of many analytes and several 24-hour cases, but it does not establish that most of the 81 analytes were stable for 24 hours before centrifugation under every tested condition.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q067_N01",
+          "nugget_text": "Most investigated blood, serum, and plasma analytes remained stable for up to 24 hours before centrifugation under all tested storage conditions.",
+          "judgment": "partially_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 5,
+            "semantic": 5
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6904761904761905,
+        "semantic": 0.7850531935691833
+      }
+    },
+    {
+      "question_id": "Q068",
+      "category": "Specimen, tube, and processing effects",
+      "question": "Which preservation buffers best maintain the original microbial diversity profile of immediately frozen stool samples?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The combination of PSP and RNAlater is explicitly supported.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q068_N01",
+          "nugget_text": "PSP-buffered stool most closely reproduced the microbial diversity profile of immediately frozen stool.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 1
+          }
+        },
+        {
+          "nugget_id": "Q068_N02",
+          "nugget_text": "RNAlater-buffered stool most closely reproduced the microbial diversity profile of immediately frozen stool.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.8461538461538461,
+        "semantic": 0.6118345260620117
+      }
+    },
+    {
+      "question_id": "Q069",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "Which 12 serum components remained stable after ten freeze-thaw cycles?",
+      "judge_score": 0.5,
+      "verdict": "partial",
+      "support_type": "incomplete_support",
+      "fully_answerable_from_returned_set": false,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The set explicitly supports creatinine and glucose stability through ten cycles, but it does not provide the other ten components required for the complete twelve-component answer.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q069_N01",
+          "nugget_text": "Serum albumin remained stable after ten freeze-thaw cycles.",
+          "judgment": "not_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 8,
+            "semantic": 8
+          }
+        },
+        {
+          "nugget_id": "Q069_N02",
+          "nugget_text": "Serum ASAT remained stable after ten freeze-thaw cycles.",
+          "judgment": "not_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 8,
+            "semantic": 8
+          }
+        },
+        {
+          "nugget_id": "Q069_N03",
+          "nugget_text": "Serum cholesterol remained stable after ten freeze-thaw cycles.",
+          "judgment": "not_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 8,
+            "semantic": 8
+          }
+        },
+        {
+          "nugget_id": "Q069_N04",
+          "nugget_text": "Serum creatinine remained stable after ten freeze-thaw cycles.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 8,
+            "semantic": 8
+          }
+        },
+        {
+          "nugget_id": "Q069_N05",
+          "nugget_text": "Serum C-reactive protein remained stable after ten freeze-thaw cycles.",
+          "judgment": "not_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 20,
+            "semantic": 11
+          }
+        },
+        {
+          "nugget_id": "Q069_N06",
+          "nugget_text": "Serum glucose remained stable after ten freeze-thaw cycles.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 8,
+            "semantic": 8
+          }
+        },
+        {
+          "nugget_id": "Q069_N07",
+          "nugget_text": "Serum immunoglobulin G remained stable after ten freeze-thaw cycles.",
+          "judgment": "not_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 8,
+            "semantic": 8
+          }
+        },
+        {
+          "nugget_id": "Q069_N08",
+          "nugget_text": "Serum potassium remained stable after ten freeze-thaw cycles.",
+          "judgment": "not_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 8,
+            "semantic": 8
+          }
+        },
+        {
+          "nugget_id": "Q069_N09",
+          "nugget_text": "Serum testosterone remained stable after ten freeze-thaw cycles.",
+          "judgment": "not_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 8,
+            "semantic": 8
+          }
+        },
+        {
+          "nugget_id": "Q069_N10",
+          "nugget_text": "Serum triglycerides remained stable after ten freeze-thaw cycles.",
+          "judgment": "not_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 8,
+            "semantic": 8
+          }
+        },
+        {
+          "nugget_id": "Q069_N11",
+          "nugget_text": "Serum urea remained stable after ten freeze-thaw cycles.",
+          "judgment": "not_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 8,
+            "semantic": 8
+          }
+        },
+        {
+          "nugget_id": "Q069_N12",
+          "nugget_text": "Serum vitamin B12 remained stable after ten freeze-thaw cycles.",
+          "judgment": "not_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 20,
+            "semantic": 11
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6273148148148149,
+        "semantic": 0.6681854476531347
+      }
+    },
+    {
+      "question_id": "Q070",
+      "category": "Freeze-thaw and frozen storage",
+      "question": "Which serum components changed significantly after repeated thawing?",
+      "judge_score": 0.5,
+      "verdict": "partial",
+      "support_type": "incomplete_support",
+      "fully_answerable_from_returned_set": false,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Total bilirubin instability after repeated thawing is supported, but the required sodium and TSH findings are absent.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q070_N01",
+          "nugget_text": "Serum bilirubin changed significantly after repeated thawing.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 20,
+            "semantic": 4
+          }
+        },
+        {
+          "nugget_id": "Q070_N02",
+          "nugget_text": "Serum sodium changed significantly after repeated thawing.",
+          "judgment": "not_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 5,
+            "semantic": 9
+          }
+        },
+        {
+          "nugget_id": "Q070_N03",
+          "nugget_text": "Serum TSH changed significantly after repeated thawing.",
+          "judgment": "not_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 5,
+            "semantic": 9
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6904761904761905,
+        "semantic": 0.6527346968650818
+      }
+    },
+    {
+      "question_id": "Q071",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "Over what time intervals were serum and plasma quality assessed after blood collection and processing in NMR-based biobanking studies?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "entailed_or_alternative_source",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Different returned chunks jointly support collection-to-processing delays up to four hours and post-processing delays up to 24 hours.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q071_N01",
+          "nugget_text": "Serum and plasma quality was assessed for blood-collection-to-processing intervals from 0 to 4 hours.",
+          "judgment": "supported_with_caveat",
+          "automatic_best_match_ranks": {
+            "lexical": 19,
+            "semantic": 15
+          }
+        },
+        {
+          "nugget_id": "Q071_N02",
+          "nugget_text": "Serum and plasma quality was assessed for processing-to-freezing intervals of up to 24 hours.",
+          "judgment": "supported_with_caveat",
+          "automatic_best_match_ranks": {
+            "lexical": 10,
+            "semantic": 20
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.625,
+        "semantic": 0.6941772699356079
+      }
+    },
+    {
+      "question_id": "Q072",
+      "category": "Specimen, tube, and processing effects",
+      "question": "Which urine pretreatments were tested before biobank storage for metabolomics?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Centrifugation, filtration, and sodium azide are all present.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q072_N01",
+          "nugget_text": "Pre-storage centrifugation was tested as a urine pretreatment before biobank storage.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 12,
+            "semantic": 19
+          }
+        },
+        {
+          "nugget_id": "Q072_N02",
+          "nugget_text": "Pre-storage filtration was tested as a urine pretreatment before biobank storage.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 12,
+            "semantic": 10
+          }
+        },
+        {
+          "nugget_id": "Q072_N03",
+          "nugget_text": "Adding bacteriostatic sodium azide was tested as a urine pretreatment before biobank storage.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 12,
+            "semantic": 11
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.5326340326340326,
+        "semantic": 0.6306048035621643
+      }
+    },
+    {
+      "question_id": "Q073",
+      "category": "Specimen, tube, and processing effects",
+      "question": "Which urine preservative has the largest effect on the metabolomic profile?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The borate result of 125 affected samples among 1,048 is stated directly.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q073_N01",
+          "nugget_text": "Borate had the largest effect on the urine metabolomic profile, altering 125 of 1048 metabolites.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 12,
+            "semantic": 3
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6,
+        "semantic": 0.6777200698852539
+      }
+    },
+    {
+      "question_id": "Q074",
+      "category": "Specimen, tube, and processing effects",
+      "question": "Were pre-analytical handling effects larger in urine or serum metabolomics?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The handling effect in urine being markedly smaller than in serum is explicitly supported.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q074_N01",
+          "nugget_text": "Pre-analytical handling effects were markedly smaller in urine metabolomics than in serum metabolomics.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 6
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6538461538461539,
+        "semantic": 0.6792529225349426
+      }
+    },
+    {
+      "question_id": "Q075",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "How long can fresh colon cancer tissue stay at room temperature or on ice before snap-freezing without reducing RNA quality?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Alternative colorectal-cancer sources support stability for four hours or longer at room temperature and on ice.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q075_N01",
+          "nugget_text": "Colon cancer tissue retained RNA quality for up to 4 hours at room temperature before snap-freezing.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 20
+          }
+        },
+        {
+          "nugget_id": "Q075_N02",
+          "nugget_text": "Colon cancer tissue retained RNA quality for up to 4 hours on ice before snap-freezing.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 20
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.7416666666666667,
+        "semantic": 0.721498966217041
+      }
+    },
+    {
+      "question_id": "Q076",
+      "category": "Storage temperature and duration",
+      "question": "Does storing frozen colon tissue for up to 40 months reduce RNA quality?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "entailed_or_alternative_source",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The exact 40-month study is absent, but closely related tissue evidence reports that storage for several years did not reduce RNA quality, supporting the answer.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q076_N01",
+          "nugget_text": "Frozen colon tissue storage for up to 40 months did not reduce RNA quality.",
+          "judgment": "supported_with_caveat",
+          "automatic_best_match_ranks": {
+            "lexical": 7,
+            "semantic": 8
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.5714285714285714,
+        "semantic": 0.6760589480400085
+      }
+    },
+    {
+      "question_id": "Q077",
+      "category": "Pre-centrifugation delay and transport",
+      "question": "How long can fresh kidney cancer tissue remain on ice before freezing without losing RNA integrity?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "No detectable degradation in renal-cell-carcinoma tissue after four hours on ice is stated.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q077_N01",
+          "nugget_text": "Fresh kidney cancer tissue retained RNA integrity for 4 hours on ice before freezing.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 9,
+            "semantic": 9
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.7142857142857143,
+        "semantic": 0.6919217705726624
+      }
+    },
+    {
+      "question_id": "Q078",
+      "category": "Biospecimen quality control and SOPs",
+      "question": "How should fresh cancer tissue be transported before biobanking to preserve RNA quality?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Transporting cancer tissue on ice is directly supported.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q078_N01",
+          "nugget_text": "Fresh cancer tissue should be transported on ice before biobanking to preserve RNA quality.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 4
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.9285714285714286,
+        "semantic": 0.6876398921012878
+      }
+    },
+    {
+      "question_id": "Q079",
+      "category": "Storage temperature and duration",
+      "question": "Do most urine analytes remain stable after more than ten years at −22°C?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "entailed_or_alternative_source",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "A returned review table supports stability of all requested urinary analytes for 12-15 years at approximately -22 degrees Celsius.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q079_N01",
+          "nugget_text": "Most urine analytes stored at −22 °C for more than ten years were not significantly different from baseline.",
+          "judgment": "supported_with_caveat",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 20
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.5833333333333334,
+        "semantic": 0.6773787140846252
+      }
+    },
+    {
+      "question_id": "Q080",
+      "category": "Storage temperature and duration",
+      "question": "How long can several urine analytes remain suitable for later measurement when stored at −22°C?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The exact abstract reporting stability beyond ten years at -22 degrees Celsius is present.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q080_N01",
+          "nugget_text": "Several urine analytes remained suitable for measurement after more than ten years at −22 °C.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6666666666666666,
+        "semantic": 0.7259272336959839
+      }
+    },
+    {
+      "question_id": "Q081",
+      "category": "Specimen, tube, and processing effects",
+      "question": "Which handling problems have the greatest effect on RNA integrity in Tempus blood collection tubes?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "entailed_or_alternative_source",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The evidence identifies the blood-to-stabilizer fill ratio as critical and tube mixing as the next important factor.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q081_N01",
+          "nugget_text": "Fill volume strongly affects RNA integrity in Tempus blood collection tubes.",
+          "judgment": "supported_with_caveat",
+          "automatic_best_match_ranks": {
+            "lexical": 13,
+            "semantic": 20
+          }
+        },
+        {
+          "nugget_id": "Q081_N02",
+          "nugget_text": "Inversion effectiveness strongly affects RNA integrity in Tempus blood collection tubes.",
+          "judgment": "supported_with_caveat",
+          "automatic_best_match_ranks": {
+            "lexical": 2,
+            "semantic": 20
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6363636363636364,
+        "semantic": 0.6979894936084747
+      }
+    },
+    {
+      "question_id": "Q082",
+      "category": "Specimen, tube, and processing effects",
+      "question": "Which handling problems have the greatest effect on RNA integrity in PAXgene blood collection tubes?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "entailed_or_alternative_source",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "PAXgene evidence supports both the importance of storage temperature and the prescribed 20-30 tube inversions.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q082_N01",
+          "nugget_text": "Inversion effectiveness strongly affects RNA integrity in PAXgene blood collection tubes.",
+          "judgment": "supported_with_caveat",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 8
+          }
+        },
+        {
+          "nugget_id": "Q082_N02",
+          "nugget_text": "Storage temperature strongly affects RNA integrity in PAXgene blood collection tubes.",
+          "judgment": "supported_with_caveat",
+          "automatic_best_match_ranks": {
+            "lexical": 8,
+            "semantic": 3
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.7045454545454546,
+        "semantic": 0.6706322133541107
+      }
+    },
+    {
+      "question_id": "Q083",
+      "category": "Biospecimen quality control and SOPs",
+      "question": "Which vial and centrifugation characteristics should be standardized to reduce pre-analytical variation in metabolomics studies?",
+      "judge_score": 0.5,
+      "verdict": "partial",
+      "support_type": "incomplete_support",
+      "fully_answerable_from_returned_set": false,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Vial material, vial batch, and centrifuge speed are directly supported. The set discusses sample volume rather than the required vial size, so one of four requested characteristics is missing.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q083_N01",
+          "nugget_text": "Vial size should be standardized in metabolomics studies.",
+          "judgment": "not_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 12,
+            "semantic": 1
+          }
+        },
+        {
+          "nugget_id": "Q083_N02",
+          "nugget_text": "Vial material should be standardized in metabolomics studies.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 12,
+            "semantic": 5
+          }
+        },
+        {
+          "nugget_id": "Q083_N03",
+          "nugget_text": "Vial batch should be standardized in metabolomics studies.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 12,
+            "semantic": 1
+          }
+        },
+        {
+          "nugget_id": "Q083_N04",
+          "nugget_text": "Centrifuge speed should be standardized in metabolomics studies.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 12,
+            "semantic": 8
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.8125,
+        "semantic": 0.6840592473745346
+      }
+    },
+    {
+      "question_id": "Q084",
+      "category": "Biospecimen quality control and SOPs",
+      "question": "What kind of sample-collection protocol should a biobank use for metabolomics studies?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The need for a well-defined and validated protocol is stated directly.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q084_N01",
+          "nugget_text": "A biobank should use a well-defined and validated sample-collection protocol for metabolomics studies.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 2
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.8076923076923077,
+        "semantic": 0.8000578284263611
+      }
+    },
+    {
+      "question_id": "Q085",
+      "category": "Storage temperature and duration",
+      "question": "Do urine and serum show systematic metabolite changes after being kept at 4°C for 24 hours before freezing?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "No systematic urine or serum changes after 24 hours at 4 degrees Celsius are reported.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q085_N01",
+          "nugget_text": "Urine showed no systematic metabolite changes after 24 hours at 4 °C before freezing.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 2,
+            "semantic": 18
+          }
+        },
+        {
+          "nugget_id": "Q085_N02",
+          "nugget_text": "Serum showed no systematic metabolite changes after 24 hours at 4 °C before freezing.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 2,
+            "semantic": 18
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.7857142857142857,
+        "semantic": 0.6448536217212677
+      }
+    },
+    {
+      "question_id": "Q086",
+      "category": "Storage temperature and duration",
+      "question": "How can subtle metabolic changes caused by delayed freezing of serum be detected?",
+      "judge_score": 0.0,
+      "verdict": "miss",
+      "support_type": "answer_absent",
+      "fully_answerable_from_returned_set": false,
+      "useful_answer_evidence_present": false,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The set discusses metabolic changes after delayed freezing but never states that subtle changes were detectable only through multivariate analysis.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q086_N01",
+          "nugget_text": "Subtle metabolic changes caused by delayed serum freezing were detectable only with multivariate analysis.",
+          "judgment": "not_supported",
+          "automatic_best_match_ranks": {
+            "lexical": 5,
+            "semantic": 1
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.4642857142857143,
+        "semantic": 0.6686080694198608
+      }
+    },
+    {
+      "question_id": "Q087",
+      "category": "Specimen, tube, and processing effects",
+      "question": "Does collecting blood in P100 protease-inhibitor tubes improve the pre-analytical stability of plasma Aβ42 and Aβ40?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Improved stability of both A-beta 42 and the A-beta 42/A-beta 40 ratio is supported.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q087_N01",
+          "nugget_text": "P100 protease-inhibitor tubes significantly improved the pre-analytical stability of plasma Aβ42.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 5
+          }
+        },
+        {
+          "nugget_id": "Q087_N02",
+          "nugget_text": "P100 protease-inhibitor tubes significantly improved the pre-analytical stability of plasma Aβ40.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 5
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.8333333333333334,
+        "semantic": 0.8280329704284668
+      }
+    },
+    {
+      "question_id": "Q088",
+      "category": "Specimen, tube, and processing effects",
+      "question": "Does using P100 rather than EDTA collection tubes significantly change plasma p-tau181, GFAP, or NfL levels during room-temperature processing delays?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "No significant differences in p-tau181, GFAP, and NfL between P100 and EDTA tubes are present.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q088_N01",
+          "nugget_text": "P100 and EDTA tubes produced no significant difference in plasma p-tau181 during room-temperature processing delays.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 1
+          }
+        },
+        {
+          "nugget_id": "Q088_N02",
+          "nugget_text": "P100 and EDTA tubes produced no significant difference in plasma GFAP during room-temperature processing delays.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 2
+          }
+        },
+        {
+          "nugget_id": "Q088_N03",
+          "nugget_text": "P100 and EDTA tubes produced no significant difference in plasma NfL during room-temperature processing delays.",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 2
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.5666666666666667,
+        "semantic": 0.6856779058774313
+      }
+    },
+    {
+      "question_id": "Q089",
+      "category": "Storage temperature and duration",
+      "question": "How much cold ischemia and frozen storage can fresh-frozen tumor tissue tolerate without reducing RNA integrity?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "entailed_or_alternative_source",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "Alternative evidence supports RNA stability within one hour and shows that several years of frozen storage do not reduce RNA quality.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q089_N01",
+          "nugget_text": "Cold ischemia of up to one hour did not reduce RNA integrity in fresh-frozen tumor tissue.",
+          "judgment": "supported_with_caveat",
+          "automatic_best_match_ranks": {
+            "lexical": 4,
+            "semantic": 18
+          }
+        },
+        {
+          "nugget_id": "Q089_N02",
+          "nugget_text": "Frozen storage of up to six years did not reduce RNA integrity in fresh-frozen tumor tissue.",
+          "judgment": "supported_with_caveat",
+          "automatic_best_match_ranks": {
+            "lexical": 3,
+            "semantic": 15
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.65625,
+        "semantic": 0.6837659478187561
+      }
+    },
+    {
+      "question_id": "Q090",
+      "category": "Biospecimen quality control and SOPs",
+      "question": "How often is poor RNA integrity (RIN < 7) observed in fresh-frozen tumor tissue when cold ischemia is kept under one hour?",
+      "judge_score": 1.0,
+      "verdict": "complete",
+      "support_type": "direct",
+      "fully_answerable_from_returned_set": true,
+      "useful_answer_evidence_present": true,
+      "same_condition_contradiction_found": false,
+      "reviewed_chunk_count": 20,
+      "rationale": "The result that only three of 396 specimens had an RIN below 7 is present together with the relevant handling and long-storage conditions.",
+      "nugget_judgments": [
+        {
+          "nugget_id": "Q090_N01",
+          "nugget_text": "With cold ischemia below one hour, 3 of 396 fresh-frozen tumor samples had poor RNA integrity (RIN < 7).",
+          "judgment": "supported",
+          "automatic_best_match_ranks": {
+            "lexical": 1,
+            "semantic": 7
+          }
+        }
+      ],
+      "automatic_similarity_scores_at_20": {
+        "lexical": 0.6388888888888888,
+        "semantic": 0.7508814334869385
+      }
+    }
+  ]
+}
