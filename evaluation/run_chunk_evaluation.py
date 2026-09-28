@@ -9,7 +9,7 @@ from statistics import mean
 from typing import Any
 
 from web_rag import run_pipeline
-from web_rag.config import Settings
+from web_rag.config import RERANKERS, Settings
 from web_rag.serializer import to_serializable
 
 from .lexical_evaluation import evaluate_nuggets_lexical_at_cutoffs
@@ -229,6 +229,15 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", default="auto")
+    parser.add_argument(
+        "--reranker",
+        choices=RERANKERS,
+        default=Settings().reranker,
+        help=(
+            "Final chunk reranker to evaluate. All retrieval, chunking, "
+            "evidence-selection, and evaluation settings remain fixed."
+        ),
+    )
     parser.add_argument("--semantic-model", default=DEFAULT_MODEL)
     parser.add_argument("--semantic-batch-size", type=int, default=8)
     parser.add_argument(
@@ -257,7 +266,10 @@ def main() -> int:
     for example in examples:
         _gold_nuggets(example)
 
-    pipeline_settings = Settings(medcpt_device=args.device)
+    pipeline_settings = Settings(
+        medcpt_device=args.device,
+        reranker=args.reranker,
+    )
     configuration = {
         "evaluation_schema_version": 4,
         "evaluation_cutoffs": list(EVALUATION_CUTOFFS),
@@ -298,6 +310,14 @@ def main() -> int:
         "min_chunk_words": pipeline_settings.min_chunk_words,
         "reranker": pipeline_settings.reranker,
         "reranker_model": pipeline_settings.medcpt_model,
+        "bm25_k1": pipeline_settings.bm25_k1,
+        "bm25_b": pipeline_settings.bm25_b,
+        "hybrid_lexical_weight": (
+            pipeline_settings.hybrid_lexical_weight
+        ),
+        "hybrid_medcpt_weight": (
+            pipeline_settings.hybrid_medcpt_weight
+        ),
         "top_k": pipeline_settings.top_k,
         "max_chunks_per_paper": (
             pipeline_settings.max_chunks_per_paper

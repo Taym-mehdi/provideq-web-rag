@@ -17,6 +17,7 @@ from evaluation.lexical_evaluation import (
 )
 from evaluation.run_chunk_evaluation import (
     DEFAULT_BENCHMARK,
+    build_parser,
     _gold_nuggets,
     _load_benchmark,
     _mean_nugget_scores_at_cutoffs,
@@ -80,6 +81,14 @@ class _FakePack:
 
 
 class ChunkEvaluationMetricTests(unittest.TestCase):
+    def test_runner_accepts_each_supported_reranker(self) -> None:
+        parser = build_parser()
+
+        for reranker in ("medcpt", "lexical", "hybrid"):
+            with self.subTest(reranker=reranker):
+                arguments = parser.parse_args(["--reranker", reranker])
+                self.assertEqual(arguments.reranker, reranker)
+
     def test_default_semantic_loader_uses_transformers_backend(self) -> None:
         sentinel = object()
         with patch(
@@ -248,13 +257,15 @@ class ChunkEvaluationMetricTests(unittest.TestCase):
                 str(output_path),
                 "--num-questions",
                 "1",
+                "--reranker",
+                "lexical",
                 "--no-resume",
             ]
             with (
                 patch(
                     "evaluation.run_chunk_evaluation.run_pipeline",
                     return_value=pack,
-                ),
+                ) as run_pipeline,
                 patch(
                     "evaluation.run_chunk_evaluation.SemanticEvaluator",
                     return_value=_FakeNuggetEvaluator(),
@@ -281,6 +292,11 @@ class ChunkEvaluationMetricTests(unittest.TestCase):
         self.assertEqual(
             payload["configuration"]["semantic_max_length"],
             8192,
+        )
+        self.assertEqual(payload["configuration"]["reranker"], "lexical")
+        self.assertEqual(
+            run_pipeline.call_args.kwargs["settings"].reranker,
+            "lexical",
         )
         self.assertEqual(row["nugget_count"], 2)
         self.assertEqual(len(row["nugget_results"]), 2)
