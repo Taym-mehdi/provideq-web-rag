@@ -126,6 +126,35 @@ class PaperclipMCPTests(unittest.TestCase):
         self.assertTrue(arguments["all_time"])
         self.assertTrue(arguments["as_json"])
 
+    def test_formatted_mcp_search_output_is_parsed_when_json_is_ignored(
+        self,
+    ) -> None:
+        output = (
+            "Found 1 papers  [s_f012ab12]\n\n"
+            "  \x1b[1m1. Time as a significant factor in potassium release\x1b[0m\n"
+            "     Tom Reuter, Michael Müller\n"
+            "     \x1b[2mPMC11627413 · pmc · 2024-12-09\x1b[0m\n"
+            "     \x1b[36mhttps://www.ncbi.nlm.nih.gov/pmc/articles/PMC11627413/\x1b[0m\n"
+            "     \x1b[2m\"Potassium increased with delayed centrifugation.\"\x1b[0m\n"
+        )
+        opener = _Opener([_tool_response(output)])
+        client = PaperclipMCPClient("gxl_test", opener=opener)
+
+        result = retrieve_papers(
+            "potassium delay",
+            limit=1,
+            source="pmc",
+            ranking="vector",
+            load_full_text=False,
+            client=client,
+        )
+
+        self.assertEqual(result.result_id, "s_f012ab12")
+        self.assertEqual(len(result.papers), 1)
+        self.assertEqual(result.papers[0].paper_id, "PMC11627413")
+        self.assertEqual(result.papers[0].source, "pmc")
+        self.assertIn("delayed centrifugation", result.papers[0].abstract)
+
     def test_full_text_is_loaded_with_head_and_metadata_with_cat(self) -> None:
         metadata = {
             "document_id": "PMC9750740",

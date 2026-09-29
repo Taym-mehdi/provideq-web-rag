@@ -24,6 +24,7 @@ class _PaperclipFileUnavailable(PaperclipError):
 
 DEFAULT_PAPERCLIP_MCP_URL = "https://paperclip.gxl.ai/mcp"
 _RESULT_ID_PATTERN = re.compile(r"\b[srm]_[0-9a-f]{4,}\b", re.IGNORECASE)
+_ANSI_PATTERN = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 _MISSING_FILE_MARKERS = (
     "not found",
     "no such file",
@@ -259,6 +260,50 @@ def _extract_list(payload: Any) -> list[dict[str, Any]]:
     return []
 
 
+def _parse_formatted_search_output(output: str) -> list[dict[str, Any]]:
+    """Parse Paperclip's human-readable search result as a safe fallback."""
+    text = _ANSI_PATTERN.sub("", output or "")
+    papers: list[dict[str, Any]] = []
+    entries = re.split(r"\n(?=\s*\d+\.\s)", text)
+    for entry in entries:
+        lines = [line.strip() for line in entry.splitlines() if line.strip()]
+        if not lines:
+            continue
+        heading = re.match(r"^(\d+)\.\s+(.+)$", lines[0])
+        if heading is None:
+            continue
+
+        paper: dict[str, Any] = {"title": heading.group(2).strip()}
+        for line in lines[1:]:
+            if line.startswith("https://"):
+                paper.setdefault("url", line)
+                doi_match = re.match(
+                    r"https?://(?:dx\.)?doi\.org/(.+)",
+                    line,
+                    flags=re.IGNORECASE,
+                )
+                if doi_match:
+                    paper.setdefault("doi", doi_match.group(1))
+            elif line.casefold().startswith("doi:"):
+                paper.setdefault("doi", line[4:].strip())
+            elif line.startswith('"'):
+                paper["abstract"] = line.strip('"')
+            elif "·" in line:
+                fields = [field.strip() for field in line.split("·")]
+                if fields:
+                    paper["id"] = fields[0]
+                if len(fields) >= 2:
+                    paper["source"] = fields[1]
+                if len(fields) >= 3:
+                    paper["published_date"] = fields[2]
+            elif "authors" not in paper:
+                paper["authors"] = line
+
+        if _paper_id(paper):
+            papers.append(paper)
+    return papers
+
+
 def _extract_search_hits(client: Any, result: Any) -> list[dict[str, Any]]:
     for payload in (
         result,
@@ -270,6 +315,12 @@ def _extract_search_hits(client: Any, result: Any) -> list[dict[str, Any]]:
         hits = _extract_list(payload)
         if hits:
             return hits
+
+    formatted_hits = _parse_formatted_search_output(
+        str(getattr(result, "output", "") or "")
+    )
+    if formatted_hits:
+        return formatted_hits
 
     result_id = str(getattr(result, "result_id", "") or "")
     results_api = getattr(client, "results", None)
