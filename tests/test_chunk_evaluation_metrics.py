@@ -21,6 +21,7 @@ from evaluation.run_chunk_evaluation import (
     _gold_nuggets,
     _load_benchmark,
     _mean_nugget_scores_at_cutoffs,
+    _source_failure_warnings,
     _summary,
     main,
 )
@@ -88,6 +89,30 @@ class ChunkEvaluationMetricTests(unittest.TestCase):
             with self.subTest(reranker=reranker):
                 arguments = parser.parse_args(["--reranker", reranker])
                 self.assertEqual(arguments.reranker, reranker)
+
+        self.assertTrue(parser.parse_args([]).strict_retrieval)
+        self.assertFalse(
+            parser.parse_args(["--no-strict-retrieval"]).strict_retrieval
+        )
+
+    def test_strict_retrieval_detects_only_source_failures(self) -> None:
+        pack = _FakePack(
+            records=[],
+            pipeline={
+                "parameters": {
+                    "warnings": [
+                        "query reformulation failed; used raw query",
+                        "Paperclip failed; used Europe PMC only: outage",
+                    ]
+                }
+            },
+            retrieved_papers=[],
+        )
+
+        self.assertEqual(
+            _source_failure_warnings(pack),
+            ["Paperclip failed; used Europe PMC only: outage"],
+        )
 
     def test_default_semantic_loader_uses_transformers_backend(self) -> None:
         sentinel = object()
@@ -307,6 +332,71 @@ class ChunkEvaluationMetricTests(unittest.TestCase):
             2,
         )
         self.assertEqual(summary["total_gold_nuggets"], 2)
+
+    def test_runner_stops_on_retrieval_source_fallback(self) -> None:
+        benchmark = {
+            "schema_version": "test",
+            "version": "test",
+            "examples": [
+                {
+                    "id": f"Q{index}",
+                    "question": "Test question?",
+                    "category": "Test",
+                    "nuggets": [{"id": f"N{index}", "text": "fact"}],
+                }
+                for index in (1, 2)
+            ],
+        }
+        pack = _FakePack(
+            records=[],
+            pipeline={
+                "parameters": {
+                    "warnings": [
+                        "Paperclip failed; used Europe PMC only: outage"
+                    ]
+                }
+            },
+            retrieved_papers=[],
+        )
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            benchmark_path = root / "benchmark.json"
+            output_path = root / "results.json"
+            benchmark_path.write_text(
+                json.dumps(benchmark),
+                encoding="utf-8",
+            )
+            arguments = [
+                "run_chunk_evaluation",
+                "--benchmark",
+                str(benchmark_path),
+                "--output",
+                str(output_path),
+                "--num-questions",
+                "2",
+                "--no-semantic",
+                "--no-resume",
+            ]
+            with (
+                patch(
+                    "evaluation.run_chunk_evaluation.run_pipeline",
+                    return_value=pack,
+                ) as run_pipeline,
+                patch.object(sys, "argv", arguments),
+                redirect_stdout(io.StringIO()),
+            ):
+                self.assertEqual(main(), 2)
+
+            payload = json.loads(output_path.read_text(encoding="utf-8"))
+
+        self.assertEqual(run_pipeline.call_count, 1)
+        self.assertEqual(len(payload["results"]), 1)
+        self.assertEqual(payload["results"][0]["status"], "error")
+        self.assertIn(
+            "Strict retrieval check failed",
+            payload["results"][0]["error"],
+        )
 
 
 if __name__ == "__main__":

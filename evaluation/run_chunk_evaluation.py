@@ -27,6 +27,30 @@ DEFAULT_OUTPUT = Path("outputs/nugget_chunk_evaluation/results.json")
 EVALUATION_CUTOFFS = (1, 3, 5, 10, 20)
 
 
+class RetrievalSourceFailure(RuntimeError):
+    """A controlled evaluation lost one of its configured retrieval sources."""
+
+
+def _source_failure_warnings(pack: Any) -> list[str]:
+    pipeline = to_serializable(pack.pipeline)
+    if not isinstance(pipeline, dict):
+        return []
+    parameters = pipeline.get("parameters", {})
+    if not isinstance(parameters, dict):
+        return []
+    warnings = parameters.get("warnings", [])
+    if isinstance(warnings, str):
+        warnings = [warnings]
+    if not isinstance(warnings, list):
+        return []
+    prefixes = ("Paperclip failed", "Europe PMC failed")
+    return [
+        str(warning)
+        for warning in warnings
+        if str(warning).startswith(prefixes)
+    ]
+
+
 def _load_benchmark(
     path: Path,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
@@ -250,6 +274,15 @@ def build_parser() -> argparse.ArgumentParser:
         action=argparse.BooleanOptionalAction,
         default=True,
     )
+    parser.add_argument(
+        "--strict-retrieval",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "Stop immediately if Paperclip or Europe PMC fails instead of "
+            "scoring a fallback-only candidate pool."
+        ),
+    )
     parser.add_argument("--retry-errors", action="store_true")
     return parser
 
@@ -271,7 +304,7 @@ def main() -> int:
         reranker=args.reranker,
     )
     configuration = {
-        "evaluation_schema_version": 4,
+        "evaluation_schema_version": 5,
         "evaluation_cutoffs": list(EVALUATION_CUTOFFS),
         "evaluation_unit": "gold_nugget",
         "nugget_aggregation": "mean_of_per_nugget_best_chunk_scores",
@@ -334,6 +367,7 @@ def main() -> int:
             DEFAULT_MAX_LENGTH if args.semantic else None
         ),
         "device": args.device,
+        "strict_retrieval": bool(args.strict_retrieval),
     }
     rows_by_id = _load_existing(
         args.output,
@@ -379,11 +413,19 @@ def main() -> int:
         print(f"[{position}/{len(examples)}] {question_id}")
         gold_nuggets = _gold_nuggets(example)
         nugget_texts = [nugget["text"] for nugget in gold_nuggets]
+        stop_after_write = False
         try:
             pack = run_pipeline(
                 str(example["question"]),
                 settings=pipeline_settings,
             )
+            if args.strict_retrieval:
+                source_failures = _source_failure_warnings(pack)
+                if source_failures:
+                    raise RetrievalSourceFailure(
+                        "Strict retrieval check failed: "
+                        + " | ".join(source_failures)
+                    )
             evidence_texts = [
                 record.evidence_text for record in pack.records
             ]
@@ -472,6 +514,7 @@ def main() -> int:
                 "chunks": to_serializable(pack.records),
             }
         except Exception as exc:
+            stop_after_write = isinstance(exc, RetrievalSourceFailure)
             row = {
                 "question_id": question_id,
                 "category": example.get("category", ""),
@@ -500,6 +543,12 @@ def main() -> int:
             configuration=configuration,
             rows=ordered,
         )
+        if stop_after_write:
+            print(
+                "Stopped before evaluating further questions because a "
+                "configured retrieval source failed."
+            )
+            return 2
 
     rows = [
         rows_by_id[str(item.get("id", ""))]

@@ -432,6 +432,7 @@ def run_pipeline(
             "query_strategy": effective.query_strategy,
             "effective_query_strategy": query.strategy,
             "warnings": [*query_warnings, *retrieval.warnings],
+            "paperclip_transport": "hosted_mcp_tools",
             "paperclip_candidate_limit": (
                 effective.paperclip_candidate_limit
             ),

@@ -47,29 +47,26 @@ consume these records directly.
 
 ## Windows setup
 
-Use Python 3.12 and the tested Paperclip environment:
+Use Python 3.12. Paperclip is accessed through its hosted MCP tools, so the
+separate `gxl-paperclip` wheel is not required:
 
 ~~~cmd
 py -3.12 -m venv .venv
 call .venv\Scripts\activate.bat
 python -m pip install --upgrade pip setuptools wheel
 python -m pip install -r requirements.txt
-curl.exe -fL "https://paperclip.gxl.ai/paperclip.whl" -o "%TEMP%\gxl_paperclip-0.7.49-py3-none-any.whl"
-python -m pip install "%TEMP%\gxl_paperclip-0.7.49-py3-none-any.whl"
 python -m pip install -e .
 python -m pip check
 copy .env.example .env
 ~~~
 
-The explicit download filename is required because the filename supplied by the
-Paperclip endpoint is not a valid Python wheel filename on Windows. Verify that
-Paperclip 0.7.49 was installed in the active environment:
+Add the Paperclip API key to `.env`:
 
-~~~cmd
-python -c "from importlib.metadata import version; v=version('gxl-paperclip'); print(v); assert v == '0.7.49'"
+~~~dotenv
+PAPERCLIP_API_KEY=gxl_your_key_here
 ~~~
 
-Add your own API key to `.env` before running the default LLM-expansion
+Also add your own KBS inference key before running the default LLM-expansion
 pipeline. The original question remains unchanged at the start of the expanded
 query. Paperclip receives both the raw and expanded versions; Europe PMC
 receives only the raw question. The first chunking/reranking run downloads
@@ -172,6 +169,10 @@ After that, run all 90 questions:
 ~~~cmd
 python -m evaluation.run_chunk_evaluation --num-questions 90 --no-resume
 ~~~
+
+Chunk evaluation is strict by default. If either configured retrieval source
+fails, the command saves the failed row and exits immediately instead of
+silently scoring a Paperclip-only or Europe-PMC-only fallback run.
 
 The evaluator saves incrementally to:
 

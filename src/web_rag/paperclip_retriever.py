@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import os
 import re
-import sys
+import urllib.error
+import urllib.request
 from collections.abc import Mapping
-from pathlib import Path
+from dataclasses import dataclass, field
 from typing import Any
 
 from .config import PAPERCLIP_MODES, PAPERCLIP_RANKINGS, validate_paperclip_source
@@ -16,32 +18,202 @@ class PaperclipError(RuntimeError):
     pass
 
 
-def _load_client_class() -> type[Any]:
-    try:
-        from gxl_paperclip import PaperclipClient
+class _PaperclipFileUnavailable(PaperclipError):
+    """One virtual paper file is unavailable; retrieval itself is healthy."""
 
-        return PaperclipClient
-    except ImportError:
-        vendored_path = Path.home() / ".paperclip" / "lib"
-        if vendored_path.is_dir() and str(vendored_path) not in sys.path:
-            sys.path.insert(0, str(vendored_path))
-        try:
-            from gxl_paperclip import PaperclipClient
 
-            return PaperclipClient
-        except ImportError as exc:
+DEFAULT_PAPERCLIP_MCP_URL = "https://paperclip.gxl.ai/mcp"
+_RESULT_ID_PATTERN = re.compile(r"\b[srm]_[0-9a-f]{4,}\b", re.IGNORECASE)
+_MISSING_FILE_MARKERS = (
+    "not found",
+    "no such file",
+    "does not exist",
+    "unknown path",
+    "full text unavailable",
+)
+
+
+@dataclass(slots=True)
+class PaperclipToolResult:
+    """Normalized response from one hosted Paperclip MCP tool call."""
+
+    output: str = ""
+    result_id: str = ""
+    result_data: Any = None
+    raw: dict[str, Any] = field(default_factory=dict)
+    exit_code: int = 0
+
+
+class PaperclipMCPClient:
+    """Minimal client for Paperclip's advertised hosted MCP tools.
+
+    Paperclip 0.7.92 advertises ``search``, ``cat``, and ``head`` as separate
+    MCP tools. Its Python SDK still routes ``execute(...)`` through an older
+    wrapper tool named ``paperclip``. Calling the advertised tools directly
+    avoids that transport mismatch and retains access to ``content.lines``.
+    """
+
+    def __init__(
+        self,
+        api_key: str,
+        *,
+        mcp_url: str = DEFAULT_PAPERCLIP_MCP_URL,
+        opener: Any | None = None,
+    ) -> None:
+        key = str(api_key or "").strip()
+        if not key:
             raise PaperclipError(
-                "Paperclip SDK was not found. Install Paperclip or make ~/.paperclip/lib available."
+                "Paperclip authentication failed. Set PAPERCLIP_API_KEY in .env."
+            )
+        self._api_key = key
+        self.mcp_url = mcp_url.rstrip("/")
+        self._opener = opener or urllib.request.urlopen
+        self._request_id = 0
+
+    def _request(self, payload: dict[str, Any], *, timeout: float) -> dict[str, Any]:
+        request = urllib.request.Request(
+            self.mcp_url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+                "X-API-Key": self._api_key,
+            },
+            method="POST",
+        )
+        status_code = 0
+        body = ""
+        try:
+            with self._opener(request, timeout=timeout) as response:
+                response_status = getattr(response, "status", None)
+                if response_status is None:
+                    response_status = getattr(response, "status_code", None)
+                if response_status is None:
+                    response_status = response.getcode()
+                status_code = int(response_status)
+                body = response.read().decode("utf-8", errors="replace")
+        except urllib.error.HTTPError as exc:
+            status_code = exc.code
+            try:
+                body = exc.read().decode("utf-8", errors="replace")
+            except Exception:
+                body = ""
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            raise PaperclipError(
+                f"Paperclip MCP request failed: {exc}"
             ) from exc
+
+        try:
+            payload = json.loads(body)
+        except json.JSONDecodeError as exc:
+            if not 200 <= status_code < 300:
+                raise PaperclipError(
+                    f"Paperclip MCP HTTP {status_code}: "
+                    f"{clean_text(body)[:500] or 'request failed'}"
+                ) from exc
+            raise PaperclipError("Paperclip MCP returned invalid JSON") from exc
+
+        if not 200 <= status_code < 300:
+            extracted = _find_value(payload, ("message", "detail"))
+            if not extracted:
+                extracted = _find_value(payload, ("error",))
+            message = clean_text(str(extracted or body))[:500]
+            raise PaperclipError(
+                f"Paperclip MCP HTTP {status_code}: "
+                f"{message or 'request failed'}"
+            )
+
+        if not isinstance(payload, dict):
+            raise PaperclipError("Paperclip MCP returned an unexpected response")
+        return payload
+
+    def call_tool(
+        self,
+        name: str,
+        arguments: dict[str, Any],
+        *,
+        timeout: float = 120.0,
+    ) -> PaperclipToolResult:
+        self._request_id += 1
+        response = self._request(
+            {
+                "jsonrpc": "2.0",
+                "method": "tools/call",
+                "params": {
+                    "name": name,
+                    "arguments": arguments,
+                },
+                "id": self._request_id,
+            },
+            timeout=timeout,
+        )
+        rpc_error = response.get("error")
+        if rpc_error:
+            message = _find_value(rpc_error, ("message", "detail"))
+            code = _find_value(rpc_error, ("code",))
+            suffix = f" (code: {code})" if code not in (None, "") else ""
+            raise PaperclipError(
+                f"Paperclip MCP tool {name!r} failed: "
+                f"{clean_text(str(message or rpc_error))}{suffix}"
+            )
+
+        result = response.get("result")
+        if not isinstance(result, Mapping):
+            raise PaperclipError(
+                f"Paperclip MCP tool {name!r} returned no result"
+            )
+
+        texts = [
+            str(block.get("text", ""))
+            for block in result.get("content", []) or []
+            if isinstance(block, Mapping) and block.get("type") == "text"
+        ]
+        output = "\n".join(texts)
+        if result.get("isError"):
+            message = clean_text(output)[:500] or "unknown tool error"
+            error_type = PaperclipError
+            if name in {"cat", "head"} and any(
+                marker in message.casefold()
+                for marker in _MISSING_FILE_MARKERS
+            ):
+                error_type = _PaperclipFileUnavailable
+            raise error_type(
+                f"Paperclip MCP tool {name!r} failed: {message}"
+            )
+
+        structured = result.get("structuredContent")
+        if structured is None:
+            structured = result.get("structured_content")
+        parsed_output = _parse_json(output)
+        result_data = structured if structured is not None else parsed_output
+        result_id = clean_text(
+            str(
+                _find_value(
+                    (structured, parsed_output),
+                    ("search_id", "result_id", "results_id"),
+                )
+                or ""
+            )
+        )
+        if not result_id:
+            match = _RESULT_ID_PATTERN.search(output)
+            result_id = match.group(0) if match else ""
+        return PaperclipToolResult(
+            output=output,
+            result_id=result_id,
+            result_data=result_data,
+            raw=response,
+        )
 
 
 def create_client() -> Any:
-    try:
-        return _load_client_class().from_env()
-    except Exception as exc:
-        raise PaperclipError(
-            "Paperclip authentication failed. Set PAPERCLIP_API_KEY or complete Paperclip login."
-        ) from exc
+    return PaperclipMCPClient(
+        os.getenv("PAPERCLIP_API_KEY", ""),
+        mcp_url=os.getenv(
+            "PAPERCLIP_MCP_URL",
+            DEFAULT_PAPERCLIP_MCP_URL,
+        ),
+    )
 
 
 def _to_mapping(value: Any) -> dict[str, Any] | None:
@@ -89,6 +261,7 @@ def _extract_list(payload: Any) -> list[dict[str, Any]]:
 
 def _extract_search_hits(client: Any, result: Any) -> list[dict[str, Any]]:
     for payload in (
+        result,
         getattr(result, "papers", None),
         getattr(result, "result_data", None),
         getattr(result, "raw", None),
@@ -117,6 +290,15 @@ def _extract_search_hits(client: Any, result: Any) -> list[dict[str, Any]]:
     return []
 
 
+def _result_id(result: Any) -> str:
+    mapping = _to_mapping(result)
+    if mapping is not None:
+        return clean_text(
+            str(mapping.get("search_id") or mapping.get("result_id") or "")
+        )
+    return clean_text(str(getattr(result, "result_id", "") or ""))
+
+
 def _find_value(value: Any, keys: tuple[str, ...]) -> Any:
     normalized_keys = {key.casefold().replace("-", "_") for key in keys}
     mapping = _to_mapping(value)
@@ -129,7 +311,7 @@ def _find_value(value: Any, keys: tuple[str, ...]) -> Any:
             found = _find_value(item, keys)
             if found not in (None, "", []):
                 return found
-    elif isinstance(value, list):
+    elif isinstance(value, (list, tuple)):
         for item in value:
             found = _find_value(item, keys)
             if found not in (None, "", []):
@@ -151,7 +333,24 @@ def _paper_id(metadata: dict[str, Any]) -> str:
     return match.group(0) if match else clean_text(str(value or ""))
 
 
-def _execute_search(client: Any, args: list[str], timeout: float) -> Any:
+def _execute_search(
+    client: Any,
+    args: list[str],
+    timeout: float,
+    *,
+    mcp_arguments: dict[str, Any] | None = None,
+) -> Any:
+    if mcp_arguments is not None and hasattr(client, "call_tool"):
+        try:
+            return client.call_tool(
+                "search",
+                mcp_arguments,
+                timeout=timeout,
+            )
+        except PaperclipError:
+            raise
+        except Exception as exc:
+            raise PaperclipError(f"Paperclip search failed: {exc}") from exc
     try:
         return client.execute("search", args, timeout=timeout)
     except TypeError:
@@ -161,6 +360,27 @@ def _execute_search(client: Any, args: list[str], timeout: float) -> Any:
 
 
 def _read_file(client: Any, path: str, *, lines: int | None = None) -> Any | None:
+    if hasattr(client, "call_tool"):
+        arguments: dict[str, Any] = {"path": path}
+        tool_name = "cat"
+        if lines is not None:
+            tool_name = "head"
+            arguments["lines"] = lines
+        try:
+            return client.call_tool(
+                tool_name,
+                arguments,
+                timeout=120.0,
+            )
+        except _PaperclipFileUnavailable:
+            return None
+        except PaperclipError:
+            raise
+        except Exception as exc:
+            raise PaperclipError(
+                f"Paperclip {tool_name} failed for {path}: {exc}"
+            ) from exc
+
     papers_api = getattr(client, "papers", None)
     if papers_api is not None:
         try:
@@ -292,7 +512,14 @@ def _normalize_paper(
         str(_find_value(combined, ("title", "paper_title", "document_title")) or paper_id)
     )
     abstract = clean_text(
-        str(_find_value(combined, ("abstract", "summary", "snippet", "description")) or "")
+        str(
+            combined.get("abstract")
+            or _find_value(
+                combined,
+                ("summary", "snippet", "description"),
+            )
+            or ""
+        )
     )
     text = full_text or abstract
     if not text and allow_metadata_only:
@@ -304,15 +531,30 @@ def _normalize_paper(
         paper_id=paper_id,
         title=title,
         text=text,
-        source=_source_name(paper_id, requested_source),
+        source=(
+            clean_text(str(combined.get("source", "")))
+            or _source_name(paper_id, requested_source)
+        ),
         year=_year(combined),
         doi=_doi(combined, text),
         authors=_authors(_find_value(combined, ("authors", "author", "author_string", "creator"))),
-        journal=clean_text(str(_find_value(combined, ("journal", "journal_title", "venue")) or "")),
+        journal=clean_text(
+            str(
+                _find_value(
+                    combined,
+                    ("journal", "journal_title", "venue"),
+                )
+                or ""
+            )
+        ),
         url=_paper_url(combined, paper_id),
         abstract=abstract,
         retrieval_rank=retrieval_rank,
-        metadata={"search_hit": hit, "paperclip_file": file_metadata, "has_full_text": bool(full_text)},
+        metadata={
+            "search_hit": hit,
+            "paperclip_file": file_metadata,
+            "has_full_text": bool(full_text),
+        },
     )
 
 
@@ -406,7 +648,10 @@ def load_paper_full_texts(
             paper.metadata["has_full_text"] = False
             continue
 
-        file_metadata = _read_metadata(active_client, paperclip_id)
+        file_metadata = _read_metadata(
+            active_client,
+            paperclip_id,
+        )
         paper.text = full_text
         paper.metadata["paperclip_file"] = file_metadata
         paper.metadata["has_full_text"] = True
@@ -446,7 +691,10 @@ def load_paper_full_texts(
                 )
             )
         if not paper.url:
-            paper.url = _paper_url(combined, paperclip_id)
+            paper.url = _paper_url(
+                combined,
+                paperclip_id or paper.paper_id,
+            )
 
     return papers
 
@@ -506,7 +754,36 @@ def retrieve_papers(
         args.append("--all")
     args.append(query)
 
-    result = _execute_search(active_client, args, timeout)
+    mcp_arguments: dict[str, Any] = {
+        "query": query,
+        "source": source,
+        "limit": search_limit,
+        "ranking": ranking,
+        "as_json": True,
+    }
+    if mode:
+        mcp_arguments["mode"] = mode
+    if since:
+        mcp_arguments["since"] = since
+    if sort:
+        mcp_arguments["sort"] = sort
+    if year is not None:
+        mcp_arguments["year"] = str(year)
+    if journal:
+        mcp_arguments["journal"] = journal
+    if article_type:
+        mcp_arguments["article_type"] = article_type
+    if author:
+        mcp_arguments["author"] = author
+    if full_corpus:
+        mcp_arguments["all_time"] = True
+
+    result = _execute_search(
+        active_client,
+        args,
+        timeout,
+        mcp_arguments=mcp_arguments,
+    )
     if getattr(result, "exit_code", 0) not in (None, 0):
         message = clean_text(str(getattr(result, "output", "") or "Paperclip search failed"))
         raise PaperclipError(message)
@@ -523,7 +800,11 @@ def retrieve_papers(
         paper_id = _paper_id(hit)
         if not paper_id:
             continue
-        metadata = _read_metadata(active_client, paper_id)
+        metadata = (
+            _read_metadata(active_client, paper_id)
+            if load_full_text or not hasattr(active_client, "call_tool")
+            else {}
+        )
         full_text = (
             _read_full_text(active_client, paper_id, max_full_text_lines)
             if load_full_text
@@ -547,5 +828,5 @@ def retrieve_papers(
 
     return PaperclipRetrieval(
         papers=papers,
-        result_id=str(getattr(result, "result_id", "") or ""),
+        result_id=_result_id(result),
     )
