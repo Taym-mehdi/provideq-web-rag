@@ -288,14 +288,21 @@ def _parse_formatted_search_output(output: str) -> list[dict[str, Any]]:
                 paper.setdefault("doi", line[4:].strip())
             elif line.startswith('"'):
                 paper["abstract"] = line.strip('"')
+            elif line.startswith("Matched:") or line.startswith("│"):
+                continue
             elif "·" in line:
                 fields = [field.strip() for field in line.split("·")]
-                if fields:
-                    paper["id"] = fields[0]
-                if len(fields) >= 2:
-                    paper["source"] = fields[1]
-                if len(fields) >= 3:
-                    paper["published_date"] = fields[2]
+                identifier = (
+                    _PAPER_ID_PATTERN.search(fields[0])
+                    if fields
+                    else None
+                )
+                if identifier is not None:
+                    paper["id"] = identifier.group(0)
+                    if len(fields) >= 2:
+                        paper["source"] = fields[1].casefold()
+                    if len(fields) >= 3:
+                        paper["published_date"] = fields[2]
             elif "authors" not in paper:
                 paper["authors"] = line
 

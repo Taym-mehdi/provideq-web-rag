@@ -133,8 +133,10 @@ class PaperclipMCPTests(unittest.TestCase):
             "Found 1 papers  [s_f012ab12]\n\n"
             "  \x1b[1m1. Time as a significant factor in potassium release\x1b[0m\n"
             "     Tom Reuter, Michael Müller\n"
-            "     \x1b[2mPMC11627413 · pmc · 2024-12-09\x1b[0m\n"
+            "     \x1b[2mPMC11627413 · PMC · 2024-12-09 · 2 citations\x1b[0m\n"
             "     \x1b[36mhttps://www.ncbi.nlm.nih.gov/pmc/articles/PMC11627413/\x1b[0m\n"
+            "     Matched: 1 Introduction · cat /papers/PMC11627413/content.lines --lines 22-25\n"
+            "     │ Potassium should be measured shortly after sampling.\n"
             "     \x1b[2m\"Potassium increased with delayed centrifugation.\"\x1b[0m\n"
         )
         opener = _Opener([_tool_response(output)])
@@ -153,6 +155,7 @@ class PaperclipMCPTests(unittest.TestCase):
         self.assertEqual(len(result.papers), 1)
         self.assertEqual(result.papers[0].paper_id, "PMC11627413")
         self.assertEqual(result.papers[0].source, "pmc")
+        self.assertNotIn("Matched", result.papers[0].paper_id)
         self.assertIn("delayed centrifugation", result.papers[0].abstract)
 
     def test_full_text_is_loaded_with_head_and_metadata_with_cat(self) -> None:
