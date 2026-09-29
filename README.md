@@ -60,6 +60,12 @@ python -m pip check
 copy .env.example .env
 ~~~
 
+On Windows, the requirements pin PyTorch 2.9.1. This is the build verified
+with Python 3.12 and Windows 11 Smart App Control for this project. A newer
+unverified PyTorch wheel may be blocked while loading `torch\\lib\\shm.dll`.
+Do not disable Smart App Control to work around that error; reinstall the
+pinned requirements instead.
+
 Add the Paperclip API key to `.env`:
 
 ~~~dotenv

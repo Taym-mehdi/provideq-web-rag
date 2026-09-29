@@ -10,7 +10,7 @@ def resolve_device(requested: str | None = "auto") -> str:
     try:
         import torch
     except ImportError as exc:
-        raise RuntimeError("MedCPT requires torch and transformers") from exc
+        raise RuntimeError(f"MedCPT could not import torch: {exc}") from exc
 
     value = (requested or "auto").strip().casefold()
     if value == "auto":
@@ -53,7 +53,10 @@ def _load_cross_encoder(
             AutoTokenizer,
         )
     except ImportError as exc:
-        raise RuntimeError("MedCPT requires torch and transformers") from exc
+        raise RuntimeError(
+            "MedCPT could not import its Transformers components: "
+            f"{exc}"
+        ) from exc
 
     resolved_device = resolve_device(device)
     tokenizer = AutoTokenizer.from_pretrained(model_name)

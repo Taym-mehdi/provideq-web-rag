@@ -167,8 +167,8 @@ def _load_tokenizer(model_name: str) -> Any:
         from transformers import AutoTokenizer
     except ImportError as exc:
         raise RuntimeError(
-            "Token-aware chunking requires transformers. "
-            "Install the project requirements first."
+            "Token-aware chunking could not import "
+            f"transformers.AutoTokenizer: {exc}"
         ) from exc
 
     return AutoTokenizer.from_pretrained(model_name, use_fast=True)
