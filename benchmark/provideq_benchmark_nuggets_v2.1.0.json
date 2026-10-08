@@ -6,7 +6,7 @@
   "source": "Peer-reviewed scientific papers indexed in PubMed and/or available through PubMed Central or the journal publisher. Additional gold documents were included only when a directly supporting verbatim passage could be verified.",
   "description": "Positive-only benchmark of 90 biobanking questions revised for realistic expert use. Questions retain the original scientific intent but use more natural wording where needed. Each gold document contains its own verbatim supporting answer span. A retrieval hit is satisfied by matching any listed gold document. Each question additionally contains concise, question-conditioned gold information nuggets derived only from its approved gold answer spans.",
   "categories": [
-    "Pre-centrifugation delay and transport",
+    "Processing delay and transport",
     "Storage temperature and duration",
     "Freeze-thaw and frozen storage",
     "Specimen, tube, and processing effects",
@@ -89,7 +89,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q003_N01",
@@ -189,7 +189,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q007_N01",
@@ -241,7 +241,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q009_N01",
@@ -289,7 +289,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q011_N01",
@@ -313,7 +313,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q012_N01",
@@ -351,7 +351,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q013_N01",
@@ -617,7 +617,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q023_N01",
@@ -674,7 +674,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q025_N01",
@@ -722,7 +722,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q027_N01",
@@ -774,7 +774,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q029_N01",
@@ -893,7 +893,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q033_N01",
@@ -1009,7 +1009,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q037_N01",
@@ -1065,7 +1065,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q039_N01",
@@ -1109,7 +1109,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q040_N01",
@@ -1351,7 +1351,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q048_N01",
@@ -1503,7 +1503,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q053_N01",
@@ -1528,7 +1528,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q054_N01",
@@ -1716,7 +1716,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q061_N01",
@@ -1758,7 +1758,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q062_N01",
@@ -1787,7 +1787,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q063_N01",
@@ -1812,7 +1812,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q064_N01",
@@ -1909,7 +1909,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q067_N01",
@@ -2066,7 +2066,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q071_N01",
@@ -2178,7 +2178,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q075_N01",
@@ -2232,7 +2232,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport",
+      "category": "Processing delay and transport",
       "nuggets": [
         {
           "id": "Q077_N01",

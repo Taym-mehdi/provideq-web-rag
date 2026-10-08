@@ -6,7 +6,7 @@
   "source": "Peer-reviewed scientific papers indexed in PubMed and/or available through PubMed Central or the journal publisher. Additional gold documents were included only when a directly supporting verbatim passage could be verified.",
   "description": "Positive-only benchmark of 90 biobanking questions revised for realistic expert use. Questions retain the original scientific intent but use more natural wording where needed. Each gold document contains its own verbatim supporting answer span. A retrieval hit is satisfied by matching any listed gold document.",
   "categories": [
-    "Pre-centrifugation delay and transport",
+    "Processing delay and transport",
     "Storage temperature and duration",
     "Freeze-thaw and frozen storage",
     "Specimen, tube, and processing effects",
@@ -65,7 +65,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q004",
@@ -137,7 +137,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q008",
@@ -173,7 +173,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q010",
@@ -209,7 +209,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q012",
@@ -227,7 +227,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q013",
@@ -247,7 +247,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q014",
@@ -437,7 +437,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q024",
@@ -482,7 +482,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q026",
@@ -518,7 +518,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q028",
@@ -554,7 +554,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q030",
@@ -637,7 +637,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q034",
@@ -709,7 +709,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q038",
@@ -745,7 +745,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q040",
@@ -763,7 +763,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q041",
@@ -917,7 +917,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q049",
@@ -1023,7 +1023,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q054",
@@ -1042,7 +1042,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q055",
@@ -1180,7 +1180,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q062",
@@ -1200,7 +1200,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q063",
@@ -1219,7 +1219,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q064",
@@ -1238,7 +1238,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q065",
@@ -1297,7 +1297,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q068",
@@ -1374,7 +1374,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q072",
@@ -1450,7 +1450,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q076",
@@ -1488,7 +1488,7 @@
           ]
         }
       ],
-      "category": "Pre-centrifugation delay and transport"
+      "category": "Processing delay and transport"
     },
     {
       "id": "Q078",
