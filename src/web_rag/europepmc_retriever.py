@@ -56,7 +56,7 @@ _STOPWORDS = {
     "group", "groups", "stayed", "kept", "least",
 }
 
-# Short biomedical tokens should not be discarded just because they are short.
+# Retain short biomedical terms and abbreviations.
 _SHORT_BIOMEDICAL = {
     "rna", "dna", "csf", "hdl", "ldl", "edta", "nmr", "sop", "sops", "pcr",
     "mirna", "pbmc", "pbmcs", "ph", "rt", "sst", "il6", "crp",
@@ -118,7 +118,7 @@ def _token_score(token: str, position: int) -> tuple[int, int, int]:
         score += 1
     if token in _GENERIC_TERMS:
         score -= 2
-    # Earlier terms in a biomedical question usually carry the central entity/condition.
+    # Prefer earlier question terms when scores tie.
     return score, -position, len(token)
 
 
@@ -151,7 +151,7 @@ def build_query_variants(query: str, *, mode: str = "multi") -> list[str]:
         return [query]
 
     variants: list[str] = []
-    # Keep the original free-text query as one signal. Europe PMC applies its own parser.
+    # Retain the original query alongside the title/abstract variants.
     variants.append(query)
 
     token_count = len(_tokenize(query))
@@ -163,13 +163,12 @@ def build_query_variants(query: str, *, mode: str = "multi") -> list[str]:
             continue
         variants.append("TITLE_ABS:(" + " ".join(terms) + ")")
 
-    # If the question is already short, still add one title/abstract-focused variant.
+    # Include a title/abstract variant even for short questions.
     if len(variants) == 1:
         terms = _important_terms(query, min(6, max(1, token_count)))
         if terms:
             variants.append("TITLE_ABS:(" + " ".join(terms) + ")")
 
-    # Stable de-duplication.
     return list(dict.fromkeys(variants))
 
 
@@ -205,9 +204,7 @@ def _request_json(
                 body = exc.read().decode("utf-8", errors="replace")
             except Exception:
                 pass
-            # The search path is fixed, so an intermittent empty 404 is normally a
-            # gateway/service failure rather than a missing resource. Retrying it is
-            # safe and has proven useful during benchmark sweeps.
+            # Retry transient gateway 404s from the fixed search endpoint.
             if exc.code not in {404, 408, 429, 500, 502, 503, 504} or attempt >= retries:
                 raise EuropePMCError(
                     f"Europe PMC HTTP {exc.code}: {clean_text(body)[:300]}"
@@ -323,8 +320,7 @@ def _normalize_item(item: dict[str, Any], rank: int, query_variant: str) -> Pape
             "europepmc_source": source_code,
             "europepmc_id": clean_text(item.get("id", "") or item.get("extId", "")),
             "in_epmc": in_epmc,
-            # ``inEPMC`` means full text is available from Europe PMC; this
-            # search endpoint still returns only metadata and an abstract.
+            # inEPMC indicates availability, not full text in this response.
             "full_text_available": in_epmc,
             "has_full_text": False,
             "query_variant": query_variant,
@@ -507,7 +503,7 @@ def retrieve_papers_europepmc(
             entry["variant_ranks"][str(variant_index)] = rank
             for key in keys:
                 key_to_index[key] = existing_index
-        # Avoid hammering the public service when several variants are used.
+        # Space multi-query requests to respect the public service.
         if variant_index < len(variants):
             time.sleep(0.05)
 

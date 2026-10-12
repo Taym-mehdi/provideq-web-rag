@@ -44,14 +44,12 @@ DEFAULT_MEDCPT_MODEL = "ncbi/MedCPT-Cross-Encoder"
 
 @dataclass(frozen=True)
 class Settings:
-    # Best current document-retrieval setting from the completed 90-question
-    # comparison: Paperclip vector raw/LLM-expansion fusion plus raw Europe PMC.
+    # Document retrieval
     retrieval_system: str = "fusion"
     retrieval_limit: int = 20
     query_strategy: str = "llmexpand"
 
-    # Query-generation settings. LLM expansion is the selected default; HyDE
-    # remains available as an experiment.
+    # Query generation
     llm_provider: str = "openai"
     llm_model: str = "qwen3.6:35b-a3b-bf16"
     llm_base_url: str = "https://inference.kbs.uni-hannover.de/v1"
@@ -73,7 +71,7 @@ class Settings:
     expansion_max_terms: int = 6
     expansion_max_query_chars: int = 600
 
-    # Paperclip performs first-stage Web retrieval.
+    # Paperclip
     paperclip_source: str = "pmc,biorxiv,medrxiv,arxiv,abstracts_only"
     paperclip_ranking: str = "vector"
     paperclip_candidate_limit: int = 30
@@ -84,8 +82,7 @@ class Settings:
     paperclip_timeout: float = 120.0
     paperclip_full_corpus: bool = True
 
-    # Europe PMC stays on the raw question and performs its own lexical
-    # multi-query relaxation. The two source rankings are combined with RRF.
+    # Europe PMC and source fusion
     europepmc_mode: str = "multi"
     europepmc_synonym: bool = False
     europepmc_use_reformulated_query: bool = False
@@ -94,7 +91,7 @@ class Settings:
     europepmc_cache_dir: str = "outputs/europepmc_cache"
     fusion_rrf_k: int = 60
 
-    # Mirrors Aryan's local token-aware chunking settings for plain Paperclip text.
+    # Passage construction
     chunking_method: str = "token_aware"
     chunk_tokenizer_model: str = DEFAULT_MEDCPT_MODEL
     chunk_max_tokens: int = 512
@@ -102,7 +99,7 @@ class Settings:
     chunk_max_overlap_sentences: int = 5
     min_chunk_words: int = 5
 
-    # MedCPT cross-encoder is the default final chunk reranker.
+    # Passage ranking and selection
     reranker: str = "medcpt"
     top_k: int = 20
     max_chunks_per_paper: int = 4
@@ -116,7 +113,7 @@ class Settings:
     medcpt_batch_size: int = 8
     medcpt_device: str = "auto"
 
-    # Kept as an optional comparison, not the default.
+    # Hybrid score weights
     hybrid_lexical_weight: float = 0.30
     hybrid_medcpt_weight: float = 0.70
 

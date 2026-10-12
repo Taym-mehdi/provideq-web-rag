@@ -6,9 +6,7 @@ from .models import TextChunk
 from .text_utils import normalize_for_deduplication, overlap_ratio
 
 
-# Abstracts and article bodies often repeat the same finding with slightly
-# different wording. A lower same-paper threshold removes that repetition while
-# preserving the stricter configurable threshold across independent papers.
+# Use a lower threshold for repeated findings within one publication.
 _SAME_PAPER_NEAR_DUPLICATE_THRESHOLD = 0.85
 
 

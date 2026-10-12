@@ -168,14 +168,11 @@ def _retrieve(
     except QueryGenerationError as exc:
         if not args.paperclip_query_fusion:
             raise
-        # Query fusion is a safe augmentation of raw retrieval. If the generator
-        # is temporarily unavailable, keep the question alive by degrading to raw.
+        # Keep raw retrieval when query generation fails.
         query_bundle = build_raw_query(question)
         warnings.append(f"query reformulation failed; used raw query: {_clean(exc)}")
 
-    # HyDE is useful for Paperclip's vector/hybrid search, but Europe PMC is a
-    # lexical/fielded search engine. By default Europe PMC receives the original
-    # question and builds its own progressively relaxed title/abstract queries.
+    # Europe PMC uses raw lexical variants unless configured otherwise.
     raw_query = _clean(query_bundle.normalized_question)
     paperclip_query = _clean(query_bundle.search_query)
     europepmc_query = (
@@ -285,8 +282,7 @@ def _retrieve(
         )
         papers = fused.papers
 
-    # Standalone retrievers already have their requested final limit. Fusion is
-    # explicitly cut to retrieval_limit above.
+    # Standalone retrievers already apply the final retrieval limit.
     papers = papers[: args.retrieval_limit]
     for rank, paper in enumerate(papers, start=1):
         paper.retrieval_rank = rank

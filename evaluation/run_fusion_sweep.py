@@ -55,13 +55,11 @@ def _build_configs() -> tuple[FusionTest, ...]:
                 "--paperclip-ranking", ranking,
                 "--europepmc-mode", "multi",
                 "--no-europepmc-synonym",
-                # Europe PMC stays on the raw question. Its own multi-query
-                # builder performs source-specific lexical relaxation.
+                # Hold Europe PMC fixed across query strategies.
                 "--no-europepmc-use-reformulated-query",
             ]
             if query_strategy != "raw":
-                # Only Paperclip receives the generated query. Its raw result
-                # stays anchored and receives twice the reformulated weight.
+                # Give raw Paperclip ranks twice the reformulated weight.
                 arguments.extend(
                     [
                         "--paperclip-query-fusion",

@@ -22,8 +22,7 @@ from .text_utils import (
 _OLLAMA_CHAT_URL = "http://localhost:11434/api/chat"
 _LLM_PROVIDERS = ("ollama", "openai")
 
-# Bump this whenever either query-generation prompt changes. Evaluation caches
-# include this value so old generations cannot silently contaminate a new run.
+# Increment when query-generation prompts change to invalidate cached queries.
 QUERY_PROMPT_VERSION = "2026-09-biomedical-ir-v6"
 
 _HYDE_SYSTEM_PROMPT = (
@@ -65,10 +64,7 @@ _GENERIC_EXPANSION_TERMS = {
     "study",
 }
 
-# A term that overlaps only one of these broad words is not sufficiently anchored to
-# the question. This deterministic guard rejects attractive but unsupported entities
-# such as expanding an unknown "HG" acronym to "serum haptoglobin" merely because
-# both strings contain "serum".
+# Generic biomedical words alone do not anchor an expansion to the question.
 _LOW_INFORMATION_ANCHORS = {
     "analysis",
     "analyte",
@@ -95,8 +91,7 @@ _LOW_INFORMATION_ANCHORS = {
     "urine",
 }
 
-# Only these common biomedical abbreviations may be expanded without lexical overlap.
-# Unknown short forms are deliberately preserved verbatim rather than guessed.
+# Allow only known acronym expansions without lexical overlap.
 _SAFE_ACRONYM_EXPANSIONS = {
     "csf": ("cerebrospinal fluid",),
     "dna": ("deoxyribonucleic acid",),
@@ -183,9 +178,7 @@ def build_hyde_query(
     if len(hypothetical_document.split()) < 18:
         raise HyDEGenerationError("HyDE returned an unusually short hypothetical passage")
 
-    # Anchor the pseudo-document with the original question. This retains exact
-    # entities and constraints while still adding document-style retrieval context,
-    # reducing the query drift observed with a standalone hypothetical passage.
+    # Keep the original question ahead of the hypothetical document to limit drift.
     search_query = f"{normalized} {hypothetical_document}"
 
     return QueryBundle(
@@ -374,9 +367,7 @@ def make_llm_generator(
             ],
             "temperature": temperature,
             "max_tokens": max_tokens,
-            # Query reformulation needs concise final text/JSON, not hidden
-            # reasoning. Qwen reasoning models can otherwise spend the entire
-            # token budget in reasoning_content and return message.content=None.
+            # Disable reasoning so Qwen returns content within the token budget.
             "extra_body": {
                 "chat_template_kwargs": {
                     "enable_thinking": False,
@@ -389,8 +380,7 @@ def make_llm_generator(
         try:
             completion = client.chat.completions.create(**request)
         except Exception as first_error:
-            # Some OpenAI-compatible servers do not expose response_format even
-            # when the selected model can still follow a JSON-only prompt.
+            # Retry without response_format on endpoints that do not support it.
             if json_output and "response_format" in request:
                 request.pop("response_format", None)
                 try:
@@ -662,8 +652,7 @@ def _validated_expansion_terms(
             token for token in tokenize(term)
             if token not in STOPWORDS
         }
-        # Reject a phrase that contributes no new lexical signal. Standardized
-        # spelling variants remain possible because their normalized token differs.
+        # Skip phrases that add no new normalized tokens.
         if term_tokens and term_tokens.issubset(question_tokens):
             continue
 
@@ -695,8 +684,7 @@ def _morphological_match(left: str, right: str) -> bool:
         return True
     if min(len(left), len(right)) < 5:
         return False
-    # A conservative prefix match handles pairs such as centrifuged/centrifugation,
-    # metabolite/metabolomics, and proteolysis/proteolytic.
+    # Prefix matching covers forms such as centrifuged/centrifugation.
     return left[:5] == right[:5]
 
 

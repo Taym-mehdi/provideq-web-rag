@@ -790,8 +790,7 @@ def retrieve_papers(
         raise ValueError(f"mode must be one of: {', '.join(PAPERCLIP_MODES)}")
 
     active_client = client or create_client()
-    # Ask Paperclip for extra candidates so cross-source duplicates do not reduce
-    # the final number of distinct papers below the requested limit.
+    # Extra hits allow deduplication to fill the requested result limit.
     search_limit = min(max(limit * 3, limit), 1000)
     args = ["--source", source, "--ranking", ranking, "-n", str(search_limit), "--json"]
     if mode:

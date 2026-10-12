@@ -33,8 +33,7 @@ def _build_configs() -> tuple[RetrievalTest, ...]:
                 "--paperclip-ranking", ranking,
             ]
             if query_strategy != "raw":
-                # The raw ranking remains the anchor and is fused with the
-                # reformulated-query ranking using the same fixed weights.
+                # Anchor query fusion to the raw Paperclip ranking.
                 arguments.extend(
                     [
                         "--paperclip-query-fusion",
@@ -63,8 +62,7 @@ def _build_configs() -> tuple[RetrievalTest, ...]:
                 "--europepmc-synonym" if synonyms else "--no-europepmc-synonym",
             ]
             if query_strategy != "raw":
-                # HyDE and LLM expansion already begin with the original
-                # question, so Europe PMC receives an explicitly anchored query.
+                # Europe PMC uses the anchored query in the single-source sweep.
                 arguments.append("--europepmc-use-reformulated-query")
             number = len(configs) + 1
             configs.append(

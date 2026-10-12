@@ -2,8 +2,9 @@
 
 Run commands from Windows CMD in the repository root with `.venv`
 activated. Keep the benchmark, seed, candidate limits, and retrieval limit fixed
-while changing one factor at a time. Generated files stay under `outputs/` and
-are intentionally ignored by Git.
+while changing one factor at a time. Results under `outputs/` are tracked by Git;
+new query and Europe PMC caches are ignored. The approved query caches from the
+original retrieval sweep remain tracked as inputs to the fusion experiments.
 
 ## 1. Preflight
 
@@ -71,9 +72,9 @@ outputs\retrieval_15_tests\
 
 Generated HyDE and expansion queries are cached once and reused across retrieval
 settings, which keeps the query preparation identical for a fair comparison.
-Use a new output directory, or rerun with `--no-resume`, after deliberately
-changing a query prompt or model. The prompt version is part of the query-cache
-name, so older generated queries cannot be reused silently.
+Use a new output directory after changing a query prompt or model. Increment the
+prompt version when editing a generation prompt; it is part of the query-cache
+name. `--no-resume` reruns retrieval but does not remove a reusable query cache.
 
 ## 4. Validate and expand the run
 
@@ -155,8 +156,8 @@ command again; use `--retry-errors` only for rows affected by transient service
 or connection errors.
 
 Do not change source weights or RRF constants during this comparison. The
-selected winner is test 03: Paperclip vector raw/anchored-LLM-expansion fusion
-plus raw Europe PMC without synonyms. It is now the production default.
+selected default is test 03: Paperclip vector raw/anchored-LLM-expansion fusion
+plus raw Europe PMC without synonyms.
 
 ## 6. Final 20-chunk evaluation
 
@@ -169,8 +170,24 @@ python -m evaluation.run_chunk_evaluation --num-questions 5 --seed 42 --output o
 python -m evaluation.run_chunk_evaluation --num-questions 90 --output outputs\chunk_evaluation\full\results.json --no-resume
 ~~~
 
-Each row retains all returned chunks and metadata plus the best lexical and
-semantic score and rank. Use those saved chunks for the later LLM-as-a-judge
-review. A configuration is not ready to become the new default until its run has
-no unexplained errors, its settings are recorded, and spot-checks show no
-keyword-only, bibliography, acknowledgement, or duplicate evidence fragments.
+Each row retains the returned chunks, metadata, and best lexical and semantic
+match for each gold nugget. These saved chunks are the input to the separate
+LLM-as-a-judge review. Check the source warnings and effective settings before
+comparing runs.
+
+To compare all three passage re-rankers on 90 questions without overwriting the
+saved thesis results:
+
+~~~cmd
+python -m evaluation.run_chunk_evaluation --num-questions 90 --reranker medcpt --output outputs\reranker_comparison\medcpt\results.json --no-resume
+python -m evaluation.run_chunk_evaluation --num-questions 90 --reranker lexical --output outputs\reranker_comparison\lexical\results.json --no-resume
+python -m evaluation.run_chunk_evaluation --num-questions 90 --reranker hybrid --output outputs\reranker_comparison\hybrid\results.json --no-resume
+~~~
+
+Each command runs document retrieval and chunking before re-ranking; it does not
+re-rank the previous command's chunks. Europe PMC responses may be reused from
+the cache, while live candidate lists can change between runs.
+
+Chunk evaluation stops on a retrieval-source failure by default. Repeat the same
+command with `--retry-errors` and without `--no-resume` to retry failed questions
+and retain completed rows.

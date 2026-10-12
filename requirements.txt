@@ -1,7 +1,5 @@
 # Runtime
-# PyTorch 2.13+ Windows wheels currently contain DLLs that can be rejected by
-# Windows 11 Smart App Control. Keep the verified Windows build reproducible;
-# other platforms retain the broader compatibility range used by the project.
+# Windows build verified with Python 3.12 and Smart App Control.
 torch==2.9.1; sys_platform == "win32"
 torch>=2.2; sys_platform != "win32"
 transformers>=4.40
@@ -10,7 +8,6 @@ python-dotenv>=1.0
 
 # Evaluation
 numpy>=1.26
-# BGE-M3 semantic embeddings use the runtime torch/transformers packages.
+# BGE-M3 uses the runtime torch and transformers packages.
 
-# Paperclip retrieval calls the hosted MCP tools through the Python standard
-# library, so no separately downloaded Paperclip SDK wheel is required.
+# Paperclip uses hosted MCP tools; no separate SDK wheel is required.

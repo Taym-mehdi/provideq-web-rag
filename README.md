@@ -5,7 +5,8 @@ downstream ProvideQ agent. It does not generate the final answer.
 
 ## Default pipeline
 
-The no-argument defaults represent the best fixed pipeline to test first:
+The default configuration combines Paperclip vector retrieval with Europe PMC,
+followed by token-aware chunking and MedCPT passage re-ranking:
 
 | Stage | Default |
 |---|---|
@@ -14,9 +15,9 @@ The no-argument defaults represent the best fixed pipeline to test first:
 | Paperclip query fusion | Raw/expanded weighted RRF, 2:1 |
 | Europe PMC | Raw multi-query, synonyms off |
 | Source fusion | Equal-weight RRF (`k=60`) |
-| Candidate pool | 30 from each source |
-| Paper retrieval limit | 20 papers |
-| Article text | Full text loaded after final paper ranking |
+| Candidate pool | Up to 30 from each source |
+| Paper retrieval limit | Up to 20 papers |
+| Article text | Available full text loaded after final paper ranking; abstracts otherwise |
 | Chunking | Section-preserving, tokenizer-aware |
 | Chunk size | Maximum 512 MedCPT tokens |
 | Overlap | 20%, using at most five complete trailing sentences |
@@ -29,21 +30,33 @@ acknowledgements, funding, indexing-keyword lists, and similar non-evidence
 content are skipped. Repeated findings from an abstract and the body of the same
 paper are removed before the final selection.
 
-This adapts Aryan's Docling HybridChunker behavior to the plain article text
-returned by Paperclip and the abstracts retained for any Europe PMC-only hits.
-It deliberately does not add Docling as another parsing layer because the
-retrievers already return extracted text.
+Chunking adapts the Docling HybridChunker settings used in Aryan Shakya's parallel
+ProvideQ local RAG project to extracted article text and abstracts. Full text is
+requested for the final ranked papers, including Europe PMC hits. Docling is not
+a dependency of this module.
 
 ## Solr compatibility
 
-Aryan uses Solr to store and retrieve candidates from his persistent local
-corpus. Web RAG has no persistent corpus: Paperclip and Europe PMC perform
-first-stage retrieval directly. Therefore Solr is not duplicated here.
+The ProvideQ local RAG component uses Solr to index its persistent corpus. Web RAG
+retrieves candidates from Paperclip and Europe PMC at query time and does not
+require a separate Solr index.
 
 The compatible hand-off point is the output of `run_pipeline`: up to 20
 MedCPT-reranked chunks with source, paper rank, rerank rank, section, sentence
-range, token count, full-text status, and score metadata. Aryan's agent can
-consume these records directly.
+range, token count, full-text status, and score metadata. The ProvideQ agent
+consumes these records through this interface.
+
+## Repository structure
+
+| Path | Contents |
+|---|---|
+| `src/web_rag/` | Query preparation, document retrieval, chunking, ranking, and evidence output |
+| `evaluation/` | Document-retrieval sweeps, nugget evaluation, and result summaries |
+| `benchmark/` | Reviewed questions, gold publications, and gold nuggets |
+| `tests/` | Unit tests with mocked services and model components |
+| `outputs/` | Saved results and approved query inputs; new caches are ignored |
+| `.env.example` | Configuration template without credentials |
+| `TESTING.md` | Pilot and full-benchmark commands for Windows CMD |
 
 ## Windows setup
 
@@ -60,11 +73,9 @@ python -m pip check
 copy .env.example .env
 ~~~
 
-On Windows, the requirements pin PyTorch 2.9.1. This is the build verified
-with Python 3.12 and Windows 11 Smart App Control for this project. A newer
-unverified PyTorch wheel may be blocked while loading `torch\\lib\\shm.dll`.
-Do not disable Smart App Control to work around that error; reinstall the
-pinned requirements instead.
+The Windows requirements pin PyTorch 2.9.1, verified with Python 3.12 and Windows
+11 Smart App Control. If Windows blocks a PyTorch DLL, reinstall the pinned
+requirements.
 
 Add the Paperclip API key to `.env`:
 
@@ -90,7 +101,7 @@ effective values before testing:
 python -c "from web_rag.config import get_settings; s=get_settings(); print('retrieval_system:',s.retrieval_system); print('query_strategy:',s.query_strategy); print('paperclip_ranking:',s.paperclip_ranking); print('retrieval_limit:',s.retrieval_limit); print('reranker:',s.reranker); print('top_k:',s.top_k)"
 ~~~
 
-The fixed default should print `fusion`, `llmexpand`, `vector`, `20`, `medcpt`,
+The default should print `fusion`, `llmexpand`, `vector`, `20`, `medcpt`,
 and `20`. If it does not, remove old overriding lines from `.env` or copy the
 retrieval block from `.env.example`. The essential values are:
 
@@ -187,13 +198,13 @@ outputs\nugget_chunk_evaluation\results.json
 outputs\nugget_chunk_evaluation\summary.json
 ~~~
 
-results.json contains all 20 chunks and their metadata, the score of every
+`results.json` contains the returned chunks and their metadata, the score of every
 gold nugget, and the rank of that nugget's best lexical and semantic chunk.
 Scores are reported at ranks 1, 3, 5, 10, and 20; rank 20 is the primary
 result because the agent receives all 20 chunks. Lexical scoring uses the mean
 of ROUGE-1 recall and ROUGE-L recall. Semantic scoring uses cosine similarity
 between normalized BGE-M3 `[CLS]` embeddings loaded directly with
-Transformers. summary.json macro-averages the question-level nugget scores so
+Transformers. `summary.json` macro-averages the question-level nugget scores so
 every benchmark question has equal weight.
 
 If GPU auto-detection causes a problem, add:
@@ -226,12 +237,12 @@ expansion, Paperclip vector/Europe PMC fusion, a 20-paper final retrieval limit,
 token-aware chunking, MedCPT cross-encoder reranking, and top-20 evidence
 selection are all defaults.
 
-## Later retrieval experiments
+## Retrieval experiments
 
 The document-retrieval sweep compares exactly 15 configurations: raw, anchored
 HyDE, and anchored LLM expansion across Paperclip BM25, vector, and hybrid, plus
 Europe PMC multi-query retrieval with and without synonyms. Each configuration
-gets a clearly numbered folder and `results.csv`; the sweep also writes a shared
+gets a numbered folder and `results.csv`; the sweep also writes a shared
 `summary.csv`. These tests stop before chunking and reranking. The selected
-fusion winner is now the fixed default pipeline. Follow [TESTING.md](TESTING.md)
+fusion configuration is the default pipeline. Follow [TESTING.md](TESTING.md)
 for the pilot and full-benchmark commands.

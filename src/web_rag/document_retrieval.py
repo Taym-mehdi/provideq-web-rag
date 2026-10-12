@@ -84,8 +84,7 @@ def retrieve_documents(
                     article_type=paperclip_article_type,
                     author=paperclip_author,
                     full_corpus=settings.paperclip_full_corpus,
-                    # Candidate fusion should remain cheap. The final ranked
-                    # papers are hydrated below in a single pass.
+                    # Load article text only after the final paper ranking.
                     load_full_text=False,
                     timeout=settings.paperclip_timeout,
                     client=active_client,
